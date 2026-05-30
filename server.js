@@ -3,20 +3,33 @@ const mongoose   = require('mongoose');
 const http       = require('http');
 const { Server } = require('socket.io');
 const session    = require('express-session');
+const MongoStore = require('connect-mongo');
 const bcrypt     = require('bcrypt');
 const nodemailer = require('nodemailer');
 
-const app    = express();
+const app = express();
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+
 const server = http.createServer(app);
-const io     = new Server(server);
+const io = new Server(server);
 
 app.use(session({
   secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 1000 * 60 * 60 * 8 }
+
+  store: MongoStore.create({
+    mongoUrl: process.env.MONGODB_URI
+  }),
+
+  cookie: {
+    maxAge: 1000 * 60 * 60 * 8,
+    httpOnly: true,
+    secure: process.env.NODE_ENV === 'production',
+    sameSite: 'strict'
+  }
 }));
 
 // ── Public-path guard ──────────────────────────────────────
@@ -1009,7 +1022,8 @@ io.on('connection', (socket) => {
 
 
 // ── Start ──────────────────────────────────────────────────
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
+
 server.listen(PORT, () => {
-  console.log(`🚀 MediFlow running at http://localhost:${PORT}`);
+  console.log(`🚀 MediFlow running on port ${PORT}`);
 });
