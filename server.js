@@ -10,12 +10,11 @@ const app    = express();
 const server = http.createServer(app);
 const io     = new Server(server);
 
-app.use(express.json());
 app.use(session({
-  secret: 'mediflow-secret-key-2025',
+  secret: process.env.SESSION_SECRET,
   resave: false,
   saveUninitialized: false,
-  cookie: { maxAge: 1000 * 60 * 60 * 8 }   // 8-hour session
+  cookie: { maxAge: 1000 * 60 * 60 * 8 }
 }));
 
 // ── Public-path guard ──────────────────────────────────────
@@ -36,7 +35,7 @@ app.use((req, res, next) => {
 
 app.use(express.static('public'));
 
-mongoose.connect('mongodb://127.0.0.1:27017/mediflow')
+mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB error:', err));
 
@@ -46,9 +45,9 @@ mongoose.connect('mongodb://127.0.0.1:27017/mediflow')
 const transporter = nodemailer.createTransport({
   service: 'gmail',
   auth: {
-    user: 'mediflow.pharmacy@gmail.com',       // ← replace with your Gmail
-    pass: 'muzp sjtd kcml xfck',     // ← replace with Gmail App Password (16 chars)
-  }
+  user: process.env.EMAIL_USER,
+  pass: process.env.EMAIL_PASS
+}
 });
 
 // ── OTP Schema ────────────────────────────────────────────
