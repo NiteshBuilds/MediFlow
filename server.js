@@ -3,7 +3,7 @@ const mongoose   = require('mongoose');
 const http       = require('http');
 const { Server } = require('socket.io');
 const session    = require('express-session');
-const MongoStore = require('connect-mongo');
+const MongoStore = require('connect-mongo').default;
 const bcrypt     = require('bcrypt');
 const nodemailer = require('nodemailer');
 
@@ -383,6 +383,7 @@ app.post('/profile/request-edit-code', requireOwner, async (req, res) => {
     await OTP.deleteMany({ email: user.email.toLowerCase(), purpose: 'profile_edit' });
     await OTP.create({ email: user.email.toLowerCase(), code, purpose: 'profile_edit', expiresAt });
 
+  try {
     console.log(`[PROFILE_OTP] Sending code to ${user.email}`);
     await transporter.sendMail({
       from: '"MediFlow" <mediflow.pharmacy@gmail.com>',
@@ -390,15 +391,43 @@ app.post('/profile/request-edit-code', requireOwner, async (req, res) => {
       subject: 'MediFlow — Profile Edit Verification Code',
       html: `
         <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;border:1px solid #e0f4f4;border-radius:12px">
-          <h2 style="color:#0d6b6e;margin-bottom:.5rem">🔐 Profile Update Verification</h2>
-          <p style="color:#3a5a5c;margin-bottom:1.5rem">Hi ${user.name}, use this code to unlock profile editing in MediFlow:</p>
+          <h2 style="color:#0d6b6e;margin-bottom:.5rem">
+            🔐 Profile Update Verification
+          </h2>
+
+          <p style="color:#3a5a5c;margin-bottom:1.5rem">
+            Hi ${user.name}, use this code to unlock profile editing in MediFlow:
+          </p>
+
           <div style="background:#f0f4f5;border:2px dashed #0d6b6e;border-radius:10px;padding:1.5rem;text-align:center;margin-bottom:1.5rem">
-            <span style="font-size:2.5rem;font-weight:800;letter-spacing:.4rem;color:#0d6b6e">${code}</span>
+            <span style="font-size:2.5rem;font-weight:800;letter-spacing:.4rem;color:#0d6b6e">
+              ${code}
+            </span>
           </div>
-          <p style="color:#7a9ea0;font-size:.85rem">This code expires in <strong>10 minutes</strong>. If you did not request this, ignore this email.</p>
+
+          <p style="color:#7a9ea0;font-size:.85rem">
+            This code expires in <strong>10 minutes</strong>.
+          </p>
         </div>
       `
     });
+
+    console.log('[PROFILE_OTP] OTP sent successfully');
+
+    return res.json({
+      success: true,
+      message: 'Verification code sent'
+    });
+
+  } catch(err) {
+
+    console.error('[PROFILE_OTP] Send failed:', err);
+
+    return res.status(500).json({
+      success: false,
+      message: 'Failed to send verification code'
+    });
+  }
 
     console.log(`[PROFILE_OTP] Sent successfully to ${user.email}`);
     res.json({ success: true, message: 'Verification code sent to your email.' });
