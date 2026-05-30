@@ -1,0 +1,1158 @@
+<!DOCTYPE html>
+<html lang="en">
+<!-- 
+  Autocomplete popup for medicine names in Billing section, 
+  per the Restock screenshot suggestion.
+-->
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Billing — MediFlow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/mediflow-brand.css"/>
+  <link rel="icon" href="/assets/mediflow-logo-icon.svg" type="image/svg+xml"/>
+  <script src="/socket.io/socket.io.js"></script>
+  <style>
+    :root{
+      --teal:#0d6b6e;--teal-dk:#094a4c;--teal-md:#0f8a8e;--teal-lt:#e0f4f4;
+      --amber:#e8870a;--amber-lt:#fef3e2;
+      --green:#1a7a4a;--green-lt:#e3f5ec;
+      --red:#c0392b;--red-lt:#fdecea;
+      --bg:#f0f4f5;--surface:#ffffff;--surface2:#f7fafa;
+      --sidebar-bg:#0a3d3f;--sidebar-w:240px;
+      --text:#0f2b2d;--text-2:#3a5a5c;--muted:#7a9ea0;
+      --border:#d4e6e7;--border-dk:#b8d4d5;
+      --shadow-sm:0 1px 4px rgba(13,107,110,.08);--shadow-md:0 4px 16px rgba(13,107,110,.12);--shadow-lg:0 8px 32px rgba(13,107,110,.18);
+      --radius:12px;--radius-sm:8px;--radius-lg:16px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+
+    /* ── SIDEBAR ── */
+    .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:200}
+    .sidebar::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:28px 28px}
+    .sidebar-logo{padding:1.4rem 1.25rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.06)}
+    .logo-mark{display:flex;align-items:center;gap:.6rem;text-decoration:none}
+    .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,#0f8a8e,#0aa8ad);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 4px 12px rgba(13,168,173,.4);flex-shrink:0}
+    .logo-text{font-family:'Sora',sans-serif;font-size:1.1rem;font-weight:700;color:#fff;letter-spacing:-.02em}
+    .logo-sub{font-size:.6rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em}
+    .sidebar-user{margin:.9rem .85rem .25rem;padding:.7rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);display:flex;align-items:center;gap:.55rem}
+    .user-avatar{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--amber),#f5a623);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff;flex-shrink:0}
+    .user-name-s{font-size:.78rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .user-role{font-size:.65rem;color:rgba(255,255,255,.35)}
+    .sidebar-nav{flex:1;padding:.4rem 0;overflow-y:auto}
+    .nav-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.22);padding:.85rem 1.25rem .3rem}
+    .nav-item{display:flex;align-items:center;gap:.65rem;padding:.55rem .9rem .55rem 1.25rem;margin:.08rem .65rem;border-radius:var(--radius-sm);text-decoration:none;color:rgba(255,255,255,.5);font-size:.82rem;font-weight:500;transition:all .16s;position:relative}
+    .nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+    .nav-item.active{background:rgba(15,138,142,.22);color:#fff;font-weight:600}
+    .nav-item.active::before{content:'';position:absolute;left:2px;top:22%;bottom:22%;width:3px;background:#0aa8ad;border-radius:2px}
+    .nav-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.82rem;background:rgba(255,255,255,.06);flex-shrink:0;transition:background .16s}
+    .nav-item.active .nav-icon{background:rgba(15,138,142,.35)}
+    .nav-item:hover .nav-icon{background:rgba(255,255,255,.1)}
+
+    /* WS status */
+    .sidebar-ws{padding:.55rem .85rem;margin:.25rem .65rem;border-radius:var(--radius-sm);background:rgba(255,255,255,.04);display:flex;align-items:center;gap:.45rem;font-size:.7rem;color:rgba(255,255,255,.35)}
+    .ws-dot{width:5px;height:5px;border-radius:50%;background:rgba(255,255,255,.2);flex-shrink:0;transition:background .3s}
+    .sidebar-ws.connected .ws-dot{background:#4ade80;box-shadow:0 0 6px rgba(74,222,128,.5)}
+    .sidebar-ws.connected{color:rgba(255,255,255,.5)}
+
+    .sidebar-footer{padding:.7rem;border-top:1px solid rgba(255,255,255,.06)}
+    .btn-logout{width:100%;display:flex;align-items:center;gap:.55rem;padding:.55rem .85rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);color:rgba(255,255,255,.4);font-size:.78rem;font-weight:500;font-family:inherit;cursor:pointer;transition:all .18s}
+    .btn-logout:hover{background:rgba(192,57,43,.2);border-color:rgba(192,57,43,.35);color:#ff8a80}
+
+    /* ── MAIN ── */
+    .main-wrap{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column}
+    .topbar{height:58px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 1.75rem;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
+    .topbar-title{font-family:'Sora',sans-serif;font-size:.98rem;font-weight:600;color:var(--text)}
+    .content{flex:1;padding:1.5rem 1.75rem 3rem;display:grid;grid-template-columns:380px 1fr;gap:1.5rem;align-items:start}
+
+    /* ── PANELS ── */
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:visible;animation:fadeUp .3s ease both}
+    .panel-head{padding:.9rem 1.2rem;border-bottom:1px solid var(--border);background:var(--surface2);border-radius:var(--radius-lg) var(--radius-lg) 0 0;display:flex;align-items:center;justify-content:space-between}
+    .panel-title{font-family:'Sora',sans-serif;font-size:.88rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:.4rem}
+    .panel-body{padding:1.2rem}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── INPUTS ── */
+    .field-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);display:block;margin-bottom:.35rem}
+    .input-row{display:flex;gap:.55rem;margin-bottom:1rem}
+    .inp{flex:1;padding:.62rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
+    .inp:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1);background:var(--surface)}
+
+    /* Autocomplete */
+    .ac-wrap{position:relative;z-index:1000;margin-bottom:1rem}
+    .autocomplete-list{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--surface);border:1.5px solid var(--teal-md);border-radius:var(--radius);max-height:250px;overflow-y:auto;z-index:9999;display:none;box-shadow:var(--shadow-lg)}
+    .autocomplete-list.show{display:block}
+    .autocomplete-item{padding:.65rem .9rem;cursor:pointer;border-bottom:1px solid var(--border);transition:background .13s}
+    .autocomplete-item:last-child{border-bottom:none}
+    .autocomplete-item:hover,.autocomplete-item.active{background:var(--teal-lt)}
+    .ac-name{font-weight:600;font-size:.84rem;color:var(--text)}
+    .ac-meta{font-size:.73rem;color:var(--muted);margin-top:.1rem}
+
+    /* Buttons */
+    .btn{display:inline-flex;align-items:center;gap:.35rem;padding:.58rem 1rem;border:none;border-radius:var(--radius-sm);font-size:.83rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all .18s;white-space:nowrap}
+    .btn-primary{background:var(--teal);color:#fff;box-shadow:0 2px 8px rgba(13,107,110,.2)}
+    .btn-primary:hover{background:var(--teal-md);transform:translateY(-1px)}
+    .btn-green{background:var(--green);color:#fff;box-shadow:0 2px 8px rgba(26,122,74,.2)}
+    .btn-green:hover{background:#156039;transform:translateY(-1px)}
+    .btn-ghost{background:transparent;color:var(--text-2);border:1.5px solid var(--border-dk)}
+    .btn-ghost:hover{background:var(--teal-lt);border-color:var(--teal-md);color:var(--teal-dk)}
+    .btn-danger-s{background:var(--red-lt);color:var(--red);border:1.5px solid #f5c6c2}
+    .btn-danger-s:hover{background:#fbd9d7}
+
+    /* Status / flash */
+    .status-msg{display:none;align-items:center;gap:.45rem;padding:.6rem .85rem;border-radius:var(--radius-sm);font-size:.8rem;font-weight:600;margin-bottom:.85rem;border:1px solid transparent;animation:fadeUp .2s}
+    .status-msg.show{display:flex}.status-msg.ok{background:var(--green-lt);color:var(--green);border-color:#a7d9be}.status-msg.err{background:var(--red-lt);color:var(--red);border-color:#f5c6c2}.status-msg.warn{background:var(--amber-lt);color:#a85f00;border-color:#f5dbb0}
+    .ws-flash{background:#e8f4ff;border:1.5px solid var(--teal-md);border-radius:var(--radius-sm);padding:.6rem .85rem;font-size:.8rem;font-weight:600;color:var(--teal-dk);display:none;margin-bottom:.85rem;animation:fadeUp .2s}
+    .ws-flash.show{display:flex;align-items:center;gap:.4rem}
+
+    /* Lookup card */
+    .lookup-card{background:var(--teal-lt);border:1px solid var(--border-dk);border-radius:var(--radius-sm);padding:.85rem 1rem;display:none;gap:.85rem;align-items:flex-start;animation:fadeUp .2s}
+    .lookup-card.show{display:flex}
+    .lookup-icon{font-size:1.6rem;flex-shrink:0;margin-top:.1rem}
+    .lookup-name{font-weight:700;font-size:.88rem;color:var(--text)}
+    .lookup-meta{font-size:.74rem;color:var(--muted);margin-top:.1rem}
+    /* Batch badges shown in lookup card */
+    .batch-badges{display:flex;flex-wrap:wrap;gap:.35rem;margin-top:.5rem}
+    .batch-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.2rem .55rem;border-radius:20px;font-size:.7rem;font-weight:700;border:1px solid transparent}
+    .batch-badge.batch-a{background:#dff6e8;color:#0f5c2e;border-color:#a7d9be}
+    .batch-badge.batch-b{background:#e8f0fe;color:#1a3a7a;border-color:#b0c4f5}
+    .batch-badge.batch-c{background:#fff3e0;color:#7a4000;border-color:#f5c87a}
+    .batch-badge.batch-other{background:#f3f3f3;color:#555;border-color:#ccc}
+
+    /* Stock warning */
+    .stock-warn{background:#fffbeb;border:2px solid #f6c90e;border-radius:var(--radius);padding:.9rem 1rem;display:none;align-items:flex-start;gap:.7rem;margin-bottom:.85rem;animation:fadeUp .2s}
+    .stock-warn.show{display:flex}
+    .swb-icon{font-size:1.4rem;flex-shrink:0}
+    .swb-title{font-weight:700;font-size:.84rem;color:#7a4a00}
+    .swb-body{font-size:.76rem;color:#9a6000;margin-top:.15rem;line-height:1.5}
+
+    /* Expiry warning on lookup card */
+    .expiry-warn{display:none;align-items:center;gap:.4rem;margin-top:.5rem;padding:.38rem .6rem;border-radius:6px;font-size:.73rem;font-weight:700;animation:fadeUp .2s}
+    .expiry-warn.show{display:flex}
+    .expiry-warn.critical{background:#fdecea;color:#7a1a1a;border:1px solid #f5c6c2}
+    .expiry-warn.soon{background:#fffbeb;color:#7a4a00;border:1px solid #f6d860}
+
+    /* Deduct-from info tag */
+    .deduct-from{display:none;align-items:center;gap:.4rem;margin-top:.45rem;padding:.35rem .6rem;border-radius:6px;font-size:.73rem;font-weight:600;background:var(--green-lt);color:var(--green);border:1px solid #a7d9be}
+    .deduct-from.show{display:flex}
+
+    /* Batch badge expiry state overrides */
+    .batch-badge.expiring{background:#fdecea;color:#7a1a1a;border-color:#f5c6c2}
+    .batch-badge.expiring-soon{background:#fffbeb;color:#7a4a00;border-color:#f6d860}
+
+    /* ── CART ── */
+    .cart-panel{animation-delay:.07s}
+    .empty-state{text-align:center;padding:3rem 1.5rem;color:var(--muted)}
+    .empty-icon{font-size:2.5rem;margin-bottom:.65rem}
+    .empty-state p{font-size:.84rem;line-height:1.6}
+
+    table{width:100%;border-collapse:collapse}
+    thead th{background:var(--surface2);text-align:left;padding:.6rem .9rem;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);border-bottom:1px solid var(--border)}
+    tbody td{padding:.75rem .9rem;font-size:.84rem;border-bottom:1px solid var(--border);vertical-align:middle}
+    tbody tr:last-child td{border-bottom:none}
+    tbody tr:hover td{background:var(--teal-lt)}
+    @keyframes rowPop{0%{background:rgba(26,122,74,.2);transform:scale(1.008)}100%{background:transparent;transform:scale(1)}}
+    tbody tr.new-item{animation:rowPop 1.4s ease forwards}
+    .td-name{font-weight:600;font-size:.84rem}
+    .td-barcode{font-size:.72rem;color:var(--muted);font-family:monospace}
+    .qty-ctrl{display:inline-flex;align-items:center;border:1.5px solid var(--border);border-radius:7px;overflow:hidden}
+    .qty-btn{width:26px;height:26px;background:var(--surface2);border:none;font-size:.95rem;cursor:pointer;display:flex;align-items:center;justify-content:center;transition:background .13s;font-family:inherit}
+    .qty-btn:hover{background:var(--teal-lt)}
+    .qty-btn:active{background:var(--teal);color:#fff}
+    .qty-num{width:30px;text-align:center;font-size:.86rem;font-weight:700;color:var(--text)}
+    .del-btn{background:none;border:none;color:var(--muted);font-size:.82rem;cursor:pointer;padding:.28rem .45rem;border-radius:5px;transition:all .13s}
+    .del-btn:hover{background:var(--red-lt);color:var(--red)}
+
+    /* Cart footer */
+    .cart-footer{padding:.9rem 1.2rem;border-top:1px solid var(--border);background:var(--surface2)}
+    .sub-row{display:flex;justify-content:space-between;font-size:.8rem;color:var(--muted);margin-bottom:.3rem}
+    .grand-row{display:flex;justify-content:space-between;align-items:center;margin-top:.55rem;padding-top:.55rem;border-top:1.5px solid var(--border)}
+    .grand-label{font-weight:700;font-size:.9rem}
+    .grand-value{font-family:'Sora',sans-serif;font-size:1.55rem;font-weight:700;color:var(--teal-dk)}
+    .action-row{display:flex;gap:.65rem;padding:.9rem 1.2rem;border-top:1px solid var(--border)}
+
+    /* Toast */
+    #toast{position:fixed;bottom:2rem;left:calc(var(--sidebar-w) + 50%);transform:translateX(-50%) translateY(14px);padding:.7rem 1.3rem;border-radius:var(--radius);font-size:.84rem;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s,transform .25s;z-index:9999;white-space:nowrap;box-shadow:var(--shadow-lg);display:flex;align-items:center;gap:.45rem}
+    #toast.show{opacity:1;transform:translateX(-50%) translateY(0);pointer-events:auto}
+    #toast.ok{background:#0f3d20;color:#a7f3d0;border:1px solid #166534}
+    #toast.err{background:#3d0f0f;color:#fca5a5;border:1px solid #7f1d1d}
+    #toast.warn{background:#3d2a0f;color:#fde68a;border:1px solid #92400e}
+
+    /* ── RECEIPT ── */
+    .receipt{width:76mm;font-family:'Courier New',Courier,monospace;font-size:12px;line-height:1.5;color:#000;background:#fff;padding:4mm 5mm;margin:0 auto}
+    .receipt-header{text-align:center;margin-bottom:6px}.receipt-header h1{font-size:20px;font-weight:900;letter-spacing:2px;margin:0 0 3px}.receipt-header .sub{font-size:10px;color:#444}
+    .receipt-dash{border:none;border-top:1px dashed #000;margin:7px 0}
+    .receipt-datetime{text-align:center;font-size:10px;color:#333;margin-bottom:6px}
+    .receipt-col-head{display:flex;font-weight:bold;font-size:10px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:4px}
+    .rch-name{flex:1}.rch-qty{width:28px;text-align:center}.rch-price{width:46px;text-align:right}.rch-total{width:52px;text-align:right}
+    .receipt-item{display:flex;align-items:flex-start;margin:3px 0;font-size:11.5px}
+    .ri-name{flex:1;word-break:break-word;line-height:1.3}.ri-qty{width:28px;text-align:center;flex-shrink:0}.ri-price{width:46px;text-align:right;flex-shrink:0}.ri-total{width:52px;text-align:right;flex-shrink:0;font-weight:600}
+    .receipt-summary{font-size:10.5px;color:#444}.receipt-row{display:flex;justify-content:space-between;margin:2px 0}
+    .receipt-grand{display:flex;justify-content:space-between;font-weight:900;font-size:15px;margin-top:5px;padding-top:5px;border-top:2px solid #000}
+    .receipt-footer{text-align:center;font-size:10px;color:#444;margin-top:4px;line-height:1.6}
+    .receipt-num{text-align:center;font-size:9px;color:#888;margin-top:5px}
+    .receipt-powered{text-align:center;font-size:9px;color:#aaa;margin-top:5px;letter-spacing:.04em;border-top:1px dashed #ddd;padding-top:4px}
+
+    @media print{
+      @page{size:80mm auto;margin:0}
+      html,body{width:80mm;margin:0;padding:0;background:#fff!important}
+      body>*:not(#print-root){display:none!important;visibility:hidden!important;height:0!important;overflow:hidden!important}
+      #print-root{display:block!important;visibility:visible!important;position:absolute;left:0;top:0;width:80mm;margin:0;padding:0}
+      #print-root .receipt{width:76mm;margin:0 auto}
+    }
+    @media(max-width:900px){.content{grid-template-columns:1fr}}
+
+    /* ── PROFILE MODAL ─────────────────────────────────────── */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(5,20,22,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .22s}
+    .modal-backdrop.open{opacity:1;pointer-events:auto}
+    .modal{background:#fff;border-radius:18px;width:100%;max-width:520px;box-shadow:0 24px 64px rgba(13,107,110,.22);transform:translateY(16px) scale(.98);transition:transform .25s,opacity .25s;opacity:0;display:flex;flex-direction:column;max-height:90vh}
+    .modal-backdrop.open .modal{transform:translateY(0) scale(1);opacity:1}
+    .modal-header{padding:1.2rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .modal-title{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:var(--text)}
+    .modal-close{background:none;border:none;font-size:1.3rem;color:var(--muted);cursor:pointer;padding:.2rem .4rem;border-radius:6px;transition:all .15s;line-height:1}
+    .modal-close:hover{background:var(--red-lt);color:var(--red)}
+    .modal-body{padding:1.4rem;overflow-y:auto;flex:1}
+    /* Tabs */
+    .modal-tabs{display:flex;gap:.4rem;margin-bottom:1.4rem;background:var(--surface2);border-radius:10px;padding:.3rem}
+    .modal-tab{flex:1;padding:.5rem;border:none;border-radius:8px;font-size:.8rem;font-weight:600;font-family:inherit;cursor:pointer;background:transparent;color:var(--muted);transition:all .16s;text-align:center}
+    .modal-tab.active{background:#fff;color:var(--teal-dk);box-shadow:0 1px 6px rgba(13,107,110,.12)}
+    .tab-panel{display:none}.tab-panel.active{display:block}
+    /* Form inside modal */
+    .m-field{margin-bottom:1rem}
+    .m-label{display:block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.36rem}
+    .m-input{width:100%;padding:.62rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
+    .m-input:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1);background:#fff}
+    .m-divider{height:1px;background:var(--border);margin:1.1rem 0}
+    .m-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.62rem 1.2rem;border:none;border-radius:var(--radius-sm);font-size:.85rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s}
+    .m-btn-primary{background:var(--teal);color:#fff;box-shadow:0 2px 8px rgba(13,107,110,.2)}
+    .m-btn-primary:hover{background:var(--teal-md);transform:translateY(-1px)}
+    .m-btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .m-btn-danger{background:var(--red-lt);color:var(--red);border:1.5px solid #f5c6c2}
+    .m-btn-danger:hover{background:#fbd9d7}
+    .m-msg{padding:.6rem .85rem;border-radius:var(--radius-sm);font-size:.81rem;font-weight:600;display:none;align-items:center;gap:.4rem;margin-top:.85rem;border:1px solid transparent;animation:fadeUp .2s}
+    .m-msg.show{display:flex}
+    .m-msg.ok{background:var(--green-lt);color:var(--green);border-color:#a7d9be}
+    .m-msg.err{background:var(--red-lt);color:var(--red);border-color:#f5c6c2}
+    /* Inventory list inside modal */
+    .inv-list{max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+    .inv-list-item{display:flex;align-items:center;justify-content:space-between;padding:.7rem .9rem;border-bottom:1px solid var(--border);font-size:.82rem;transition:background .13s}
+    .inv-list-item:last-child{border-bottom:none}
+    .inv-list-item:hover{background:var(--surface2)}
+    .inv-item-name{font-weight:600;color:var(--text)}
+    .inv-item-meta{font-size:.72rem;color:var(--muted);margin-top:.1rem}
+    .inv-item-del{background:none;border:none;color:var(--muted);cursor:pointer;padding:.28rem .45rem;border-radius:5px;font-size:.82rem;transition:all .13s;flex-shrink:0}
+    .inv-item-del:hover{background:var(--red-lt);color:var(--red)}
+    .inv-search-wrap{padding:.65rem .9rem;border-bottom:1px solid var(--border);background:var(--surface2)}
+    .inv-search-wrap input{width:100%;padding:.45rem .75rem;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;font-family:inherit;background:#fff;outline:none}
+    .inv-search-wrap input:focus{border-color:var(--teal-md)}
+    .inv-empty{padding:2rem;text-align:center;color:var(--muted);font-size:.83rem}
+    /* Profile button in sidebar */
+    .btn-profile{width:100%;display:flex;align-items:center;gap:.55rem;padding:.55rem .85rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);color:rgba(255,255,255,.5);font-size:.78rem;font-weight:500;font-family:inherit;cursor:pointer;transition:all .18s;margin-bottom:.45rem;text-align:left}
+    .btn-profile:hover{background:rgba(255,255,255,.09);color:#fff}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a class="logo-mark" href="index.html">
+      <div class="logo-icon"></div>
+      <div><div class="logo-text">MediFlow</div><div class="logo-sub">Your own Pharmacy</div></div>
+    </a>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sb-avatar">?</div>
+    <div><div class="user-name-s" id="sb-name">…</div><div class="user-role">Pharmacist</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <a class="nav-item" href="index.html"><div class="nav-icon">🏠</div>Dashboard</a>
+    <a class="nav-item active" href="billing.html"><div class="nav-icon">🧾</div>Billing</a>
+    <div class="nav-label">Inventory</div>
+    <a class="nav-item" href="add-medicine.html"><div class="nav-icon">➕</div>Add Medicine</a>
+    <a class="nav-item" href="restock.html"><div class="nav-icon">♻️</div>Restock</a>
+    <a class="nav-item" href="history.html"><div class="nav-icon">📜</div>History</a>
+    <a class="nav-item" href="order.html"><div class="nav-icon">📋</div>Order</a>
+    <div class="nav-label">Tools</div>
+    <a class="nav-item" href="scanner.html"><div class="nav-icon">📷</div>Camera Scanner</a>
+    <a class="nav-item" href="activity-log.html"><div class="nav-icon">📋</div>Activity Log</a>
+  </nav>
+  <!-- WS status at bottom of nav -->
+  <div class="sidebar-ws" id="ws-status">
+    <div class="ws-dot"></div>
+    <span id="ws-label">Connecting…</span>
+  </div>
+  <div class="sidebar-footer">
+    <button class="btn-profile" onclick="openProfile()"><span>👤</span>My Profile</button>
+    <button class="btn-logout" onclick="doLogout()"><span>🚪</span>Sign Out</button>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <div class="topbar">
+    <div class="topbar-title">🧾 Billing Counter</div>
+  </div>
+
+  <div class="content">
+
+    <!-- LEFT: Scanner + Search -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-title">🔖 Scan & Search</div>
+      </div>
+      <div class="panel-body">
+
+        <span class="field-label">Barcode or Name</span>
+        <div class="ac-wrap" id="ac-wrap">
+          <input class="inp" id="name-input" type="text" placeholder="Scan barcode or type medicine name…" autocomplete="off"/>
+          <div class="autocomplete-list" id="autocomplete-list"></div>
+        </div>
+
+        <div class="ws-flash" id="ws-flash"></div>
+        <div class="status-msg" id="status-msg"></div>
+
+        <!-- Stock warning -->
+        <div class="stock-warn" id="stock-warn">
+          <div class="swb-icon">📦</div>
+          <div><div class="swb-title" id="swb-title"></div><div class="swb-body" id="swb-body"></div></div>
+        </div>
+
+        <!-- Lookup card -->
+        <div class="lookup-card" id="lookup-card">
+          <div class="lookup-icon">💊</div>
+          <div style="flex:1">
+            <div class="lookup-name" id="lookup-name">—</div>
+            <div class="lookup-meta" id="lookup-meta">—</div>
+            <div class="batch-badges" id="lookup-batches"></div>
+            <!-- Which batch will be billed (FEFO = earliest expiry first) -->
+            <div class="deduct-from" id="deduct-from"></div>
+            <!-- Warning if nearest batch is expiring soon -->
+            <div class="expiry-warn" id="expiry-warn"></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- RIGHT: Cart -->
+    <div class="panel cart-panel">
+      <div class="panel-head">
+        <div class="panel-title">🛒 Cart</div>
+        <span id="item-count-badge" style="font-size:.73rem;background:var(--teal-lt);color:var(--teal-dk);padding:.18rem .65rem;border-radius:999px;font-weight:700">0 items</span>
+      </div>
+
+      <div class="empty-state" id="empty-state">
+        <div class="empty-icon">🛒</div>
+        <p>Cart is empty.<br/>Scan a barcode or search by name to add medicines.</p>
+      </div>
+
+      <div id="cart-table-wrap" style="display:none">
+        <table>
+          <thead><tr><th>Medicine</th><th style="text-align:center">Qty</th><th style="text-align:right">Price</th><th style="text-align:right">Total</th><th></th></tr></thead>
+          <tbody id="cart-body"></tbody>
+        </table>
+      </div>
+
+      <div class="cart-footer" id="cart-footer" style="display:none">
+        <div class="sub-row"><span>Items</span><span id="footer-items">0</span></div>
+        <div class="sub-row"><span>Total units</span><span id="footer-units">0</span></div>
+        <div class="grand-row">
+          <span class="grand-label">Grand Total</span>
+          <span class="grand-value" id="grand-total">₹0.00</span>
+        </div>
+      </div>
+
+      <div class="patient-info-row" id="patient-info-row" style="display:none; padding: 1rem 1.2rem; border-top: 1px solid var(--border); background: var(--surface2);">
+        <div style="font-size: .75rem; font-weight: 700; color: var(--muted); margin-bottom: .5rem; text-transform: uppercase;">Patient Details (Optional)</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: .5rem;">
+          <input type="text" id="patient-name" class="inp" placeholder="Patient Name" style="padding: .4rem .6rem; font-size: .8rem; margin-bottom: .5rem;" />
+          <input type="number" id="patient-age" class="inp" placeholder="Age" style="padding: .4rem .6rem; font-size: .8rem; margin-bottom: .5rem;" />
+          <input type="text" id="patient-phone" class="inp" placeholder="Phone" style="padding: .4rem .6rem; font-size: .8rem; grid-column: span 2;" />
+        </div>
+      </div>
+
+      <div class="action-row" id="action-row" style="display:none">
+        <button class="btn btn-green" style="flex:1;justify-content:center" onclick="printReceipt()">🖨️ Print Bill</button>
+        <button class="btn btn-danger-s" onclick="clearCart()">🗑 Clear</button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div id="toast"></div>
+<div id="print-root" style="display:none"><div class="receipt" id="the-receipt"></div></div>
+
+<script>
+  const cart={};
+  let allMedicines=[];
+  let pharmacyProfile={};
+
+  const nameInput=document.getElementById('name-input');
+  const autoList=document.getElementById('autocomplete-list');
+  const statusMsg=document.getElementById('status-msg');
+  const lookupCard=document.getElementById('lookup-card');
+  const cartBody=document.getElementById('cart-body');
+  const emptyState=document.getElementById('empty-state');
+  const cartTableWrap=document.getElementById('cart-table-wrap');
+  const cartFooter=document.getElementById('cart-footer');
+  const actionRow=document.getElementById('action-row');
+  const itemCountBadge=document.getElementById('item-count-badge');
+  const grandTotalEl=document.getElementById('grand-total');
+  const wsFlash=document.getElementById('ws-flash');
+  const stockWarn=document.getElementById('stock-warn');
+
+  /* ── Auth ── */
+  fetch('/me').then(r=>r.json()).then(d=>{
+    if(!d.loggedIn){window.location.href='/login.html';return;}
+    document.getElementById('sb-name').textContent=d.name;
+    document.getElementById('sb-avatar').textContent=d.name.charAt(0).toUpperCase();
+    // Join pharmacy room for scoped barcode events
+    if(d.ownerId) socket.emit('joinPharmacy', d.ownerId);
+  });
+  function doLogout(){fetch('/logout',{method:'POST'}).then(()=>window.location.href='/login.html');}
+
+  /* ── Sounds ── */
+  const AudioCtx=window.AudioContext||window.webkitAudioContext;
+  function playSuccessBeep(){try{const c=new AudioCtx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='sine';o.frequency.setValueAtTime(880,c.currentTime);o.frequency.setValueAtTime(1108,c.currentTime+.08);g.gain.setValueAtTime(.14,c.currentTime);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.2);o.start();o.stop(c.currentTime+.2);}catch(_){}}
+  function playErrorBeep(){try{const c=new AudioCtx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='square';o.frequency.setValueAtTime(220,c.currentTime);o.frequency.setValueAtTime(180,c.currentTime+.1);g.gain.setValueAtTime(.1,c.currentTime);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.3);o.start();o.stop(c.currentTime+.3);}catch(_){}}
+  function playScanBeep(){try{const c=new AudioCtx(),o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.frequency.value=1000;g.gain.setValueAtTime(.1,c.currentTime);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+.15);o.start();o.stop(c.currentTime+.15);}catch(_){}}
+  function playStockWarnSound(){try{const c=new AudioCtx();[{f:784,t:0},{f:659,t:.15},{f:523,t:.3}].forEach(({f,t})=>{const o=c.createOscillator(),g=c.createGain();o.connect(g);g.connect(c.destination);o.type='triangle';o.frequency.value=f;g.gain.setValueAtTime(.16,c.currentTime+t);g.gain.exponentialRampToValueAtTime(.0001,c.currentTime+t+.28);o.start(c.currentTime+t);o.stop(c.currentTime+t+.3);});}catch(_){}}
+
+  /* ── Socket.IO ── */
+  // Multi-tenant: join this pharmacy's private room so only barcodes
+  // from THIS pharmacy's scanner arrive here.
+  const socket=io();
+  socket.on('connect',()=>{
+    document.getElementById('ws-status').classList.add('connected');
+    document.getElementById('ws-label').textContent='Scanner Live';
+    // Re-join room on reconnect (socket id changes on reconnect)
+    fetch('/me').then(r=>r.json()).then(me=>{
+      if(me.loggedIn && me.ownerId) socket.emit('joinPharmacy', me.ownerId);
+    });
+  });
+  socket.on('disconnect',()=>{document.getElementById('ws-status').classList.remove('connected');document.getElementById('ws-label').textContent='Disconnected';});
+  socket.on('barcode',async bc=>{if(!bc)return;playScanBeep();wsFlash.innerHTML=`📡 Scanner: <strong>${bc}</strong>`;wsFlash.classList.add('show');setTimeout(()=>wsFlash.classList.remove('show'),3000);nameInput.value=bc;await fetchByBarcode();});
+
+  /* ── Fetch by barcode or name ── */
+  async function fetchByBarcode(){
+    const q=nameInput.value.trim();
+    if(!q)return;
+
+    setStatus('warn','⏳ Looking up…');lookupCard.classList.remove('show');hideStockWarn();
+
+    // First, try autocomplete suggestions if visible
+    const visibleItems=[...autoList.querySelectorAll('.autocomplete-item')];
+    if(autoList.classList.contains('show') && visibleItems.length){
+      let cur=visibleItems.findIndex(el=>el.classList.contains('active'));
+      if(cur<0) cur=0;
+      await pickAc(cur);
+      return;
+    }
+
+    // Try fetching by exact barcode first (for scanned barcodes)
+    try{
+      const res=await fetch(`/medicine/${encodeURIComponent(q)}`);
+      if(res.ok){
+        const data=await res.json();
+        addToCart(data);
+        nameInput.value='';
+        hideAc();
+        nameInput.focus();
+        return;
+      }
+    }catch(e){}
+
+    // If not found by barcode, search by name
+    let matches=getNameMatches(q);
+    if(!matches.length) matches=await getNameMatchesRemote(q);
+    const first=matches[0];
+    if(!first){
+      setStatus('err',`❌ Not found: "${q}"`);
+      playErrorBeep();
+      showToast(`Not found: ${q}`,'err');
+      hideAc();
+      return;
+    }
+    try{
+      const res=await fetch(`/medicine/${encodeURIComponent(first.barcode)}`);
+      const data=await res.json();
+      if(!res.ok){setStatus('err',`❌ Not found: "${first.name}"`);playErrorBeep();showToast(`Not found: ${first.name}`,'err');return;}
+      addToCart(data);
+      nameInput.value='';
+      hideAc();
+      nameInput.focus();
+    }catch(e){
+      setStatus('err','❌ Server unreachable.');
+      playErrorBeep();
+    }
+  }
+
+  /* ── Add to cart ── */
+  function addToCart(data){
+    const bc=data.barcode,isNew=!cart[bc];
+    const totalStock=data.stock||0;
+    const cur=isNew?0:cart[bc].qty,nq=cur+1;
+    if(nq>totalStock){playStockWarnSound();showStockWarn(data.name,totalStock,cur);showToast(`⚠️ Only ${totalStock} in stock!`,'warn');return;}
+    if(!isNew){cart[bc].qty++;setStatus('ok',`✅ ${data.name} ×${cart[bc].qty}`);}
+    else{cart[bc]={name:data.name,barcode:bc,price:Number(data.price),qty:1,stock:totalStock};setStatus('ok',`✅ Added — ${data.name}`);}
+    hideStockWarn();
+    document.getElementById('lookup-name').textContent=data.name;
+
+    const now=new Date();
+    const batchColors=['batch-a','batch-b','batch-c','batch-other'];
+
+    // Sort batches by expiry (FEFO) — same order server will deduct from
+    const sortedBatches=(data.batches||[]).slice().sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
+
+    // Build batch badges with expiry colour coding
+    let batchHTML='';
+    if(sortedBatches.length){
+      batchHTML=sortedBatches.map((b,i)=>{
+        const expDate=new Date(b.expiryDate);
+        const daysLeft=Math.ceil((expDate-now)/(1000*60*60*24));
+        const exp=expDate.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+        let cls=batchColors[Math.min(i,3)];
+        let tag='';
+        if(daysLeft<=0){cls='expiring';tag=' ⛔ EXPIRED';}
+        else if(daysLeft<=30){cls='expiring';tag=` ⚠️ ${daysLeft}d left`;}
+        else if(daysLeft<=90){cls='expiring-soon';tag=` 🔔 ${daysLeft}d left`;}
+        return `<span class="batch-badge ${cls}">📦 ${b.batchLabel}: ${b.stock} units · exp ${exp}${tag}</span>`;
+      }).join('');
+    }
+    document.getElementById('lookup-meta').textContent=`₹${Number(data.price).toFixed(2)} · Total stock: ${totalStock} · ${bc}`;
+    document.getElementById('lookup-batches').innerHTML=batchHTML;
+
+    // ── Deduct-from tag: show which batch server will bill from (FEFO = first in sortedBatches)
+    const deductEl=document.getElementById('deduct-from');
+    if(sortedBatches.length){
+      const first=sortedBatches[0];
+      const firstExp=new Date(first.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+      deductEl.textContent=`✅ Will deduct from ${first.batchLabel} · exp ${firstExp}`;
+      deductEl.classList.add('show');
+    } else {
+      deductEl.classList.remove('show');
+    }
+
+    // ── Expiry warning: alert if nearest batch is expiring within 90 days
+    const warnEl=document.getElementById('expiry-warn');
+    if(sortedBatches.length){
+      const first=sortedBatches[0];
+      const daysLeft=Math.ceil((new Date(first.expiryDate)-now)/(1000*60*60*24));
+      if(daysLeft<=0){
+        warnEl.textContent='⛔ WARNING: The batch being billed is EXPIRED. Do not sell!';
+        warnEl.className='expiry-warn show critical';
+        playErrorBeep();
+      } else if(daysLeft<=30){
+        warnEl.textContent=`⚠️ Caution: ${first.batchLabel} expires in ${daysLeft} day${daysLeft!==1?'s':''}. Sell first!`;
+        warnEl.className='expiry-warn show critical';
+      } else if(daysLeft<=90){
+        warnEl.textContent=`🔔 Note: ${first.batchLabel} expires in ${daysLeft} days.`;
+        warnEl.className='expiry-warn show soon';
+      } else {
+        warnEl.className='expiry-warn';
+      }
+    } else {
+      warnEl.className='expiry-warn';
+    }
+
+    lookupCard.classList.add('show');
+    playSuccessBeep();renderCart(isNew?bc:null);showToast(isNew?`➕ ${data.name} added`:`🔁 ${data.name} ×${cart[bc].qty}`,'ok');
+  }
+
+  function showStockWarn(name,avail,cur){
+    document.getElementById('swb-title').textContent=`Only ${avail} unit${avail!==1?'s':''} of "${name}" available!`;
+    document.getElementById('swb-body').textContent=cur>0?`You already have ${cur} in the cart — cannot add more.`:`Only ${avail} units in stock. Please restock first.`;
+    stockWarn.classList.add('show');clearTimeout(stockWarn._t);stockWarn._t=setTimeout(()=>hideStockWarn(),6000);
+  }
+  function hideStockWarn(){stockWarn.classList.remove('show');}
+
+  let _acReqId = 0;
+  let _acDebounce = null;
+
+  /* ── Autocomplete (barcode or name search) ── */
+  nameInput.addEventListener('input', () => {
+    const q = nameInput.value.trim();
+    if (!q) { hideAc(); return; }
+
+    clearTimeout(_acDebounce);
+    _acDebounce = setTimeout(() => {
+      showNameSuggestions(q);
+    }, 120);
+  });
+
+  nameInput.addEventListener('keydown', async e => {
+    if(e.key==='Enter'){
+      e.preventDefault();
+      await fetchByBarcode();
+    } else if(e.key==='ArrowDown' || e.key==='ArrowUp' || e.key==='Escape'){
+      const items = autoList.querySelectorAll('.autocomplete-item');
+      let cur = [...items].findIndex(el => el.classList.contains('active'));
+      if (e.key === 'ArrowDown') {
+        e.preventDefault();
+        if (!items.length) return;
+        cur = cur < 0 ? 0 : Math.min(cur + 1, items.length - 1);
+        items.forEach((el, i) => el.classList.toggle('active', i === cur));
+      } else if (e.key === 'ArrowUp') {
+        e.preventDefault();
+        if (!items.length) return;
+        cur = cur < 0 ? items.length - 1 : Math.max(cur - 1, 0);
+        items.forEach((el, i) => el.classList.toggle('active', i === cur));
+      } else if (e.key === 'Escape') {
+        hideAc();
+      }
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('ac-wrap').contains(e.target)) hideAc();
+  });
+
+  function hl(t, q) {
+    const i = t.toLowerCase().indexOf(q);
+    if (i < 0) return esc(t);
+    return esc(t.slice(0, i)) +
+      `<mark style="background:var(--teal-lt);border-radius:2px">${esc(t.slice(i, i + q.length))}</mark>` +
+      esc(t.slice(i + q.length));
+  }
+
+  // Highlight function for barcode (monospace)
+  function hlBarcode(bc, q) {
+    const i = bc.toLowerCase().indexOf(q);
+    if (i < 0) return esc(bc);
+    return esc(bc.slice(0, i)) +
+      `<mark style="background:var(--amber-lt);border-radius:2px">${esc(bc.slice(i, i + q.length))}</mark>` +
+      esc(bc.slice(i + q.length));
+  }
+
+  async function pickAc(i) {
+    const m = autoList._m[i];
+    if (!m) return;
+    nameInput.value = '';
+    hideAc();
+    setStatus('warn', '⏳ Looking up…');
+    try {
+      const res = await fetch(`/medicine/${encodeURIComponent(m.barcode)}`);
+      const data = await res.json();
+      if (!res.ok) {
+        setStatus('err', `❌ Not found: "${m.name}"`);
+        playErrorBeep();
+        return;
+      }
+      addToCart(data);
+      nameInput.focus();
+    } catch (_) {
+      setStatus('err', '❌ Server unreachable.');
+      playErrorBeep();
+    }
+  }
+
+  function hideAc() { autoList.classList.remove('show'); autoList.innerHTML = ''; }
+
+  nameInput.addEventListener('keydown', e => {
+    const items = autoList.querySelectorAll('.autocomplete-item');
+    let cur = [...items].findIndex(el => el.classList.contains('active'));
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!items.length) return;
+      cur = cur < 0 ? 0 : Math.min(cur + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('active', i === cur));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!items.length) return;
+      cur = cur < 0 ? items.length - 1 : Math.max(cur - 1, 0);
+      items.forEach((el, i) => el.classList.toggle('active', i === cur));
+    } else if (e.key === 'Enter') {
+      if (autoList.classList.contains('show') && items.length) {
+        e.preventDefault();
+        if (cur < 0) cur = 0;
+        pickAc(cur);
+      }
+    } else if (e.key === 'Escape') {
+      hideAc();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('ac-wrap').contains(e.target)) hideAc();
+  });
+
+  nameInput.addEventListener('keydown', async e => {
+    if(e.key!=='Enter') return;
+    const items=autoList.querySelectorAll('.autocomplete-item');
+    const hasSuggestions=autoList.classList.contains('show') && items.length>0;
+    if(hasSuggestions) return; // autocomplete Enter is handled above
+    e.preventDefault();
+    await fetchByBarcode(); // fallback to name search if barcode is empty
+  });
+
+  /* ── Render cart ── */
+  function renderCart(hlBc=null){
+    const keys=Object.keys(cart);
+    if(!keys.length){emptyState.style.display='block';cartTableWrap.style.display='none';cartFooter.style.display='none';actionRow.style.display='none';document.getElementById('patient-info-row').style.display='none';itemCountBadge.textContent='0 items';grandTotalEl.textContent='₹0.00';return;}
+    emptyState.style.display='none';cartTableWrap.style.display='block';cartFooter.style.display='block';actionRow.style.display='flex';document.getElementById('patient-info-row').style.display='block';
+    let grand=0,units=0;
+    cartBody.innerHTML=keys.map(bc=>{
+      const it=cart[bc],ln=it.price*it.qty;grand+=ln;units+=it.qty;
+      return `<tr class="${bc===hlBc?'new-item':''}" id="row-${esc(bc)}">
+        <td><div class="td-name">${esc(it.name)}</div><div class="td-barcode">${esc(it.barcode)}</div></td>
+        <td style="text-align:center"><div class="qty-ctrl"><button class="qty-btn" onclick="adjQty('${esc(bc)}',-1)">−</button><div class="qty-num">${it.qty}</div><button class="qty-btn" onclick="adjQty('${esc(bc)}',1)">+</button></div></td>
+        <td style="text-align:right">₹${it.price.toFixed(2)}</td>
+        <td style="text-align:right;font-weight:700">₹${ln.toFixed(2)}</td>
+        <td style="text-align:right"><button class="del-btn" onclick="removeItem('${esc(bc)}')">✕</button></td>
+      </tr>`;
+    }).join('');
+    if(hlBc)setTimeout(()=>{const r=document.getElementById(`row-${esc(hlBc)}`);if(r)r.scrollIntoView({behavior:'smooth',block:'center'});},100);
+    itemCountBadge.textContent=`${keys.length} item${keys.length!==1?'s':''}`;
+    grandTotalEl.textContent=`₹${grand.toFixed(2)}`;
+    document.getElementById('footer-items').textContent=keys.length;
+    document.getElementById('footer-units').textContent=units;
+  }
+
+  function adjQty(bc,d){
+    if(!cart[bc])return;
+    const nq=cart[bc].qty+d;
+    if(nq<1)return;
+    if(d>0&&nq>cart[bc].stock){playStockWarnSound();showStockWarn(cart[bc].name,cart[bc].stock,cart[bc].qty);showToast(`⚠️ Only ${cart[bc].stock} in stock!`,'warn');return;}
+    cart[bc].qty=nq;renderCart();
+  }
+  function removeItem(bc){delete cart[bc];renderCart();showToast('Item removed.','ok');lookupCard.classList.remove('show');hideStockWarn();}
+  function clearCart(){if(!Object.keys(cart).length)return;if(!confirm('Clear the entire cart?'))return;Object.keys(cart).forEach(k=>delete cart[k]);renderCart();setStatus('','');lookupCard.classList.remove('show');hideStockWarn();showToast('Cart cleared.','ok');}
+
+  /* ── Thermal receipt print (80mm) ── */
+  const THERMAL_PRINT_CSS=`
+    @page{size:80mm auto;margin:0}
+    html,body{margin:0;padding:0;width:80mm;background:#fff}
+    .receipt{width:76mm;font-family:'Courier New',Courier,monospace;font-size:12px;line-height:1.5;color:#000;padding:4mm 5mm;margin:0 auto;box-sizing:border-box}
+    .receipt-header{text-align:center;margin-bottom:6px}
+    .receipt-header h1{font-size:20px;font-weight:900;letter-spacing:2px;margin:0 0 3px}
+    .receipt-header .sub{font-size:10px;color:#444}
+    .receipt-dash{border:none;border-top:1px dashed #000;margin:7px 0}
+    .receipt-datetime{text-align:center;font-size:10px;color:#333;margin-bottom:6px}
+    .receipt-col-head{display:flex;font-weight:bold;font-size:10px;border-bottom:1px solid #000;padding-bottom:3px;margin-bottom:4px}
+    .rch-name{flex:1}.rch-qty{width:28px;text-align:center}.rch-price{width:46px;text-align:right}.rch-total{width:52px;text-align:right}
+    .receipt-item{display:flex;align-items:flex-start;margin:3px 0;font-size:11.5px}
+    .ri-name{flex:1;word-break:break-word;line-height:1.3}.ri-qty{width:28px;text-align:center;flex-shrink:0}
+    .ri-price{width:46px;text-align:right;flex-shrink:0}.ri-total{width:52px;text-align:right;flex-shrink:0;font-weight:600}
+    .receipt-summary{font-size:10.5px;color:#444}.receipt-row{display:flex;justify-content:space-between;margin:2px 0}
+    .receipt-grand{display:flex;justify-content:space-between;font-weight:900;font-size:15px;margin-top:5px;padding-top:5px;border-top:2px solid #000}
+    .receipt-footer{text-align:center;font-size:10px;color:#444;margin-top:4px;line-height:1.6}
+    .receipt-num{text-align:center;font-size:9px;color:#888;margin-top:5px}
+    .receipt-powered{text-align:center;font-size:9px;color:#aaa;margin-top:5px;letter-spacing:.04em;border-top:1px dashed #ddd;padding-top:4px}
+  `;
+
+  function buildReceiptHtml(keys, pName, pAge){
+    const now=new Date();
+    const ds=now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    const ts=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+    const rn='MF-'+Date.now().toString().slice(-7);
+    let grand=0,units=0;
+    const rows=keys.map(bc=>{
+      const it=cart[bc],ln=it.price*it.qty;grand+=ln;units+=it.qty;
+      const n=it.name.length>20?it.name.slice(0,19)+'…':it.name;
+      return`<div class="receipt-item"><span class="ri-name">${esc(n)}</span><span class="ri-qty">${it.qty}</span><span class="ri-price">&#8377;${it.price.toFixed(2)}</span><span class="ri-total">&#8377;${ln.toFixed(2)}</span></div>`;
+    }).join('');
+    const p=pharmacyProfile;
+    const headerName=p.pharmacyName||'MediFlow Pharmacy';
+    const headerPhone=p.pharmacyPhone?`<div class="sub">Tel: ${esc(p.pharmacyPhone)}</div>`:'';
+    const headerAddress=p.pharmacyAddress?`<div class="sub">${esc(p.pharmacyAddress)}</div>`:'';
+    const headerEmail=p.pharmacyEmail?`<div class="sub">${esc(p.pharmacyEmail)}</div>`:'';
+    const headerLicense=p.pharmacyLicense?`<div class="sub">Lic: ${esc(p.pharmacyLicense)}</div>`:'';
+    return`
+      <div class="receipt-header">
+        <h1>${esc(headerName.toUpperCase())}</h1>
+        ${headerAddress}${headerPhone}${headerEmail}${headerLicense}
+      </div>
+      <hr class="receipt-dash"/>
+      <div class="receipt-datetime">Date: ${ds} &nbsp; Time: ${ts}</div>
+      ${pName ? `<div class="receipt-datetime">Patient: ${esc(pName)} ${pAge ? `(Age: ${esc(pAge)})` : ''}</div>` : ''}
+      <hr class="receipt-dash"/>
+      <div class="receipt-col-head">
+        <span class="rch-name">Item</span><span class="rch-qty">Qty</span>
+        <span class="rch-price">Rate</span><span class="rch-total">Amount</span>
+      </div>
+      ${rows}
+      <hr class="receipt-dash"/>
+      <div class="receipt-summary">
+        <div class="receipt-row"><span>Items:</span><span>${keys.length}</span></div>
+        <div class="receipt-row"><span>Units:</span><span>${units}</span></div>
+      </div>
+      <div class="receipt-grand"><span>TOTAL</span><span>&#8377;${grand.toFixed(2)}</span></div>
+      <hr class="receipt-dash"/>
+      <div class="receipt-footer">
+        Thank you for choosing ${esc(headerName)}!<br/>
+        Get Well Soon<br/>
+        Consult a doctor before taking medicines.
+      </div>
+      <div class="receipt-num">${rn}</div>
+      <div class="receipt-powered">Simplified With MediFlow</div>`;
+  }
+
+  /** Print via hidden iframe — reliable for 80mm thermal printers */
+  function printThermalReceipt(receiptHtml){
+    return new Promise((resolve,reject)=>{
+      const iframe=document.createElement('iframe');
+      iframe.setAttribute('title','Receipt');
+      iframe.style.cssText='position:fixed;right:0;bottom:0;width:80mm;height:1px;border:0;opacity:0;pointer-events:none';
+      document.body.appendChild(iframe);
+      const win=iframe.contentWindow;
+      const doc=win.document;
+      doc.open();
+      doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Receipt</title><style>${THERMAL_PRINT_CSS}</style></head><body><div class="receipt">${receiptHtml}</div></body></html>`);
+      doc.close();
+      const cleanup=()=>{setTimeout(()=>{try{iframe.remove();}catch(_){}},400);};
+      const doPrint=()=>{
+        try{
+          win.focus();
+          win.print();
+          resolve();
+        }catch(err){
+          cleanup();
+          reject(err);
+        }
+        win.addEventListener('afterprint',cleanup,{once:true});
+        setTimeout(cleanup,8000);
+      };
+      if(doc.readyState==='complete') setTimeout(doPrint,150);
+      else iframe.onload=()=>setTimeout(doPrint,150);
+    });
+  }
+
+  /** Fallback: print from #print-root on the main page */
+  function printThermalReceiptFallback(receiptHtml){
+    const root=document.getElementById('print-root');
+    const el=document.getElementById('the-receipt');
+    el.innerHTML=receiptHtml;
+    root.style.display='block';
+    return new Promise(resolve=>{
+      requestAnimationFrame(()=>requestAnimationFrame(()=>{
+        window.print();
+        setTimeout(()=>{
+          root.style.display='none';
+          resolve();
+        },300);
+      }));
+    });
+  }
+
+  /* ── Print (deducts stock) ── */
+  async function printReceipt(){
+    const keys=Object.keys(cart);
+    if(!keys.length){showToast('Cart is empty!','err');playErrorBeep();return;}
+    
+    const pName = document.getElementById('patient-name').value.trim();
+    const pAge = document.getElementById('patient-age').value.trim();
+    const pPhone = document.getElementById('patient-phone').value.trim();
+
+    try{
+      const r=await fetch('/bill',{method:'POST',headers:{'Content-Type':'application/json'},
+body:JSON.stringify({
+  items:keys.map(bc=>({barcode:bc,qty:cart[bc].qty})),
+  patientName: pName,
+  patientAge: pAge ? Number(pAge) : null,
+  patientPhone: pPhone
+})});
+      const d=await r.json();
+      if(!r.ok){showToast(`❌ ${d.error}`,'err');playErrorBeep();return;}
+    }catch(e){showToast('❌ Could not deduct stock.','err');playErrorBeep();return;}
+
+    const receiptHtml=buildReceiptHtml(keys, pName, pAge);
+    try{
+      await printThermalReceipt(receiptHtml);
+    }catch(_){
+      await printThermalReceiptFallback(receiptHtml);
+    }
+
+    keys.forEach(bc=>delete cart[bc]);
+    renderCart();
+    lookupCard.classList.remove('show');
+    hideStockWarn();
+    showToast('Bill printed — stock updated','ok');
+    document.getElementById('patient-name').value = '';
+    document.getElementById('patient-age').value = '';
+    document.getElementById('patient-phone').value = '';
+    playSuccessBeep();
+    loadAllMedicines();
+  }
+  window.addEventListener('afterprint',()=>{
+    setTimeout(()=>{
+      const root=document.getElementById('print-root');
+      if(root) root.style.display='none';
+    },200);
+  });
+
+
+
+  async function loadMedicinesForSearch() {
+    try {
+      const meds = await fetch('/medicines').then(r => r.json());
+      if (Array.isArray(meds)) {
+        allMedicines = meds.sort((a, b) =>
+          (a.name || '').localeCompare(b.name || '', 'en', { sensitivity: 'base' })
+        );
+      }
+    } catch (_) {}
+  }
+
+  async function loadPharmacyProfile() {
+    try {
+      const profile = await fetch('/profile').then(r => r.json());
+      if (profile && !profile.error) pharmacyProfile = profile;
+    } catch (_) {}
+  }
+
+  async function loadAllMedicines() {
+    await Promise.all([loadMedicinesForSearch(), loadPharmacyProfile()]);
+  }
+
+  function getNameMatches(q) {
+    const query = q.trim().toLowerCase();
+    if (!query) return [];
+    // Search by both name AND barcode (for barcode scan in text field)
+    return allMedicines
+      .filter(m =>
+        m.name.toLowerCase().includes(query) ||
+        (m.barcode && m.barcode.toLowerCase().includes(query))
+      )
+      .slice(0, 8);
+  }
+
+  async function getNameMatchesRemote(q) {
+    try {
+      const res = await fetch(`/medicine-search?q=${encodeURIComponent(q)}`);
+      const data = await res.json();
+      if (!res.ok || !Array.isArray(data)) return [];
+      return data.slice(0, 8);
+    } catch (_) {
+      return [];
+    }
+  }
+
+  function mergeMatches(local, remote) {
+    const seen = new Set();
+    const merged = [];
+    [...local, ...remote].forEach(m => {
+      const key = String(m.barcode || '').toLowerCase();
+      if (!key || seen.has(key)) return;
+      seen.add(key);
+      merged.push(m);
+    });
+    return merged.slice(0, 8);
+  }
+
+  async function showNameSuggestions(q) {
+    const reqId = ++_acReqId;
+    const localMatches = getNameMatches(q);
+    const remoteMatches = await getNameMatchesRemote(q);
+    const matches = mergeMatches(localMatches, remoteMatches);
+    if (reqId !== _acReqId) return; // ignore stale results
+    if (!matches.length) { hideAc(); return; }
+    autoList._m = matches;
+    // Check if search is by barcode (query matches barcode pattern)
+    const isBarcodeSearch = matches.some(m => m.barcode && m.barcode.toLowerCase().includes(q.trim().toLowerCase()));
+    autoList.innerHTML = matches.map((x, i) => `
+      <div class="autocomplete-item${i === 0 ? ' active' : ''}" onclick="pickAc(${i})">
+        <div class="ac-name">${hl(x.name, q.trim().toLowerCase())}</div>
+        <div class="ac-meta">₹${Number(x.price).toFixed(2)} · Stock: ${x.stock} · 📋 ${isBarcodeSearch ? hlBarcode(x.barcode, q.trim().toLowerCase()) : esc(x.barcode)}</div>
+      </div>`).join('');
+    autoList.classList.add('show');
+  }
+
+  function setStatus(t,m){if(!t){statusMsg.className='status-msg';return;}statusMsg.textContent=m;statusMsg.className=`status-msg show ${t==='loading'?'warn':t}`;}
+  function showToast(m,t='ok'){const x=document.getElementById('toast');x.textContent=m;x.className=`show ${t}`;clearTimeout(x._t);x._t=setTimeout(()=>{x.className='';},2800);}
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+
+  renderCart();loadAllMedicines();
+
+  // ── Profile Modal ────────────────────────────────────────
+  let _profileMeds = [];
+
+  function openProfile() {
+    document.getElementById('profile-modal').classList.add('open');
+    loadProfileData();
+    loadDelList();
+  }
+  function closeProfile() {
+    document.getElementById('profile-modal').classList.remove('open');
+  }
+  function closeProfileIfBackdrop(e) {
+    if (e.target === document.getElementById('profile-modal')) closeProfile();
+  }
+
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.modal-tab').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  async function loadProfileData() {
+    try {
+      const d = await fetch('/me').then(r => r.json());
+      if (d.loggedIn) {
+        document.getElementById('p-name').value  = d.name  || '';
+        document.getElementById('p-email').value = d.email || '';
+      }
+    } catch(_) {}
+  }
+
+  async function saveProfile() {
+    const name       = document.getElementById('p-name').value.trim();
+    const email      = document.getElementById('p-email').value.trim();
+    const currentPw  = document.getElementById('p-cur-pw').value;
+    const newPw      = document.getElementById('p-new-pw').value;
+    const btn        = document.getElementById('p-save-btn');
+    const msg        = document.getElementById('p-msg');
+    msg.className    = 'm-msg';
+
+    if (!name || !email) { showMMsg('p-msg','err','⚠️ Name and email are required.'); return; }
+
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const res  = await fetch('/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, currentPassword: currentPw || undefined, newPassword: newPw || undefined })
+      });
+      const data = await res.json();
+      if (!res.ok) { showMMsg('p-msg','err', data.error); return; }
+
+      showMMsg('p-msg','ok','✅ Changes saved successfully!');
+      // Update sidebar name immediately
+      const nameEls = document.querySelectorAll('#sb-name, #user-name-label');
+      nameEls.forEach(el => { if(el) el.textContent = data.name; });
+      const avatarEls = document.querySelectorAll('#sb-avatar, #user-avatar');
+      avatarEls.forEach(el => { if(el) el.textContent = data.name.charAt(0).toUpperCase(); });
+      // Clear password fields
+      document.getElementById('p-cur-pw').value = '';
+      document.getElementById('p-new-pw').value = '';
+    } catch(e) {
+      showMMsg('p-msg','err','❌ Server unreachable.');
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 Save Changes';
+    }
+  }
+
+  async function loadDelList() {
+    document.getElementById('inv-del-items').innerHTML = '<div class="inv-empty">Loading…</div>';
+    try {
+      const data = await fetch('/medicines').then(r => r.json());
+      _profileMeds = Array.isArray(data) ? data : [];
+      renderDelList(_profileMeds);
+    } catch(_) {
+      document.getElementById('inv-del-items').innerHTML = '<div class="inv-empty">❌ Could not load.</div>';
+    }
+  }
+
+  function filterDelList() {
+    const q = document.getElementById('inv-del-search').value.trim().toLowerCase();
+    renderDelList(q ? _profileMeds.filter(m => m.name.toLowerCase().includes(q) || m.barcode.toLowerCase().includes(q)) : _profileMeds);
+  }
+
+  function renderDelList(list) {
+    const area = document.getElementById('inv-del-items');
+    if (!list.length) { area.innerHTML = '<div class="inv-empty">No medicines found.</div>'; return; }
+    area.innerHTML = list.map(m => `
+      <div class="inv-list-item" id="inv-row-${esc(m.barcode)}">
+        <div>
+          <div class="inv-item-name">${esc(m.name)}</div>
+          <div class="inv-item-meta">${esc(m.barcode)} · Stock: ${m.stock} · ₹${Number(m.price).toFixed(2)}</div>
+        </div>
+        <button class="inv-item-del" onclick="deleteMedicine('${esc(m.barcode)}','${esc(m.name)}')" title="Delete permanently">🗑</button>
+      </div>`).join('');
+  }
+
+  async function deleteMedicine(barcode, name) {
+    if (!confirm(`Permanently delete "${name}" from your inventory?\n\nThis cannot be undone.`)) return;
+    try {
+      const res  = await fetch(`/medicine/${encodeURIComponent(barcode)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) { showMMsg('inv-msg','err', data.error); return; }
+      // Remove from local list and re-render
+      _profileMeds = _profileMeds.filter(m => m.barcode !== barcode);
+      filterDelList();
+      showMMsg('inv-msg','ok',`✅ "${name}" deleted.`);
+    } catch(e) {
+      showMMsg('inv-msg','err','❌ Server unreachable.');
+    }
+  }
+
+  function showMMsg(id, type, text) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className   = `m-msg show ${type}`;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.className = 'm-msg'; }, 4000);
+  }
+
+  // Close modal with Escape key
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfile(); });
+
+</script>
+
+<!-- ═══════════ PROFILE MODAL ═══════════ -->
+<div class="modal-backdrop" id="profile-modal" onclick="closeProfileIfBackdrop(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">👤 My Account</div>
+      <button class="modal-close" onclick="closeProfile()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Tabs -->
+      <div class="modal-tabs">
+        <button class="modal-tab active" onclick="switchTab('tab-account',this)">Account Settings</button>
+        <button class="modal-tab" onclick="switchTab('tab-inventory',this)">Manage Inventory</button>
+      </div>
+
+      <!-- ── Tab 1: Account Settings ── -->
+      <div class="tab-panel active" id="tab-account">
+
+        <div class="m-field">
+          <label class="m-label">Full Name</label>
+          <input class="m-input" type="text" id="p-name" placeholder="Your name"/>
+        </div>
+        <div class="m-field">
+          <label class="m-label">Email Address</label>
+          <input class="m-input" type="email" id="p-email" placeholder="you@example.com"/>
+        </div>
+
+        <div class="m-divider"></div>
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.8rem">Change Password <span style="font-weight:400;text-transform:none;letter-spacing:0">(leave blank to keep current)</span></div>
+
+        <div class="m-field">
+          <label class="m-label">Current Password</label>
+          <input class="m-input" type="password" id="p-cur-pw" placeholder="Enter current password"/>
+        </div>
+        <div class="m-field">
+          <label class="m-label">New Password</label>
+          <input class="m-input" type="password" id="p-new-pw" placeholder="Min. 6 characters"/>
+        </div>
+
+        <button class="m-btn m-btn-primary" id="p-save-btn" onclick="saveProfile()">💾 Save Changes</button>
+        <div class="m-msg" id="p-msg"></div>
+      </div>
+
+      <!-- ── Tab 2: Manage Inventory ── -->
+      <div class="tab-panel" id="tab-inventory">
+        <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.55;">
+          Permanently delete medicines from your pharmacy database. <strong style="color:var(--red)">This cannot be undone.</strong>
+        </div>
+        <div class="inv-list" id="inv-del-list">
+          <div class="inv-search-wrap">
+            <input type="text" id="inv-del-search" placeholder="🔍  Search medicines to delete…" oninput="filterDelList()"/>
+          </div>
+          <div id="inv-del-items"><div class="inv-empty">Loading…</div></div>
+        </div>
+        <div class="m-msg" id="inv-msg"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="/js/mediflow-brand.js"></script>
+</body>
+</html>

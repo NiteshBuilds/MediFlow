@@ -1,0 +1,478 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Restock — MediFlow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/mediflow-brand.css"/>
+  <link rel="icon" href="/assets/mediflow-logo-icon.svg" type="image/svg+xml"/>
+  <style>
+    :root{
+      --teal:#0d6b6e;--teal-dk:#094a4c;--teal-md:#0f8a8e;--teal-lt:#e0f4f4;
+      --amber:#e8870a;--amber-lt:#fef3e2;
+      --green:#1a7a4a;--green-lt:#e3f5ec;
+      --red:#c0392b;--red-lt:#fdecea;
+      --bg:#f0f4f5;--surface:#ffffff;--surface2:#f7fafa;
+      --sidebar-bg:#0a3d3f;--sidebar-w:240px;
+      --text:#0f2b2d;--text-2:#3a5a5c;--muted:#7a9ea0;
+      --border:#d4e6e7;--border-dk:#b8d4d5;
+      --shadow-sm:0 1px 4px rgba(13,107,110,.08);--shadow-md:0 4px 16px rgba(13,107,110,.12);
+      --radius:12px;--radius-sm:8px;--radius-lg:16px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+
+    /* ── SIDEBAR ── */
+    .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:200}
+    .sidebar::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:28px 28px}
+    .sidebar-logo{padding:1.4rem 1.25rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.06)}
+    .logo-mark{display:flex;align-items:center;gap:.6rem;text-decoration:none}
+    .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,#0f8a8e,#0aa8ad);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 4px 12px rgba(13,168,173,.4);flex-shrink:0}
+    .logo-text{font-family:'Sora',sans-serif;font-size:1.1rem;font-weight:700;color:#fff;letter-spacing:-.02em}
+    .logo-sub{font-size:.6rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em}
+    .sidebar-user{margin:.9rem .85rem .25rem;padding:.7rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);display:flex;align-items:center;gap:.55rem}
+    .user-avatar{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--amber),#f5a623);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff;flex-shrink:0}
+    .user-name-s{font-size:.78rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .user-role{font-size:.65rem;color:rgba(255,255,255,.35)}
+    .sidebar-nav{flex:1;padding:.4rem 0;overflow-y:auto}
+    .nav-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.22);padding:.85rem 1.25rem .3rem}
+    .nav-item{display:flex;align-items:center;gap:.65rem;padding:.55rem .9rem .55rem 1.25rem;margin:.08rem .65rem;border-radius:var(--radius-sm);text-decoration:none;color:rgba(255,255,255,.5);font-size:.82rem;font-weight:500;transition:all .16s;position:relative}
+    .nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+    .nav-item.active{background:rgba(15,138,142,.22);color:#fff;font-weight:600}
+    .nav-item.active::before{content:'';position:absolute;left:2px;top:22%;bottom:22%;width:3px;background:#0aa8ad;border-radius:2px}
+    .nav-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.82rem;background:rgba(255,255,255,.06);flex-shrink:0;transition:background .16s}
+    .nav-item.active .nav-icon{background:rgba(15,138,142,.35)}
+    .nav-item:hover .nav-icon{background:rgba(255,255,255,.1)}
+    .sidebar-footer{padding:.7rem;border-top:1px solid rgba(255,255,255,.06)}
+    .btn-logout{width:100%;display:flex;align-items:center;gap:.55rem;padding:.55rem .85rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);color:rgba(255,255,255,.4);font-size:.78rem;font-weight:500;font-family:inherit;cursor:pointer;transition:all .18s}
+    .btn-logout:hover{background:rgba(192,57,43,.2);border-color:rgba(192,57,43,.35);color:#ff8a80}
+
+    /* ── MAIN ── */
+    .main-wrap{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column}
+    .topbar{height:58px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 2rem;box-shadow:var(--shadow-sm)}
+    .topbar-title{font-family:'Sora',sans-serif;font-size:.98rem;font-weight:600;color:var(--text)}
+    .content{flex:1;padding:2rem;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;max-width:900px}
+
+    /* ── PANELS ── */
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;animation:fadeUp .3s ease both}
+    .panel:nth-child(2){animation-delay:.08s}
+    .panel-head{padding:1rem 1.3rem;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;gap:.6rem}
+    .panel-head-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0}
+    .phi-amber{background:var(--amber-lt)}
+    .phi-green{background:var(--green-lt)}
+    .panel-head-text{font-family:'Sora',sans-serif;font-size:.9rem;font-weight:600;color:var(--text)}
+    .panel-head-sub{font-size:.72rem;color:var(--muted)}
+    .panel-body{padding:1.4rem}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── FORM ── */
+    .form-group{margin-bottom:1rem}
+    label{display:block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.36rem}
+    input[type=text],input[type=number]{width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+    input:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1);background:var(--surface)}
+    .field-hint{font-size:.71rem;color:var(--muted);margin-top:.25rem}
+
+    /* Autocomplete */
+    .ac-wrap{position:relative}
+    .autocomplete-list{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--surface);border:1.5px solid var(--teal-md);border-radius:var(--radius);max-height:230px;overflow-y:auto;z-index:9999;display:none;box-shadow:0 8px 28px rgba(13,107,110,.18)}
+    .autocomplete-list.show{display:block}
+    .autocomplete-item{padding:.62rem .9rem;cursor:pointer;border-bottom:1px solid var(--border);transition:background .13s}
+    .autocomplete-item:last-child{border-bottom:none}
+    .autocomplete-item:hover,.autocomplete-item.active{background:var(--teal-lt)}
+    .ac-name{font-weight:600;font-size:.84rem;color:var(--text)}
+    .ac-meta{font-size:.72rem;color:var(--muted);margin-top:.1rem}
+
+    /* Submit button */
+    .btn-submit{width:100%;padding:.72rem;background:var(--amber);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s;box-shadow:0 2px 8px rgba(232,135,10,.25);display:flex;align-items:center;justify-content:center;gap:.4rem;margin-top:.35rem}
+    .btn-submit:hover{background:#d47a09;transform:translateY(-1px);box-shadow:0 4px 12px rgba(232,135,10,.3)}
+    .btn-submit:active{transform:translateY(0)}
+    .btn-submit:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+    /* Messages */
+    .msg{padding:.65rem .85rem;border-radius:var(--radius-sm);font-size:.82rem;font-weight:600;display:none;align-items:center;gap:.45rem;margin-top:.9rem;border:1px solid transparent;animation:fadeUp .2s}
+    .msg.show{display:flex}
+    .msg.err {background:var(--red-lt);  color:#7a1a1a;border-color:#f5c6c2}
+    .msg.ok  {background:var(--green-lt);color:var(--green);border-color:#a7d9be}
+
+    /* ── RESULT CARD ── */
+    .result-card{display:none;animation:fadeUp .3s ease both}
+    .result-card.show{display:block}
+
+    /* Medicine info card (shown on search) */
+    .med-preview{background:var(--teal-lt);border:1px solid var(--border-dk);border-radius:var(--radius-sm);padding:.9rem 1rem;display:none;align-items:center;gap:.8rem;margin-bottom:1rem;animation:fadeUp .2s}
+    .med-preview.show{display:flex}
+    .med-preview-icon{width:34px;height:34px;background:var(--surface);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;border:1px solid var(--border)}
+    .med-preview-name{font-weight:700;font-size:.86rem;color:var(--text)}
+    .med-preview-meta{font-size:.73rem;color:var(--muted);margin-top:.1rem}
+
+    /* Stock display */
+    .stock-display{display:flex;align-items:center;gap:.65rem;padding:.8rem 1rem;border-radius:var(--radius-sm);background:var(--surface2);border:1px solid var(--border);margin-bottom:.9rem}
+    .stock-num{font-family:'Sora',sans-serif;font-size:2rem;font-weight:700;line-height:1}
+    .stock-num.low{color:var(--red)}
+    .stock-num.ok{color:var(--green)}
+    .stock-label{font-size:.72rem;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.06em}
+
+    /* Result rows */
+    .res-row{display:flex;justify-content:space-between;align-items:center;padding:.55rem 0;border-bottom:1px solid var(--border);font-size:.84rem}
+    .res-row:last-child{border-bottom:none}
+    .res-key{color:var(--muted);font-weight:500}
+    .res-val{font-weight:700;color:var(--text)}
+    .res-val.accent{color:var(--green);font-family:'Sora',sans-serif;font-size:1.05rem}
+
+    /* Success banner */
+    .success-banner{background:var(--green-lt);border:1.5px solid #a7d9be;border-radius:var(--radius-sm);padding:.8rem 1rem;display:flex;align-items:center;gap:.65rem;margin-bottom:1rem;animation:fadeUp .25s}
+    .success-banner .sb-icon{font-size:1.25rem;flex-shrink:0}
+    .success-banner .sb-text{font-size:.84rem;font-weight:700;color:var(--green)}
+    .success-banner .sb-sub{font-size:.74rem;color:#3a7a5c;margin-top:.1rem}
+
+    /* Date input */
+    input[type=date]{width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+    input[type=date]:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1);background:var(--surface)}
+
+    /* Batch preview tag */
+    .batch-preview{margin-top:.6rem;padding:.55rem .85rem;border-radius:var(--radius-sm);background:var(--amber-lt);border:1px solid #f5dbb0;font-size:.78rem;font-weight:600;color:#7a4a00;display:none}
+    .batch-preview.show{display:block}
+
+    /* Quick restock shortcut badges */
+    .qty-shortcuts{display:flex;gap:.5rem;margin-bottom:.9rem;flex-wrap:wrap}
+    .qty-chip{padding:.3rem .75rem;border:1.5px solid var(--border);border-radius:999px;font-size:.76rem;font-weight:600;color:var(--text-2);cursor:pointer;background:var(--surface2);transition:all .16s;font-family:inherit}
+    .qty-chip:hover{background:var(--amber-lt);border-color:var(--amber);color:#a85f00}
+
+    @media(max-width:800px){.content{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a class="logo-mark" href="index.html">
+      <div class="logo-icon"></div>
+      <div><div class="logo-text">MediFlow</div><div class="logo-sub">Your own Pharmacy</div></div>
+    </a>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sb-avatar">?</div>
+    <div><div class="user-name-s" id="sb-name">…</div><div class="user-role">Pharmacist</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <a class="nav-item" href="index.html"><div class="nav-icon">🏠</div>Dashboard</a>
+    <a class="nav-item" href="billing.html"><div class="nav-icon">🧾</div>Billing</a>
+    <div class="nav-label">Inventory</div>
+    <a class="nav-item" href="add-medicine.html"><div class="nav-icon">➕</div>Add Medicine</a>
+    <a class="nav-item active" href="restock.html"><div class="nav-icon">♻️</div>Restock</a>
+    <a class="nav-item" href="history.html#restocked"><div class="nav-icon">📜</div>History</a>
+    <a class="nav-item" href="order.html"><div class="nav-icon">📋</div>Order</a>
+    <div class="nav-label">Tools</div>
+    <a class="nav-item" href="scanner.html"><div class="nav-icon">📷</div>Camera Scanner</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn-logout" onclick="doLogout()"><span>🚪</span>Sign Out</button>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <div class="topbar">
+    <div class="topbar-title">♻️ Restock Medicine</div>
+  </div>
+
+  <div class="content">
+
+    <!-- LEFT: Restock form -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-head-icon phi-amber">♻️</div>
+        <div>
+          <div class="panel-head-text">Add Stock</div>
+          <div class="panel-head-sub">Search by name or scan barcode</div>
+        </div>
+      </div>
+      <div class="panel-body">
+
+        <!-- Medicine name search with autocomplete -->
+        <div class="form-group">
+          <label>Medicine Name</label>
+          <div class="ac-wrap" id="ac-wrap">
+            <input type="text" id="name-input" placeholder="Start typing medicine name…" autocomplete="off"/>
+            <div class="autocomplete-list" id="autocomplete-list"></div>
+          </div>
+        </div>
+
+        <!-- Barcode — auto-filled when name is picked, or type directly -->
+        <div class="form-group">
+          <label>Barcode</label>
+          <input type="text" id="barcode-input" placeholder="e.g. MED-001"/>
+          <div class="field-hint">Auto-filled when you pick a medicine above.</div>
+        </div>
+
+        <!-- Quick quantity shortcuts -->
+        <div class="form-group">
+          <label>Quantity to Add</label>
+          <div class="qty-shortcuts">
+            <button class="qty-chip" onclick="setQty(10)">+10</button>
+            <button class="qty-chip" onclick="setQty(25)">+25</button>
+            <button class="qty-chip" onclick="setQty(50)">+50</button>
+            <button class="qty-chip" onclick="setQty(100)">+100</button>
+          </div>
+          <input type="number" id="qty-input" placeholder="Or type custom amount…" min="1"/>
+        </div>
+
+        <!-- Expiry date for this batch -->
+        <div class="form-group">
+          <label>Expiry Date of This Batch</label>
+          <input type="date" id="expiry-input" onchange="updateBatchPreview()"/>
+          <div class="field-hint">If the expiry differs from existing stock, a new batch will be created automatically.</div>
+          <div class="batch-preview" id="batch-preview"></div>
+        </div>
+
+        <button class="btn-submit" id="restock-btn" onclick="doRestock()">
+          ♻️ Add to Stock
+        </button>
+
+        <div class="msg" id="msg"></div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: Result / medicine preview -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-head-icon phi-green">📦</div>
+        <div>
+          <div class="panel-head-text">Stock Preview</div>
+          <div class="panel-head-sub">Selected medicine details</div>
+        </div>
+      </div>
+      <div class="panel-body">
+
+        <!-- Shown when a medicine is selected but before restock -->
+        <div class="med-preview" id="med-preview">
+          <div class="med-preview-icon">💊</div>
+          <div>
+            <div class="med-preview-name" id="prev-name">—</div>
+            <div class="med-preview-meta" id="prev-meta">—</div>
+          </div>
+        </div>
+
+        <!-- Empty state -->
+        <div id="preview-empty" style="text-align:center;padding:2.5rem 1rem;color:var(--muted)">
+          <div style="font-size:2.2rem;margin-bottom:.6rem">📦</div>
+          <div style="font-size:.84rem;line-height:1.6">Search for a medicine on the left<br/>to see its current stock here.</div>
+        </div>
+
+        <!-- Result card — shown after successful restock -->
+        <div class="result-card" id="result-card">
+          <div class="success-banner">
+            <span class="sb-icon">✅</span>
+            <div>
+              <div class="sb-text">Stock Updated!</div>
+              <div class="sb-sub" id="res-summary">—</div>
+            </div>
+            <a href="history.html#restocked" style="margin-left:auto;font-size:.76rem;font-weight:700;color:var(--green);text-decoration:none;white-space:nowrap;padding:.3rem .6rem;border:1px solid #a7d9be;border-radius:var(--radius-sm);background:var(--surface)">📜 History →</a>
+          </div>
+
+          <div class="stock-display">
+            <div>
+              <div class="stock-label">New Stock</div>
+              <div class="stock-num" id="res-stock-num">—</div>
+            </div>
+            <div style="margin-left:auto;text-align:right">
+              <div class="stock-label">Added</div>
+              <div style="font-family:'Sora',sans-serif;font-size:1.3rem;font-weight:700;color:var(--amber)" id="res-added-num">—</div>
+            </div>
+          </div>
+
+          <div class="res-row"><span class="res-key">Medicine</span><span class="res-val" id="res-name">—</span></div>
+          <div class="res-row"><span class="res-key">Barcode</span><span class="res-val" style="font-family:monospace;font-size:.8rem" id="res-barcode">—</span></div>
+          <div class="res-row"><span class="res-key">Price</span><span class="res-val" id="res-price">—</span></div>
+          <div class="res-row"><span class="res-key">Expiry</span><span class="res-val" id="res-expiry">—</span></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let allMedicines = [];
+  let selectedMed  = null;   // currently previewed medicine
+
+  // ── Auth ────────────────────────────────────────────────
+  fetch('/me').then(r=>r.json()).then(d=>{
+    if(!d.loggedIn){window.location.href='/login.html';return;}
+    document.getElementById('sb-name').textContent   = d.name;
+    document.getElementById('sb-avatar').textContent = d.name.charAt(0).toUpperCase();
+  });
+  function doLogout(){fetch('/logout',{method:'POST'}).then(()=>window.location.href='/login.html');}
+
+  // ── Load medicines for autocomplete ─────────────────────
+  async function loadMedicines(){
+    try{
+      const data = await fetch('/medicines').then(r=>r.json());
+      if(Array.isArray(data)) allMedicines = data;
+    }catch(_){}
+  }
+
+  // ── Quick qty shortcuts ──────────────────────────────────
+  function setQty(n){
+    document.getElementById('qty-input').value = n;
+    document.getElementById('qty-input').focus();
+  }
+
+  // ── Autocomplete ─────────────────────────────────────────
+  const nameInput  = document.getElementById('name-input');
+  const autoList   = document.getElementById('autocomplete-list');
+
+  nameInput.addEventListener('input',()=>{
+    const q = nameInput.value.trim().toLowerCase();
+    hidePreview(); hideResult(); hideMsg();
+    if(!q){hideAc();return;}
+    const matches = allMedicines.filter(m=>m.name.toLowerCase().includes(q)).slice(0,8);
+    if(!matches.length){hideAc();return;}
+    autoList._m = matches;
+    autoList.innerHTML = matches.map((m,i)=>`
+      <div class="autocomplete-item" onclick="pickMed(${i})">
+        <div class="ac-name">${hl(m.name,q)}</div>
+        <div class="ac-meta">Stock: <strong>${m.stock}</strong> · ₹${Number(m.price).toFixed(2)} · ${m.barcode}</div>
+      </div>`).join('');
+    autoList.classList.add('show');
+  });
+
+  function pickMed(i){
+    const m = autoList._m[i];
+    if(!m) return;
+    selectedMed = m;
+    nameInput.value    = m.name;
+    document.getElementById('barcode-input').value = m.barcode;
+    hideAc();
+    showPreview(m);
+    updateBatchPreview();
+    document.getElementById('qty-input').focus();
+  }
+
+  function hideAc(){ autoList.classList.remove('show'); autoList.innerHTML = ''; }
+  document.addEventListener('click', e=>{ if(!document.getElementById('ac-wrap').contains(e.target)) hideAc(); });
+
+  nameInput.addEventListener('keydown', e=>{
+    const items = autoList.querySelectorAll('.autocomplete-item');
+    let cur = [...items].findIndex(el=>el.classList.contains('active'));
+    if(e.key==='ArrowDown'){e.preventDefault();cur=Math.min(cur+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('active',i===cur));}
+    else if(e.key==='ArrowUp'){e.preventDefault();cur=Math.max(cur-1,0);items.forEach((el,i)=>el.classList.toggle('active',i===cur));}
+    else if(e.key==='Enter'){e.preventDefault();if(cur>=0)pickMed(cur);}
+    else if(e.key==='Escape')hideAc();
+  });
+
+  // Enter on qty or expiry field submits
+  document.getElementById('qty-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doRestock(); });
+  document.getElementById('expiry-input').addEventListener('keydown', e=>{ if(e.key==='Enter') doRestock(); });
+
+  // ── Show medicine preview ────────────────────────────────
+  function showPreview(m){
+    document.getElementById('preview-empty').style.display = 'none';
+    const exp = m.expiryDate ? new Date(m.expiryDate).toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'}) : '—';
+    document.getElementById('prev-name').textContent = m.name;
+    document.getElementById('prev-meta').textContent = `Stock: ${m.stock} · ₹${Number(m.price).toFixed(2)} · Exp: ${exp}`;
+    document.getElementById('med-preview').classList.add('show');
+  }
+  function hidePreview(){ document.getElementById('med-preview').classList.remove('show'); document.getElementById('preview-empty').style.display='block'; }
+
+  // ── Batch preview — tells user if new batch will be created ─
+  function updateBatchPreview(){
+    const expiry = document.getElementById('expiry-input').value;
+    const prev   = document.getElementById('batch-preview');
+    if(!expiry || !selectedMed){ prev.classList.remove('show'); return; }
+
+    const newExp  = new Date(expiry).toDateString();
+    const batches = selectedMed.batches || [];
+    const exists  = batches.find(b => new Date(b.expiryDate).toDateString() === newExp);
+
+    if(exists){
+      prev.textContent = `📦 Will add to existing ${exists.batchLabel} (exp ${new Date(exists.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'})})`;
+    } else {
+      const nextLetter = String.fromCharCode(65 + batches.filter(b=>b.stock>0).length);
+      prev.textContent = `🆕 New batch will be created (Batch ${nextLetter}) for this expiry date`;
+    }
+    prev.classList.add('show');
+  }
+
+  // ── Restock ──────────────────────────────────────────────
+  async function doRestock(){
+    const barcode    = document.getElementById('barcode-input').value.trim();
+    const quantity   = parseInt(document.getElementById('qty-input').value, 10);
+    const expiryDate = document.getElementById('expiry-input').value;
+    const btn        = document.getElementById('restock-btn');
+
+    hideMsg(); hideResult();
+
+    if(!barcode){showMsg('err','⚠️ Please select or enter a barcode.');document.getElementById('barcode-input').focus();return;}
+    if(!quantity || quantity <= 0){showMsg('err','⚠️ Please enter a valid quantity (1 or more).');document.getElementById('qty-input').focus();return;}
+    if(!expiryDate){showMsg('err','⚠️ Please enter the expiry date for this batch.');document.getElementById('expiry-input').focus();return;}
+
+    btn.disabled    = true;
+    btn.textContent = '⏳ Updating stock…';
+
+    try{
+      const res  = await fetch('/restock',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({barcode, quantity, expiryDate})
+      });
+      const data = await res.json();
+
+      if(!res.ok){showMsg('err',`❌ ${data.error}`);return;}
+
+      // ── Show success result card ──
+      const med = data.medicine;
+      const totalStock = med.batches ? med.batches.reduce((s,b)=>s+b.stock,0) : med.stock;
+      const batchCount = med.batches ? med.batches.length : 1;
+      document.getElementById('res-summary').textContent  = `${med.name} now has ${totalStock} units across ${batchCount} batch${batchCount!==1?'es':''}.`;
+      document.getElementById('res-stock-num').textContent = totalStock;
+      document.getElementById('res-stock-num').className  = `stock-num ${totalStock < 10 ? 'low' : 'ok'}`;
+      document.getElementById('res-added-num').textContent = `+${quantity}`;
+      document.getElementById('res-name').textContent    = med.name;
+      document.getElementById('res-barcode').textContent = med.barcode;
+      document.getElementById('res-price').textContent   = `₹${Number(med.price).toFixed(2)}`;
+      document.getElementById('res-expiry').textContent  = new Date(expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+      document.getElementById('preview-empty').style.display = 'none';
+      document.getElementById('med-preview').classList.remove('show');
+      document.getElementById('result-card').classList.add('show');
+
+      // Refresh local list so autocomplete has updated stock counts
+      await loadMedicines();
+
+      // Clear form ready for next restock
+      nameInput.value    = '';
+      document.getElementById('barcode-input').value = '';
+      document.getElementById('qty-input').value     = '';
+      document.getElementById('expiry-input').value  = '';
+      document.getElementById('batch-preview').classList.remove('show');
+      selectedMed = null;
+      nameInput.focus();
+
+    }catch(e){
+      showMsg('err','❌ Server unreachable. Is MediFlow running?');
+    }finally{
+      btn.disabled    = false;
+      btn.textContent = '♻️ Add to Stock';
+    }
+  }
+
+  // ── Helpers ──────────────────────────────────────────────
+  function showMsg(t,m){ const b=document.getElementById('msg'); b.textContent=m; b.className=`msg show ${t}`; }
+  function hideMsg(){ document.getElementById('msg').className='msg'; }
+  function hideResult(){ document.getElementById('result-card').classList.remove('show'); document.getElementById('preview-empty').style.display='block'; }
+
+  function hl(text,q){
+    const i=text.toLowerCase().indexOf(q);
+    if(i<0)return esc(text);
+    return esc(text.slice(0,i))+`<mark style="background:var(--teal-lt);border-radius:2px">${esc(text.slice(i,i+q.length))}</mark>`+esc(text.slice(i+q.length));
+  }
+  function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  loadMedicines();
+</script>
+<script src="/js/mediflow-brand.js"></script>
+</body>
+</html>

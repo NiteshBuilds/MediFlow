@@ -1,0 +1,800 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Dashboard — MediFlow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/mediflow-brand.css"/>
+  <link rel="icon" href="/assets/mediflow-logo-icon.svg" type="image/svg+xml"/>
+  <style>
+    :root {
+      --teal:#0d6b6e; --teal-dk:#094a4c; --teal-md:#0f8a8e; --teal-lt:#e0f4f4; --teal-glow:rgba(13,107,110,.12);
+      --amber:#e8870a; --amber-lt:#fef3e2;
+      --green:#1a7a4a; --green-lt:#e3f5ec;
+      --red:#c0392b; --red-lt:#fdecea;
+      --bg:#f0f4f5; --surface:#ffffff; --surface2:#f7fafa;
+      --sidebar-bg:#0a3d3f; --sidebar-w:240px;
+      --text:#0f2b2d; --text-2:#3a5a5c; --muted:#7a9ea0;
+      --border:#d4e6e7; --border-dk:#b8d4d5;
+      --shadow-sm:0 1px 4px rgba(13,107,110,.08); --shadow-md:0 4px 16px rgba(13,107,110,.12); --shadow-lg:0 8px 32px rgba(13,107,110,.16);
+      --radius:12px; --radius-sm:8px; --radius-lg:16px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+
+    /* ── SIDEBAR ── */
+    .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:200}
+    .sidebar::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:28px 28px}
+    .sidebar-logo{padding:1.4rem 1.25rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.06)}
+    .logo-mark{display:flex;align-items:center;gap:.6rem;text-decoration:none}
+    .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,#0f8a8e,#0aa8ad);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 4px 12px rgba(13,168,173,.4);flex-shrink:0}
+    .logo-text{font-family:'Sora',sans-serif;font-size:1.1rem;font-weight:700;color:#fff;letter-spacing:-.02em}
+    .logo-sub{font-size:.6rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em}
+    .sidebar-user{margin:.9rem .85rem .25rem;padding:.7rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);display:flex;align-items:center;gap:.55rem}
+    .user-avatar{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--amber),#f5a623);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff;flex-shrink:0}
+    .user-name{font-size:.78rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .user-role{font-size:.65rem;color:rgba(255,255,255,.35)}
+    .sidebar-nav{flex:1;padding:.4rem 0;overflow-y:auto}
+    .nav-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.22);padding:.85rem 1.25rem .3rem}
+    .nav-item{display:flex;align-items:center;gap:.65rem;padding:.55rem .9rem .55rem 1.25rem;margin:.08rem .65rem;border-radius:var(--radius-sm);text-decoration:none;color:rgba(255,255,255,.5);font-size:.82rem;font-weight:500;transition:all .16s;position:relative}
+    .nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+    .nav-item.active{background:rgba(15,138,142,.22);color:#fff;font-weight:600}
+    .nav-item.active::before{content:'';position:absolute;left:2px;top:22%;bottom:22%;width:3px;background:#0aa8ad;border-radius:2px}
+    .nav-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.82rem;background:rgba(255,255,255,.06);flex-shrink:0;transition:background .16s}
+    .nav-item.active .nav-icon{background:rgba(15,138,142,.35)}
+    .nav-item:hover .nav-icon{background:rgba(255,255,255,.1)}
+    .sidebar-footer{padding:.7rem;border-top:1px solid rgba(255,255,255,.06)}
+    .btn-logout{width:100%;display:flex;align-items:center;gap:.55rem;padding:.55rem .85rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);color:rgba(255,255,255,.4);font-size:.78rem;font-weight:500;font-family:inherit;cursor:pointer;transition:all .18s}
+    .btn-logout:hover{background:rgba(192,57,43,.2);border-color:rgba(192,57,43,.35);color:#ff8a80}
+
+    /* ── MAIN ── */
+    .main-wrap{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column}
+    .topbar{height:58px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;padding:0 2rem;position:sticky;top:0;z-index:100;box-shadow:var(--shadow-sm)}
+    .topbar-title{font-family:'Sora',sans-serif;font-size:.98rem;font-weight:600;color:var(--text)}
+    .topbar-pill{display:flex;align-items:center;gap:.4rem;padding:.28rem .7rem;background:var(--teal-lt);border:1px solid var(--border-dk);border-radius:999px;font-size:.72rem;font-weight:600;color:var(--teal-dk)}
+    .live-dot{width:6px;height:6px;border-radius:50%;background:var(--teal-md);animation:pulse 2s infinite}
+    @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
+    .content{flex:1;padding:1.75rem 2rem 3rem}
+
+    /* ── STAT CARDS ── */
+    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.75rem}
+    .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.2rem 1.4rem;display:flex;align-items:flex-start;justify-content:space-between;box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s;animation:fadeUp .3s ease both}
+    .stat-card:nth-child(2){animation-delay:.05s}.stat-card:nth-child(3){animation-delay:.1s}.stat-card:nth-child(4){animation-delay:.15s}
+    .stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
+    .stat-label{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.4rem}
+    .stat-value{font-family:'Sora',sans-serif;font-size:2rem;font-weight:700;color:var(--text);line-height:1}
+    .stat-sub{font-size:.7rem;color:var(--muted);margin-top:.3rem}
+    .stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+    .si-teal{background:var(--teal-lt)}.si-amber{background:var(--amber-lt)}.si-red{background:var(--red-lt)}.si-green{background:var(--green-lt)}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── LOWER GRID ── */
+    .lower-grid{display:grid;grid-template-columns:1fr 320px;gap:1.5rem;align-items:start}
+    .left-col{display:flex;flex-direction:column}
+    .left-col>:last-child{margin-top:auto}
+    .alerts-col{display:flex;flex-direction:column;height:100%}
+    .alerts-col .panel{flex:1;display:flex;flex-direction:column}
+    .alerts-col .panel-body{flex:1;max-height:none;overflow-y:auto}
+
+    /* Quick access */
+    .qa-grid{display:grid;grid-template-columns:1fr 1fr;gap:.85rem;margin-bottom:1.5rem}
+    .qa-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.1rem;text-decoration:none;color:inherit;transition:all .2s;display:flex;align-items:flex-start;gap:.85rem;box-shadow:var(--shadow-sm);animation:fadeUp .35s ease both}
+    .qa-card:nth-child(2){animation-delay:.06s}.qa-card:nth-child(3){animation-delay:.12s}.qa-card:nth-child(4){animation-delay:.18s}
+    .qa-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--teal-md)}
+    .qa-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
+    .qi-billing{background:#deeeff}.qi-add{background:var(--green-lt)}.qi-restock{background:var(--amber-lt)}.qi-scanner{background:#ede0ff}
+    .qa-label{font-size:.86rem;font-weight:700;color:var(--text);margin-bottom:.18rem}
+    .qa-desc{font-size:.73rem;color:var(--muted);line-height:1.45}
+
+    /* Panels */
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;animation:fadeUp .35s .1s ease both}
+    .panel-head{padding:.85rem 1.1rem;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;justify-content:space-between}
+    .panel-title{font-family:'Sora',sans-serif;font-size:.85rem;font-weight:600;color:var(--text);display:flex;align-items:center;gap:.4rem}
+    .panel-body{padding:.9rem;max-height:400px;overflow-y:auto}
+    .section-head{display:flex;align-items:center;justify-content:space-between;margin-bottom:.9rem}
+    .section-title{font-family:'Sora',sans-serif;font-size:.95rem;font-weight:600;color:var(--text)}
+
+    .alert-item{display:flex;align-items:flex-start;gap:.65rem;padding:.65rem .75rem;border-radius:var(--radius-sm);margin-bottom:.45rem;font-size:.78rem;border:1px solid transparent}
+    .alert-item:last-child{margin-bottom:0}
+    .alert-item.danger{background:var(--red-lt);border-color:#f5c6c2;color:#7a1a1a}
+    .alert-item.warning{background:var(--amber-lt);border-color:#f5dbb0;color:#7a4a00}
+    .alert-item.ok{background:var(--green-lt);border-color:#a7d9be;color:#1a4a2e}
+    .alert-icon{font-size:.9rem;flex-shrink:0;margin-top:.05rem}
+    .alert-body strong{display:block;font-weight:700;font-size:.8rem;margin-bottom:.08rem}
+
+    /* Inventory table */
+    .table-wrap{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);overflow:hidden;box-shadow:var(--shadow-sm)}
+    .table-search{padding:.65rem .9rem;border-bottom:1px solid var(--border)}
+    .table-search input{padding:.45rem .8rem;font-size:.82rem}
+    table{width:100%;border-collapse:collapse}
+    thead th{background:var(--surface2);padding:.65rem .9rem;font-size:.66rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);text-align:left;border-bottom:1px solid var(--border)}
+    tbody td{padding:.7rem .9rem;font-size:.82rem;border-bottom:1px solid var(--border);color:var(--text-2)}
+    tbody tr:last-child td{border-bottom:none}
+    tbody tr:hover td{background:var(--teal-lt)}
+    .badge{display:inline-flex;align-items:center;padding:.18rem .55rem;border-radius:999px;font-size:.67rem;font-weight:700}
+    .badge-green{background:var(--green-lt);color:var(--green)}.badge-red{background:var(--red-lt);color:var(--red)}.badge-amber{background:var(--amber-lt);color:#a85f00}
+    .table-empty{padding:2.5rem;text-align:center;color:var(--muted);font-size:.83rem}
+    .btn-ghost{display:inline-flex;align-items:center;gap:.35rem;padding:.3rem .65rem;background:transparent;border:1.5px solid var(--border-dk);border-radius:6px;font-size:.72rem;font-weight:600;color:var(--text-2);cursor:pointer;font-family:inherit;transition:all .16s}
+    .btn-ghost:hover{background:var(--teal-lt);border-color:var(--teal-md);color:var(--teal-dk)}
+    .inv-toggle{width:100%;padding:.62rem;background:var(--surface);border:1.5px solid var(--border-dk);border-radius:var(--radius-sm);font-size:.8rem;font-weight:600;color:var(--text-2);cursor:pointer;font-family:inherit;transition:all .18s;margin-top:.9rem;display:flex;align-items:center;justify-content:center;gap:.4rem}
+    .inv-toggle:hover{background:var(--teal-lt);border-color:var(--teal-md);color:var(--teal-dk)}
+
+    @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.lower-grid{grid-template-columns:1fr}}
+    @media(max-width:700px){.sidebar{transform:translateX(-100%)}.main-wrap{margin-left:0}.qa-grid{grid-template-columns:1fr}}
+
+    /* ── PROFILE MODAL ─────────────────────────────────────── */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(5,20,22,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .22s}
+    .modal-backdrop.open{opacity:1;pointer-events:auto}
+    .modal{background:#fff;border-radius:18px;width:100%;max-width:520px;box-shadow:0 24px 64px rgba(13,107,110,.22);transform:translateY(16px) scale(.98);transition:transform .25s,opacity .25s;opacity:0;display:flex;flex-direction:column;max-height:90vh}
+    .modal-backdrop.open .modal{transform:translateY(0) scale(1);opacity:1}
+    .modal-header{padding:1.2rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .modal-title{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:var(--text)}
+    .modal-close{background:none;border:none;font-size:1.3rem;color:var(--muted);cursor:pointer;padding:.2rem .4rem;border-radius:6px;transition:all .15s;line-height:1}
+    .modal-close:hover{background:var(--red-lt);color:var(--red)}
+    .modal-body{padding:1.4rem;overflow-y:auto;flex:1}
+    /* Tabs */
+    .modal-tabs{display:flex;gap:.4rem;margin-bottom:1.4rem;background:var(--surface2);border-radius:10px;padding:.3rem}
+    .modal-tab{flex:1;padding:.5rem;border:none;border-radius:8px;font-size:.8rem;font-weight:600;font-family:inherit;cursor:pointer;background:transparent;color:var(--muted);transition:all .16s;text-align:center}
+    .modal-tab.active{background:#fff;color:var(--teal-dk);box-shadow:0 1px 6px rgba(13,107,110,.12)}
+    .tab-panel{display:none}.tab-panel.active{display:block}
+    /* Form inside modal */
+    .m-field{margin-bottom:1rem}
+    .m-label{display:block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.36rem}
+    .m-input{width:100%;padding:.62rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
+    .m-input:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1);background:#fff}
+    .m-input.locked{background:#eef3f4;color:var(--text-2);cursor:not-allowed;opacity:.92}
+    #tab-account.profile-unlocked .m-input.locked{background:#fff;color:var(--text);cursor:text;opacity:1}
+    #p-edit-lock-note.unlocked{color:var(--green);font-weight:600}
+    .code-sent-wrap{display:flex;align-items:center;gap:.65rem;flex-wrap:wrap}
+    .code-sent-badge{display:none;align-items:center;gap:.35rem;padding:.45rem .75rem;background:var(--green-lt);color:var(--green);border:1px solid #a7d9be;border-radius:999px;font-size:.78rem;font-weight:700;animation:fadeUp .25s ease}
+    .code-sent-badge.show{display:inline-flex}
+    .m-btn-primary.sent{background:var(--green);box-shadow:0 2px 8px rgba(26,122,74,.25)}
+    .m-divider{height:1px;background:var(--border);margin:1.1rem 0}
+    .m-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.62rem 1.2rem;border:none;border-radius:var(--radius-sm);font-size:.85rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s}
+    .m-btn-primary{background:var(--teal);color:#fff;box-shadow:0 2px 8px rgba(13,107,110,.2)}
+    .m-btn-primary:hover{background:var(--teal-md);transform:translateY(-1px)}
+    .m-btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .m-btn-danger{background:var(--red-lt);color:var(--red);border:1.5px solid #f5c6c2}
+    .m-btn-danger:hover{background:#fbd9d7}
+    .m-msg{padding:.6rem .85rem;border-radius:var(--radius-sm);font-size:.81rem;font-weight:600;display:none;align-items:center;gap:.4rem;margin-top:.85rem;border:1px solid transparent;animation:fadeUp .2s}
+    .m-msg.show{display:flex}
+    .m-msg.ok{background:var(--green-lt);color:var(--green);border-color:#a7d9be}
+    .m-msg.err{background:var(--red-lt);color:var(--red);border-color:#f5c6c2}
+    /* Inventory list inside modal */
+    .inv-list{display:flex;flex-direction:column;border:1px solid var(--border);border-radius:var(--radius-sm);max-height:min(420px,55vh);min-height:180px}
+    #inv-del-items{overflow-y:auto;flex:1;min-height:0;-webkit-overflow-scrolling:touch}
+    .inv-list-item{display:flex;align-items:center;justify-content:space-between;padding:.7rem .9rem;border-bottom:1px solid var(--border);font-size:.82rem;transition:background .13s}
+    .inv-list-item:last-child{border-bottom:none}
+    .inv-list-item:hover{background:var(--surface2)}
+    .inv-item-name{font-weight:600;color:var(--text)}
+    .inv-item-meta{font-size:.72rem;color:var(--muted);margin-top:.1rem}
+    .inv-item-del{background:none;border:none;color:var(--muted);cursor:pointer;padding:.28rem .45rem;border-radius:5px;font-size:.82rem;transition:all .13s;flex-shrink:0}
+    .inv-item-del:hover{background:var(--red-lt);color:var(--red)}
+    .inv-search-wrap{padding:.65rem .9rem;border-bottom:1px solid var(--border);background:var(--surface2)}
+    .inv-search-wrap input{width:100%;padding:.45rem .75rem;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;font-family:inherit;background:#fff;outline:none}
+    .inv-search-wrap input:focus{border-color:var(--teal-md)}
+    .inv-empty{padding:2rem;text-align:center;color:var(--muted);font-size:.83rem}
+    /* Profile button in sidebar */
+    .btn-profile{width:100%;display:flex;align-items:center;gap:.55rem;padding:.55rem .85rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);color:rgba(255,255,255,.5);font-size:.78rem;font-weight:500;font-family:inherit;cursor:pointer;transition:all .18s;margin-bottom:.45rem;text-align:left}
+    .btn-profile:hover{background:rgba(255,255,255,.09);color:#fff}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a class="logo-mark" href="index.html">
+      <div class="logo-icon"></div>
+      <div><div class="logo-text">MediFlow</div><div class="logo-sub">Your own Pharmacy</div></div>
+    </a>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="user-avatar">?</div>
+    <div><div class="user-name" id="user-name-label">Loading…</div><div class="user-role">Pharmacist</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <a class="nav-item active" href="index.html"><div class="nav-icon">🏠</div>Dashboard</a>
+    <a class="nav-item" href="billing.html"><div class="nav-icon">🧾</div>Billing</a>
+    <div class="nav-label">Inventory</div>
+    <a class="nav-item" href="add-medicine.html"><div class="nav-icon">➕</div>Add Medicine</a>
+    <a class="nav-item" href="restock.html"><div class="nav-icon">♻️</div>Restock</a>
+    <a class="nav-item" href="history.html"><div class="nav-icon">📜</div>History</a>
+    <a class="nav-item" href="order.html"><div class="nav-icon">📋</div>Order</a>
+    <div class="nav-label">Tools</div>
+    <a class="nav-item" href="scanner.html"><div class="nav-icon">📷</div>Camera Scanner</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn-profile" onclick="openProfile()"><span>👤</span>My Profile</button>
+    <button class="btn-logout" onclick="doLogout()"><span>🚪</span>Sign Out</button>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <div class="topbar">
+    <div class="topbar-title">Dashboard</div>
+    <div class="topbar-pill"><div class="live-dot"></div>Live</div>
+  </div>
+
+  <div class="content">
+
+    <div class="stats-grid">
+      <div class="stat-card">
+        <div><div class="stat-label">Total Medicines</div><div class="stat-value" id="stat-total">—</div><div class="stat-sub">in database</div></div>
+        <div class="stat-icon si-teal">💊</div>
+      </div>
+      <div class="stat-card">
+        <div><div class="stat-label">Low Stock</div><div class="stat-value" id="stat-low" style="color:var(--amber)">—</div><div class="stat-sub">under 5 units</div></div>
+        <div class="stat-icon si-amber">⚠️</div>
+      </div>
+      <div class="stat-card">
+        <div><div class="stat-label">Expiring Soon</div><div class="stat-value" id="stat-expired" style="color:var(--red)">—</div><div class="stat-sub">within 90 days</div></div>
+        <div class="stat-icon si-red">📅</div>
+      </div>
+      <div class="stat-card">
+        <div><div class="stat-label">Out of Stock</div><div class="stat-value" id="stat-out" style="color:var(--red)">—</div><div class="stat-sub">needs reorder</div></div>
+        <div class="stat-icon si-red">🚨</div>
+      </div>
+    </div>
+
+    <div class="lower-grid">
+      <div class="left-col">
+        <div class="section-head"><div class="section-title">Quick Access</div></div>
+        <div class="qa-grid">
+          <a class="qa-card" href="billing.html"><div class="qa-icon qi-billing">🧾</div><div><div class="qa-label">Billing Counter</div><div class="qa-desc">Scan barcodes, build cart, print receipts.</div></div></a>
+          <a class="qa-card" href="add-medicine.html"><div class="qa-icon qi-add">➕</div><div><div class="qa-label">Add Medicine</div><div class="qa-desc">Register medicines with barcode and expiry.</div></div></a>
+          <a class="qa-card" href="restock.html"><div class="qa-icon qi-restock">♻️</div><div><div class="qa-label">Restock</div><div class="qa-desc">Add stock when new medicines arrive.</div></div></a>
+          <a class="qa-card" href="scanner.html"><div class="qa-icon qi-scanner">📷</div><div><div class="qa-label">Camera Scanner</div><div class="qa-desc">Scan barcodes wirelessly from phone.</div></div></a>
+        </div>
+
+        <div id="inventory-section" style="display:none">
+          <div class="section-head"><div class="section-title">Live Inventory</div><span id="inv-badge" style="font-size:.72rem;color:var(--muted)"></span></div>
+          <div class="table-wrap">
+            <div class="table-search"><input type="text" id="inv-search" placeholder="🔍  Filter medicines…" oninput="filterInventory()"/></div>
+            <div id="inv-table-area"><div class="table-empty">Loading…</div></div>
+          </div>
+        </div>
+
+        <button class="inv-toggle" onclick="toggleInventory()" id="inv-toggle-btn">📋 View Full Inventory</button>
+      </div>
+
+      <div class="alerts-col">
+        <div class="section-head">
+          <div class="section-title">Alerts</div>
+          <button class="btn-ghost" onclick="loadStats()">↻ Refresh</button>
+        </div>
+        <div class="panel">
+          <div class="panel-body" id="alerts-container"><div class="table-empty">Loading…</div></div>
+        </div>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  let allInventory=[],inventoryLoaded=false;
+
+  async function checkAuth() {
+    try {
+      const d = await fetch('/me').then(r=>r.json());
+      if (!d.loggedIn){window.location.href='/login.html';return;}
+      document.getElementById('user-name-label').textContent=d.name;
+      document.getElementById('user-avatar').textContent=d.name.charAt(0).toUpperCase();
+    } catch(_){}
+  }
+  async function doLogout(){await fetch('/logout',{method:'POST'});window.location.href='/login.html';}
+
+  function toggleInventory(){
+    const s=document.getElementById('inventory-section');
+    const btn=document.getElementById('inv-toggle-btn');
+    const open=s.style.display==='block';
+    s.style.display=open?'none':'block';
+    btn.textContent=open?'📋 View Full Inventory':'✕ Close Inventory';
+    if(!open){s.scrollIntoView({behavior:'smooth',block:'start'});if(!inventoryLoaded)loadInventory();}
+  }
+
+  // Helper: get earliest expiry from active batches
+  function nearestExpiry(m){
+    if(!m.batches||!m.batches.length) return null;
+    const active=m.batches.filter(b=>b.stock>0);
+    if(!active.length) return null;
+    return active.reduce((earliest,b)=>{
+      const d=new Date(b.expiryDate);
+      return(!earliest||d<earliest)?d:earliest;
+    },null);
+  }
+
+  async function loadStats(){
+    try{
+      const data=await fetch('/medicines').then(r=>r.json());
+      if(!Array.isArray(data))return;
+      const today=new Date();
+      document.getElementById('stat-total').textContent=data.length;
+      document.getElementById('stat-low').textContent=data.filter(m=>m.stock>0&&m.stock<5).length;
+      document.getElementById('stat-expired').textContent=data.filter(m=>{
+        const exp=nearestExpiry(m); if(!exp) return false;
+        const days=Math.ceil((exp-today)/86400000); return days>=0&&days<=90;
+      }).length;
+      document.getElementById('stat-out').textContent=data.filter(m=>m.stock===0).length;
+      buildAlerts(data);
+    }catch(_){}
+  }
+
+  function buildAlerts(data){
+    const today=new Date(),alerts=[];
+
+    // ── Out of stock ────────────────────────────────────────
+    data.filter(m=>m.stock===0).slice(0,3).forEach(m=>
+      alerts.push(`<div class="alert-item danger"><span class="alert-icon">🚨</span><div class="alert-body"><strong>Out of Stock: ${esc(m.name)}</strong>Barcode ${esc(m.barcode)} — reorder immediately.</div></div>`)
+    );
+
+    // ── Critical low (< 5 units) ────────────────────────────
+    data.filter(m=>m.stock>0&&m.stock<5).slice(0,3).forEach(m=>
+      alerts.push(`<div class="alert-item danger"><span class="alert-icon">⚠️</span><div class="alert-body"><strong>Critical Low: ${esc(m.name)}</strong>Only ${m.stock} unit${m.stock>1?'s':''} remaining.</div></div>`)
+    );
+
+    // ── Low stock (5–20 units) ──────────────────────────────
+    data.filter(m=>m.stock>=5&&m.stock<=20).slice(0,3).forEach(m=>
+      alerts.push(`<div class="alert-item warning"><span class="alert-icon">📦</span><div class="alert-body"><strong>Low Stock: ${esc(m.name)}</strong>${m.stock} units — restock soon.</div></div>`)
+    );
+
+    // ── Per-batch expiry alerts ─────────────────────────────
+    // Loop every medicine → every batch with stock > 0 → check expiry
+    data.forEach(m=>{
+      if(!m.batches||!m.batches.length) return;
+      m.batches.filter(b=>b.stock>0).forEach(b=>{
+        const expDate = new Date(b.expiryDate);
+        const days    = Math.ceil((expDate - today) / 86400000);
+        const expStr  = expDate.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+        const label   = b.batchLabel || 'Batch';
+        const units   = b.stock;
+        const name    = esc(m.name);
+
+        if(days < 0){
+          // Already expired
+          alerts.push(`<div class="alert-item danger"><span class="alert-icon">⛔</span><div class="alert-body"><strong>EXPIRED: ${name} — ${label}</strong>${units} unit${units!==1?'s':''} of ${name} from ${label} expired on ${expStr}. Remove from shelf immediately.</div></div>`);
+        } else if(days<=30){
+          // Expiring within 30 days — red
+          alerts.push(`<div class="alert-item danger"><span class="alert-icon">📅</span><div class="alert-body"><strong>Expiring Soon: ${name} — ${label}</strong>${units} unit${units!==1?'s':''} from ${label} will expire on ${expStr} (${days} day${days!==1?'s':''} left). Sell first!</div></div>`);
+        } else if(days<=90){
+          // Expiring within 90 days — yellow
+          alerts.push(`<div class="alert-item warning"><span class="alert-icon">🔔</span><div class="alert-body"><strong>Expiring in ${days} days: ${name} — ${label}</strong>${units} unit${units!==1?'s':''} from ${label} will expire on ${expStr}.</div></div>`);
+        }
+      });
+    });
+
+    document.getElementById('alerts-container').innerHTML = alerts.length
+      ? alerts.join('')
+      : '<div class="alert-item ok"><span class="alert-icon">✅</span><div class="alert-body"><strong>All clear!</strong>No active alerts.</div></div>';
+  }
+
+  async function loadInventory(){
+    const area=document.getElementById('inv-table-area');
+    area.innerHTML='<div class="table-empty">Loading…</div>';
+    try{
+      const data=await fetch('/medicines').then(r=>r.json());
+      allInventory=data;inventoryLoaded=true;
+      document.getElementById('inv-badge').textContent=`${data.length} medicines`;
+      renderInventoryTable(data);
+    }catch(_){area.innerHTML='<div class="table-empty">❌ Server unreachable.</div>';}
+  }
+
+  function renderInventoryTable(list){
+    const area=document.getElementById('inv-table-area'),today=new Date();
+    if(!list.length){area.innerHTML='<div class="table-empty">No medicines found.</div>';return;}
+    const rows=list.map(m=>{
+      const exp=nearestExpiry(m);
+      const expStr=exp?exp.toLocaleDateString('en-IN',{year:'numeric',month:'short',day:'numeric'}):'—';
+      const days=exp?Math.ceil((exp-today)/86400000):9999;
+      let badge='';
+      if(m.stock===0)badge='<span class="badge badge-red">Out of Stock</span>';
+      else if(m.stock<5)badge=`<span class="badge badge-red">Only ${m.stock} left</span>`;
+      else if(m.stock<=20)badge='<span class="badge badge-amber">Low Stock</span>';
+      else if(days<=30)badge='<span class="badge badge-red">Exp. Soon</span>';
+      else if(days<=90)badge='<span class="badge badge-amber">Exp. 90d</span>';
+      else badge='<span class="badge badge-green">In Stock</span>';
+      return `<tr><td><strong style="color:var(--text)">${esc(m.name)}</strong></td><td style="font-family:monospace;font-size:.76rem">${esc(m.barcode)}</td><td>₹${Number(m.price).toFixed(2)}</td><td style="font-weight:600;${m.stock<5?'color:var(--red)':''}">${m.stock}</td><td>${expStr}</td><td>${badge}</td></tr>`;
+    }).join('');
+    area.innerHTML=`<table><thead><tr><th>Name</th><th>Barcode</th><th>Price</th><th>Stock</th><th>Expiry</th><th>Status</th></tr></thead><tbody>${rows}</tbody></table>`;
+  }
+
+  function filterInventory(){
+    const q=document.getElementById('inv-search').value.trim().toLowerCase();
+    renderInventoryTable(q?allInventory.filter(m=>m.name.toLowerCase().includes(q)||m.barcode.toLowerCase().includes(q)):allInventory);
+  }
+  function esc(s){return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  checkAuth();loadStats();
+
+  // ── Profile Modal ────────────────────────────────────────
+  let _profileMeds = [];
+  let _profileUnlocked = false;
+
+  function openProfile() {
+    document.getElementById('profile-modal').classList.add('open');
+    resetCodeSentIndicator();
+    loadProfileData();
+    loadDelList();
+  }
+
+  function resetCodeSentIndicator() {
+    const btn = document.getElementById('p-send-code-btn');
+    const badge = document.getElementById('p-code-sent-badge');
+    if (btn) {
+      btn.classList.remove('sent');
+      btn.textContent = '📩 Send Verification Code';
+      btn.disabled = false;
+    }
+    if (badge) badge.classList.remove('show');
+  }
+
+  function showCodeSentIndicator() {
+    const btn = document.getElementById('p-send-code-btn');
+    const badge = document.getElementById('p-code-sent-badge');
+    if (btn) {
+      btn.classList.add('sent');
+      btn.textContent = '✓ Code Sent';
+    }
+    if (badge) badge.classList.add('show');
+  }
+  function closeProfile() {
+    document.getElementById('profile-modal').classList.remove('open');
+  }
+  function closeProfileIfBackdrop(e) {
+    if (e.target === document.getElementById('profile-modal')) closeProfile();
+  }
+
+  function sortMedsByName(list) {
+    return [...list].sort((a, b) =>
+      (a.name || '').localeCompare(b.name || '', 'en', { sensitivity: 'base' })
+    );
+  }
+
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.modal-tab').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+    if (id === 'tab-inventory') loadDelList();
+  }
+
+  function fillProfileForm(d) {
+    document.getElementById('p-name').value = d.name || '';
+    document.getElementById('p-email').value = d.email || '';
+    document.getElementById('p-pharmacy-name').value = d.pharmacyName || '';
+    document.getElementById('p-pharmacy-phone').value = d.pharmacyPhone || '';
+    document.getElementById('p-pharmacy-email').value = d.pharmacyEmail || '';
+    document.getElementById('p-pharmacy-address').value = d.pharmacyAddress || '';
+    document.getElementById('p-pharmacy-license').value = d.pharmacyLicense || '';
+  }
+
+  async function loadProfileData() {
+    let unlocked = false;
+    try {
+      const statusRes = await fetch('/profile/edit-status', { credentials: 'same-origin' });
+      if (statusRes.ok) {
+        const status = await statusRes.json();
+        unlocked = !!status.unlocked;
+      }
+    } catch (_) {}
+
+    try {
+      const profileRes = await fetch('/profile', { credentials: 'same-origin' });
+      if (profileRes.ok) {
+        const d = await profileRes.json();
+        if (d && !d.error) {
+          fillProfileForm(d);
+          setProfileLockState(unlocked);
+          return;
+        }
+      }
+      const meRes = await fetch('/me', { credentials: 'same-origin' });
+      if (meRes.ok) {
+        const me = await meRes.json();
+        if (me.loggedIn) {
+          fillProfileForm({
+            name: me.name || '',
+            email: me.email || '',
+            pharmacyName: '', pharmacyPhone: '', pharmacyAddress: '',
+            pharmacyEmail: '', pharmacyLicense: ''
+          });
+        }
+      }
+      setProfileLockState(unlocked);
+    } catch (_) {
+      setProfileLockState(unlocked);
+    }
+  }
+
+  function setProfileLockState(unlocked) {
+    _profileUnlocked = unlocked;
+    const tab = document.getElementById('tab-account');
+    const note = document.getElementById('p-edit-lock-note');
+    const editFields = [
+      'p-name', 'p-email', 'p-pharmacy-name', 'p-pharmacy-phone',
+      'p-pharmacy-email', 'p-pharmacy-address', 'p-pharmacy-license',
+      'p-cur-pw', 'p-new-pw'
+    ];
+    tab.classList.toggle('profile-unlocked', unlocked);
+    note.classList.toggle('unlocked', unlocked);
+    editFields.forEach(id => {
+      const el = document.getElementById(id);
+      if (!el) return;
+      el.readOnly = !unlocked;
+      el.classList.toggle('locked', !unlocked);
+    });
+    document.getElementById('p-save-btn').disabled = !unlocked;
+    note.textContent = unlocked
+      ? '✅ You can edit your details below, then click Save Changes.'
+      : 'Your saved details are shown below. Send & verify email code to edit.';
+  }
+
+  async function requestProfileEditCode() {
+    const btn = document.getElementById('p-send-code-btn');
+    resetCodeSentIndicator();
+    btn.disabled = true;
+    btn.textContent = 'Sending…';
+    try {
+      const res = await fetch('/profile/request-edit-code', { method: 'POST', credentials: 'same-origin' });
+      const data = await res.json();
+      if (!res.ok) {
+        btn.disabled = false;
+        btn.textContent = '📩 Send Verification Code';
+        showMMsg('p-msg', 'err', data.error || 'Could not send code.');
+        return;
+      }
+      showCodeSentIndicator();
+      showMMsg('p-msg', 'ok', '✅ Verification code sent to your email.');
+    } catch (_) {
+      btn.disabled = false;
+      btn.textContent = '📩 Send Verification Code';
+      showMMsg('p-msg', 'err', '❌ Server unreachable.');
+    }
+  }
+
+  async function verifyProfileEditCode() {
+    const code = document.getElementById('p-otp').value.replace(/\D/g, '');
+    document.getElementById('p-otp').value = code;
+    if (code.length !== 6) { showMMsg('p-msg', 'err', '⚠️ Enter the 6-digit code from your email.'); return; }
+    try {
+      const res = await fetch('/profile/verify-edit-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({ code })
+      });
+      const data = await res.json();
+      if (!res.ok) { showMMsg('p-msg', 'err', data.error || 'Verification failed.'); return; }
+      setProfileLockState(true);
+      document.getElementById('p-name').focus();
+      showMMsg('p-msg', 'ok', '✅ Code verified. You can edit all fields below now.');
+    } catch (_) {
+      showMMsg('p-msg', 'err', '❌ Server unreachable.');
+    }
+  }
+
+  async function saveProfile() {
+    if (!_profileUnlocked) {
+      showMMsg('p-msg', 'err', '⚠️ Verify email code before saving changes.');
+      return;
+    }
+
+    const name       = document.getElementById('p-name').value.trim();
+    const email      = document.getElementById('p-email').value.trim();
+    const pharmacyName = document.getElementById('p-pharmacy-name').value.trim();
+    const pharmacyPhone = document.getElementById('p-pharmacy-phone').value.trim();
+    const pharmacyEmail = document.getElementById('p-pharmacy-email').value.trim();
+    const pharmacyAddress = document.getElementById('p-pharmacy-address').value.trim();
+    const pharmacyLicense = document.getElementById('p-pharmacy-license').value.trim();
+    const currentPw  = document.getElementById('p-cur-pw').value;
+    const newPw      = document.getElementById('p-new-pw').value;
+    const btn        = document.getElementById('p-save-btn');
+    const msg        = document.getElementById('p-msg');
+    msg.className    = 'm-msg';
+
+    if (!name || !email) { showMMsg('p-msg','err','⚠️ Name and email are required.'); return; }
+
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const res  = await fetch('/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        credentials: 'same-origin',
+        body: JSON.stringify({
+          name, email,
+          pharmacyName, pharmacyPhone, pharmacyEmail, pharmacyAddress, pharmacyLicense,
+          currentPassword: currentPw || undefined,
+          newPassword: newPw || undefined
+        })
+      });
+      const data = await res.json();
+      if (!res.ok) { showMMsg('p-msg','err', data.error); return; }
+
+      showMMsg('p-msg','ok','✅ Changes saved successfully!');
+      // Update sidebar name immediately
+      const nameEls = document.querySelectorAll('#sb-name, #user-name-label');
+      nameEls.forEach(el => { if(el) el.textContent = data.name; });
+      const avatarEls = document.querySelectorAll('#sb-avatar, #user-avatar');
+      avatarEls.forEach(el => { if(el) el.textContent = data.name.charAt(0).toUpperCase(); });
+      // Clear password fields
+      document.getElementById('p-cur-pw').value = '';
+      document.getElementById('p-new-pw').value = '';
+      document.getElementById('p-otp').value = '';
+      setProfileLockState(false);
+    } catch(e) {
+      showMMsg('p-msg','err','❌ Server unreachable.');
+    } finally {
+      btn.textContent = '💾 Save Changes';
+      btn.disabled = !_profileUnlocked;
+    }
+  }
+
+  async function loadDelList() {
+    document.getElementById('inv-del-items').innerHTML = '<div class="inv-empty">Loading…</div>';
+    try {
+      const data = await fetch('/medicines').then(r => r.json());
+      _profileMeds = sortMedsByName(Array.isArray(data) ? data : []);
+      renderDelList(_profileMeds);
+    } catch(_) {
+      document.getElementById('inv-del-items').innerHTML = '<div class="inv-empty">❌ Could not load.</div>';
+    }
+  }
+
+  function filterDelList() {
+    const q = document.getElementById('inv-del-search').value.trim().toLowerCase();
+    const list = q
+      ? _profileMeds.filter(m => m.name.toLowerCase().includes(q) || m.barcode.toLowerCase().includes(q))
+      : _profileMeds;
+    renderDelList(sortMedsByName(list));
+  }
+
+  function renderDelList(list) {
+    const area = document.getElementById('inv-del-items');
+    const sorted = sortMedsByName(list);
+    if (!sorted.length) { area.innerHTML = '<div class="inv-empty">No medicines found.</div>'; return; }
+    list = sorted;
+    area.innerHTML = list.map(m => `
+      <div class="inv-list-item" id="inv-row-${esc(m.barcode)}">
+        <div>
+          <div class="inv-item-name">${esc(m.name)}</div>
+          <div class="inv-item-meta">${esc(m.barcode)} · Stock: ${m.stock} · ₹${Number(m.price).toFixed(2)}</div>
+        </div>
+        <button class="inv-item-del" onclick="deleteMedicine('${esc(m.barcode)}','${esc(m.name)}')" title="Delete permanently">🗑</button>
+      </div>`).join('');
+  }
+
+  async function deleteMedicine(barcode, name) {
+    if (!confirm(`Permanently delete "${name}" from your inventory?\n\nThis cannot be undone.`)) return;
+    try {
+      const res  = await fetch(`/medicine/${encodeURIComponent(barcode)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) { showMMsg('inv-msg','err', data.error); return; }
+      // Remove from local list and re-render
+      _profileMeds = _profileMeds.filter(m => m.barcode !== barcode);
+      filterDelList();
+      showMMsg('inv-msg','ok',`✅ "${name}" deleted.`);
+    } catch(e) {
+      showMMsg('inv-msg','err','❌ Server unreachable.');
+    }
+  }
+
+  function showMMsg(id, type, text) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className   = `m-msg show ${type}`;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.className = 'm-msg'; }, 4000);
+  }
+
+  // Close modal with Escape; Enter in OTP field verifies code
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') closeProfile();
+    if (e.key === 'Enter' && document.getElementById('profile-modal').classList.contains('open')) {
+      const otp = document.getElementById('p-otp');
+      if (document.activeElement === otp && otp.value.replace(/\D/g, '').length > 0) {
+        e.preventDefault();
+        verifyProfileEditCode();
+      }
+    }
+  });
+
+</script>
+
+<!-- ═══════════ PROFILE MODAL ═══════════ -->
+<div class="modal-backdrop" id="profile-modal" onclick="closeProfileIfBackdrop(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">👤 My Account</div>
+      <button class="modal-close" onclick="closeProfile()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Tabs -->
+      <div class="modal-tabs">
+        <button class="modal-tab active" onclick="switchTab('tab-account',this)">Account Settings</button>
+        <button class="modal-tab" onclick="switchTab('tab-inventory',this)">Manage Inventory</button>
+      </div>
+
+      <!-- ── Tab 1: Account Settings ── -->
+      <div class="tab-panel active" id="tab-account">
+        <div style="font-size:.76rem;color:var(--muted);line-height:1.5;margin-bottom:.8rem" id="p-edit-lock-note">
+          Your saved details are shown below. Send & verify email code to edit.
+        </div>
+        <div class="m-field code-sent-wrap">
+          <button class="m-btn m-btn-primary" type="button" id="p-send-code-btn" onclick="requestProfileEditCode()">📩 Send Verification Code</button>
+          <span class="code-sent-badge" id="p-code-sent-badge" aria-live="polite">✓ Code sent</span>
+        </div>
+        <div class="m-field" style="display:flex;gap:.5rem">
+          <input class="m-input" type="text" id="p-otp" placeholder="Enter 6-digit code" inputmode="numeric" maxlength="6" autocomplete="one-time-code"/>
+          <button class="m-btn m-btn-primary" type="button" onclick="verifyProfileEditCode()">✅ Verify</button>
+        </div>
+
+        <div class="m-divider"></div>
+
+        <div class="m-field">
+          <label class="m-label">Full Name</label>
+          <input class="m-input locked" type="text" id="p-name" placeholder="Your name" readonly/>
+        </div>
+        <div class="m-field">
+          <label class="m-label">Email Address</label>
+          <input class="m-input locked" type="email" id="p-email" placeholder="you@example.com" readonly/>
+        </div>
+        <div class="m-field">
+          <label class="m-label">Pharmacy Name</label>
+          <input class="m-input locked" type="text" id="p-pharmacy-name" placeholder="Pharmacy name" readonly/>
+        </div>
+        <div class="m-field">
+          <label class="m-label">Pharmacy Phone</label>
+          <input class="m-input locked" type="text" id="p-pharmacy-phone" placeholder="Phone number" readonly/>
+        </div>
+        <div class="m-field">
+          <label class="m-label">Pharmacy Email</label>
+          <input class="m-input locked" type="text" id="p-pharmacy-email" placeholder="Pharmacy email (optional)" readonly/>
+        </div>
+        <div class="m-field">
+          <label class="m-label">Pharmacy Address</label>
+          <input class="m-input locked" type="text" id="p-pharmacy-address" placeholder="Pharmacy address" readonly/>
+        </div>
+        <div class="m-field">
+          <label class="m-label">Pharmacy License</label>
+          <input class="m-input locked" type="text" id="p-pharmacy-license" placeholder="License number" readonly/>
+        </div>
+
+        <div class="m-divider"></div>
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.8rem">Change Password <span style="font-weight:400;text-transform:none;letter-spacing:0">(leave blank to keep current)</span></div>
+        <div class="m-field">
+          <label class="m-label">Current Password</label>
+          <input class="m-input locked" type="password" id="p-cur-pw" placeholder="Enter current password" readonly/>
+        </div>
+        <div class="m-field">
+          <label class="m-label">New Password</label>
+          <input class="m-input locked" type="password" id="p-new-pw" placeholder="Min. 6 characters" readonly/>
+        </div>
+
+        <button class="m-btn m-btn-primary" id="p-save-btn" onclick="saveProfile()" disabled>💾 Save Changes</button>
+        <div class="m-msg" id="p-msg"></div>
+      </div>
+
+      <!-- ── Tab 2: Manage Inventory ── -->
+      <div class="tab-panel" id="tab-inventory">
+        <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.55;">
+          Permanently delete medicines from your pharmacy database. <strong style="color:var(--red)">This cannot be undone.</strong>
+        </div>
+        <div class="inv-list" id="inv-del-list">
+          <div class="inv-search-wrap">
+            <input type="text" id="inv-del-search" placeholder="🔍  Search medicines to delete…" oninput="filterDelList()"/>
+          </div>
+          <div id="inv-del-items"><div class="inv-empty">Loading…</div></div>
+        </div>
+        <div class="m-msg" id="inv-msg"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="/js/mediflow-brand.js"></script>
+</body>
+</html>

@@ -1,0 +1,474 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Add Medicine — MediFlow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/mediflow-brand.css"/>
+  <link rel="icon" href="/assets/mediflow-logo-icon.svg" type="image/svg+xml"/>
+  <style>
+    :root{
+      --teal:#0d6b6e;--teal-dk:#094a4c;--teal-md:#0f8a8e;--teal-lt:#e0f4f4;
+      --amber:#e8870a;--amber-lt:#fef3e2;
+      --green:#1a7a4a;--green-lt:#e3f5ec;
+      --red:#c0392b;--red-lt:#fdecea;
+      --bg:#f0f4f5;--surface:#ffffff;--surface2:#f7fafa;
+      --sidebar-bg:#0a3d3f;--sidebar-w:240px;
+      --text:#0f2b2d;--text-2:#3a5a5c;--muted:#7a9ea0;
+      --border:#d4e6e7;--border-dk:#b8d4d5;
+      --shadow-sm:0 1px 4px rgba(13,107,110,.08);--shadow-md:0 4px 16px rgba(13,107,110,.12);
+      --radius:12px;--radius-sm:8px;--radius-lg:16px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+
+    /* ── SIDEBAR (same as all pages) ── */
+    .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:200}
+    .sidebar::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:28px 28px}
+    .sidebar-logo{padding:1.4rem 1.25rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.06)}
+    .logo-mark{display:flex;align-items:center;gap:.6rem;text-decoration:none}
+    .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,#0f8a8e,#0aa8ad);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 4px 12px rgba(13,168,173,.4);flex-shrink:0}
+    .logo-text{font-family:'Sora',sans-serif;font-size:1.1rem;font-weight:700;color:#fff;letter-spacing:-.02em}
+    .logo-sub{font-size:.6rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em}
+    .sidebar-user{margin:.9rem .85rem .25rem;padding:.7rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);display:flex;align-items:center;gap:.55rem}
+    .user-avatar{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--amber),#f5a623);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff;flex-shrink:0}
+    .user-name-s{font-size:.78rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .user-role{font-size:.65rem;color:rgba(255,255,255,.35)}
+    .sidebar-nav{flex:1;padding:.4rem 0;overflow-y:auto}
+    .nav-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.22);padding:.85rem 1.25rem .3rem}
+    .nav-item{display:flex;align-items:center;gap:.65rem;padding:.55rem .9rem .55rem 1.25rem;margin:.08rem .65rem;border-radius:var(--radius-sm);text-decoration:none;color:rgba(255,255,255,.5);font-size:.82rem;font-weight:500;transition:all .16s;position:relative}
+    .nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+    .nav-item.active{background:rgba(15,138,142,.22);color:#fff;font-weight:600}
+    .nav-item.active::before{content:'';position:absolute;left:2px;top:22%;bottom:22%;width:3px;background:#0aa8ad;border-radius:2px}
+    .nav-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.82rem;background:rgba(255,255,255,.06);flex-shrink:0;transition:background .16s}
+    .nav-item.active .nav-icon{background:rgba(15,138,142,.35)}
+    .nav-item:hover .nav-icon{background:rgba(255,255,255,.1)}
+    .sidebar-footer{padding:.7rem;border-top:1px solid rgba(255,255,255,.06)}
+    .btn-logout{width:100%;display:flex;align-items:center;gap:.55rem;padding:.55rem .85rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);color:rgba(255,255,255,.4);font-size:.78rem;font-weight:500;font-family:inherit;cursor:pointer;transition:all .18s}
+    .btn-logout:hover{background:rgba(192,57,43,.2);border-color:rgba(192,57,43,.35);color:#ff8a80}
+
+    /* ── MAIN ── */
+    .main-wrap{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column}
+    .topbar{height:58px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 2rem;box-shadow:var(--shadow-sm)}
+    .topbar-title{font-family:'Sora',sans-serif;font-size:.98rem;font-weight:600;color:var(--text)}
+    .content{flex:1;padding:2rem;max-width:760px}
+
+    /* ── PANELS ── */
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;margin-bottom:1.5rem;animation:fadeUp .3s ease}
+    .panel-head{padding:1rem 1.4rem;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;gap:.6rem}
+    .panel-icon{width:36px;height:36px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0}
+    .panel-icon.green{background:var(--green-lt)}
+    .panel-icon.teal{background:var(--teal-lt)}
+    .panel-head-text{font-family:'Sora',sans-serif;font-size:.92rem;font-weight:600;color:var(--text)}
+    .panel-head-sub{font-size:.73rem;color:var(--muted)}
+    .panel-body{padding:1.6rem}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── FORM ── */
+    .form-group{margin-bottom:1.1rem}
+    label{display:block;font-size:.69rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.38rem}
+    input[type="text"],input[type="number"],input[type="date"]{width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+    input:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1);background:var(--surface)}
+    .form-row{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+    .form-row-3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:1rem}
+    .field-hint{font-size:.72rem;color:var(--muted);margin-top:.25rem}
+    .form-divider{height:1px;background:var(--border);margin:1.2rem 0}
+
+    /* Batch section label */
+    .section-label{font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--teal);display:flex;align-items:center;gap:.4rem;margin-bottom:.9rem;padding-bottom:.5rem;border-bottom:1px solid var(--teal-lt)}
+
+    /* Batch card preview */
+    .batch-preview{background:var(--teal-lt);border:1px solid var(--border-dk);border-radius:var(--radius-sm);padding:.75rem 1rem;margin-top:.5rem;font-size:.82rem;color:var(--teal-dk);display:flex;align-items:center;gap:.5rem}
+    .batch-preview strong{font-family:'Sora',sans-serif}
+
+    .btn-submit{display:inline-flex;align-items:center;gap:.45rem;background:var(--teal);color:#fff;border:none;padding:.72rem 1.5rem;border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s;box-shadow:0 2px 8px rgba(13,107,110,.25)}
+    .btn-submit:hover{background:var(--teal-md);transform:translateY(-1px);box-shadow:0 4px 12px rgba(13,107,110,.3)}
+
+    .msg{margin-top:1.1rem;padding:.72rem .9rem;border-radius:var(--radius-sm);font-size:.84rem;font-weight:600;display:none;align-items:center;gap:.5rem;border:1px solid transparent;animation:fadeUp .2s}
+    .msg.show{display:flex}
+    .msg.ok{background:var(--green-lt);color:var(--green);border-color:#a7d9be}
+    .msg.err{background:var(--red-lt);color:var(--red);border-color:#f5c6c2}
+
+    @media(max-width:600px){.form-row,.form-row-3{grid-template-columns:1fr}}
+
+    /* ── PROFILE MODAL ─────────────────────────────────────── */
+    .modal-backdrop{position:fixed;inset:0;background:rgba(5,20,22,.55);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .22s}
+    .modal-backdrop.open{opacity:1;pointer-events:auto}
+    .modal{background:#fff;border-radius:18px;width:100%;max-width:520px;box-shadow:0 24px 64px rgba(13,107,110,.22);transform:translateY(16px) scale(.98);transition:transform .25s,opacity .25s;opacity:0;display:flex;flex-direction:column;max-height:90vh}
+    .modal-backdrop.open .modal{transform:translateY(0) scale(1);opacity:1}
+    .modal-header{padding:1.2rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-shrink:0}
+    .modal-title{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:var(--text)}
+    .modal-close{background:none;border:none;font-size:1.3rem;color:var(--muted);cursor:pointer;padding:.2rem .4rem;border-radius:6px;transition:all .15s;line-height:1}
+    .modal-close:hover{background:var(--red-lt);color:var(--red)}
+    .modal-body{padding:1.4rem;overflow-y:auto;flex:1}
+    /* Tabs */
+    .modal-tabs{display:flex;gap:.4rem;margin-bottom:1.4rem;background:var(--surface2);border-radius:10px;padding:.3rem}
+    .modal-tab{flex:1;padding:.5rem;border:none;border-radius:8px;font-size:.8rem;font-weight:600;font-family:inherit;cursor:pointer;background:transparent;color:var(--muted);transition:all .16s;text-align:center}
+    .modal-tab.active{background:#fff;color:var(--teal-dk);box-shadow:0 1px 6px rgba(13,107,110,.12)}
+    .tab-panel{display:none}.tab-panel.active{display:block}
+    /* Form inside modal */
+    .m-field{margin-bottom:1rem}
+    .m-label{display:block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.36rem}
+    .m-input{width:100%;padding:.62rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
+    .m-input:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1);background:#fff}
+    .m-divider{height:1px;background:var(--border);margin:1.1rem 0}
+    .m-btn{display:inline-flex;align-items:center;gap:.4rem;padding:.62rem 1.2rem;border:none;border-radius:var(--radius-sm);font-size:.85rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s}
+    .m-btn-primary{background:var(--teal);color:#fff;box-shadow:0 2px 8px rgba(13,107,110,.2)}
+    .m-btn-primary:hover{background:var(--teal-md);transform:translateY(-1px)}
+    .m-btn-primary:disabled{opacity:.5;cursor:not-allowed;transform:none}
+    .m-btn-danger{background:var(--red-lt);color:var(--red);border:1.5px solid #f5c6c2}
+    .m-btn-danger:hover{background:#fbd9d7}
+    .m-msg{padding:.6rem .85rem;border-radius:var(--radius-sm);font-size:.81rem;font-weight:600;display:none;align-items:center;gap:.4rem;margin-top:.85rem;border:1px solid transparent;animation:fadeUp .2s}
+    .m-msg.show{display:flex}
+    .m-msg.ok{background:var(--green-lt);color:var(--green);border-color:#a7d9be}
+    .m-msg.err{background:var(--red-lt);color:var(--red);border-color:#f5c6c2}
+    /* Inventory list inside modal */
+    .inv-list{max-height:340px;overflow-y:auto;border:1px solid var(--border);border-radius:var(--radius-sm);overflow:hidden}
+    .inv-list-item{display:flex;align-items:center;justify-content:space-between;padding:.7rem .9rem;border-bottom:1px solid var(--border);font-size:.82rem;transition:background .13s}
+    .inv-list-item:last-child{border-bottom:none}
+    .inv-list-item:hover{background:var(--surface2)}
+    .inv-item-name{font-weight:600;color:var(--text)}
+    .inv-item-meta{font-size:.72rem;color:var(--muted);margin-top:.1rem}
+    .inv-item-del{background:none;border:none;color:var(--muted);cursor:pointer;padding:.28rem .45rem;border-radius:5px;font-size:.82rem;transition:all .13s;flex-shrink:0}
+    .inv-item-del:hover{background:var(--red-lt);color:var(--red)}
+    .inv-search-wrap{padding:.65rem .9rem;border-bottom:1px solid var(--border);background:var(--surface2)}
+    .inv-search-wrap input{width:100%;padding:.45rem .75rem;border:1.5px solid var(--border);border-radius:6px;font-size:.82rem;font-family:inherit;background:#fff;outline:none}
+    .inv-search-wrap input:focus{border-color:var(--teal-md)}
+    .inv-empty{padding:2rem;text-align:center;color:var(--muted);font-size:.83rem}
+    /* Profile button in sidebar */
+    .btn-profile{width:100%;display:flex;align-items:center;gap:.55rem;padding:.55rem .85rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);color:rgba(255,255,255,.5);font-size:.78rem;font-weight:500;font-family:inherit;cursor:pointer;transition:all .18s;margin-bottom:.45rem;text-align:left}
+    .btn-profile:hover{background:rgba(255,255,255,.09);color:#fff}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a class="logo-mark" href="index.html">
+      <div class="logo-icon"></div>
+      <div><div class="logo-text">MediFlow</div><div class="logo-sub">Your own Pharmacy</div></div>
+    </a>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sb-avatar">?</div>
+    <div><div class="user-name-s" id="sb-name">…</div><div class="user-role">Pharmacist</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <a class="nav-item" href="index.html"><div class="nav-icon">🏠</div>Dashboard</a>
+    <a class="nav-item" href="billing.html"><div class="nav-icon">🧾</div>Billing</a>
+    <div class="nav-label">Inventory</div>
+    <a class="nav-item active" href="add-medicine.html"><div class="nav-icon">➕</div>Add Medicine</a>
+    <a class="nav-item" href="restock.html"><div class="nav-icon">♻️</div>Restock</a>
+    <a class="nav-item" href="history.html"><div class="nav-icon">📜</div>History</a>
+    <a class="nav-item" href="order.html"><div class="nav-icon">📋</div>Order</a>
+    <div class="nav-label">Tools</div>
+    <a class="nav-item" href="scanner.html"><div class="nav-icon">📷</div>Camera Scanner</a>
+    <a class="nav-item" href="activity-log.html"><div class="nav-icon">📋</div>Activity Log</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn-profile" onclick="openProfile()"><span>👤</span>My Profile</button>
+    <button class="btn-logout" onclick="doLogout()"><span>🚪</span>Sign Out</button>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <div class="topbar">
+    <div class="topbar-title">➕ Add New Medicine</div>
+  </div>
+  <div class="content">
+
+    <!-- Medicine Details Panel -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-icon green">➕</div>
+        <div>
+          <div class="panel-head-text">Register Medicine</div>
+          <div class="panel-head-sub">Add a new medicine with its first batch</div>
+        </div>
+      </div>
+      <div class="panel-body">
+
+        <div class="form-group">
+          <label>Medicine Name</label>
+          <input type="text" id="med-name" placeholder="e.g. Paracetamol 500mg"/>
+        </div>
+
+        <div class="form-group">
+          <label>Barcode</label>
+          <input type="text" id="med-barcode" placeholder="e.g. MED-001"/>
+          <div class="field-hint">Must be unique — used for scanning at billing counter.</div>
+        </div>
+
+        <div class="form-group">
+          <label>Price per unit (₹)</label>
+          <input type="number" id="med-price" placeholder="45.00" min="0" step="0.01"/>
+        </div>
+
+        <div class="form-divider"></div>
+
+        <!-- Initial Batch (always Batch A) -->
+        <div class="section-label">📦 Initial Batch (Batch A)</div>
+
+        <div class="form-row">
+          <div class="form-group">
+            <label>Stock (units)</label>
+            <input type="number" id="med-stock" placeholder="200" min="0" oninput="updatePreview()"/>
+          </div>
+          <div class="form-group">
+            <label>Expiry Date</label>
+            <input type="date" id="med-expiry" oninput="updatePreview()"/>
+          </div>
+        </div>
+
+        <!-- Live preview of what Batch A will look like -->
+        <div class="batch-preview" id="batch-preview" style="display:none">
+          📦 <strong>Batch A</strong> will be created with <span id="preview-stock">—</span> units, expiring <span id="preview-expiry">—</span>
+        </div>
+
+        <div style="margin-top:1.4rem">
+          <button class="btn-submit" onclick="addMedicine()">➕ Add to Inventory</button>
+        </div>
+        <div class="msg" id="msg"></div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<script>
+  fetch('/me').then(r=>r.json()).then(d=>{
+    if(!d.loggedIn){window.location.href='/login.html';return;}
+    document.getElementById('sb-name').textContent=d.name;
+    document.getElementById('sb-avatar').textContent=d.name.charAt(0).toUpperCase();
+  });
+  function doLogout(){fetch('/logout',{method:'POST'}).then(()=>window.location.href='/login.html');}
+
+  function updatePreview(){
+    const stock=document.getElementById('med-stock').value;
+    const expiry=document.getElementById('med-expiry').value;
+    const preview=document.getElementById('batch-preview');
+    if(stock||expiry){
+      preview.style.display='flex';
+      document.getElementById('preview-stock').textContent=stock||'?';
+      document.getElementById('preview-expiry').textContent=expiry?new Date(expiry).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}):'?';
+    }else{
+      preview.style.display='none';
+    }
+  }
+
+  async function addMedicine(){
+    const name=document.getElementById('med-name').value.trim();
+    const barcode=document.getElementById('med-barcode').value.trim();
+    const price=Number(document.getElementById('med-price').value);
+    const stock=Number(document.getElementById('med-stock').value);
+    const expiryDate=document.getElementById('med-expiry').value;
+    const msg=document.getElementById('msg');
+    if(!name||!barcode||!expiryDate){show('err','⚠️ Please fill in all fields.');return;}
+    try{
+      const res=await fetch('/add-medicine',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,barcode,price,stock,expiryDate})});
+      const data=await res.json();
+      if(!res.ok){show('err',`❌ ${data.error}`);return;}
+      show('ok',`✅ "${data.name}" added with Batch A (${stock} units)`);
+      ['med-name','med-barcode','med-price','med-stock','med-expiry'].forEach(id=>document.getElementById(id).value='');
+      document.getElementById('batch-preview').style.display='none';
+      document.getElementById('med-name').focus();
+    }catch(e){show('err','❌ Server unreachable.');}
+    function show(t,m){msg.textContent=m;msg.className=`msg show ${t}`;}
+  }
+
+  document.addEventListener('keydown',e=>{if(e.key==='Enter'&&e.target.tagName==='INPUT')addMedicine();});
+
+  // ── Profile Modal ────────────────────────────────────────
+  let _profileMeds = [];
+
+  function openProfile() {
+    document.getElementById('profile-modal').classList.add('open');
+    loadProfileData();
+    loadDelList();
+  }
+  function closeProfile() {
+    document.getElementById('profile-modal').classList.remove('open');
+  }
+  function closeProfileIfBackdrop(e) {
+    if (e.target === document.getElementById('profile-modal')) closeProfile();
+  }
+
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+    document.querySelectorAll('.modal-tab').forEach(b => b.classList.remove('active'));
+    document.getElementById(id).classList.add('active');
+    btn.classList.add('active');
+  }
+
+  async function loadProfileData() {
+    try {
+      const d = await fetch('/me').then(r => r.json());
+      if (d.loggedIn) {
+        document.getElementById('p-name').value  = d.name  || '';
+        document.getElementById('p-email').value = d.email || '';
+      }
+    } catch(_) {}
+  }
+
+  async function saveProfile() {
+    const name       = document.getElementById('p-name').value.trim();
+    const email      = document.getElementById('p-email').value.trim();
+    const currentPw  = document.getElementById('p-cur-pw').value;
+    const newPw      = document.getElementById('p-new-pw').value;
+    const btn        = document.getElementById('p-save-btn');
+    const msg        = document.getElementById('p-msg');
+    msg.className    = 'm-msg';
+
+    if (!name || !email) { showMMsg('p-msg','err','⚠️ Name and email are required.'); return; }
+
+    btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      const res  = await fetch('/profile', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, currentPassword: currentPw || undefined, newPassword: newPw || undefined })
+      });
+      const data = await res.json();
+      if (!res.ok) { showMMsg('p-msg','err', data.error); return; }
+
+      showMMsg('p-msg','ok','✅ Changes saved successfully!');
+      // Update sidebar name immediately
+      const nameEls = document.querySelectorAll('#sb-name, #user-name-label');
+      nameEls.forEach(el => { if(el) el.textContent = data.name; });
+      const avatarEls = document.querySelectorAll('#sb-avatar, #user-avatar');
+      avatarEls.forEach(el => { if(el) el.textContent = data.name.charAt(0).toUpperCase(); });
+      // Clear password fields
+      document.getElementById('p-cur-pw').value = '';
+      document.getElementById('p-new-pw').value = '';
+    } catch(e) {
+      showMMsg('p-msg','err','❌ Server unreachable.');
+    } finally {
+      btn.disabled = false; btn.textContent = '💾 Save Changes';
+    }
+  }
+
+  async function loadDelList() {
+    document.getElementById('inv-del-items').innerHTML = '<div class="inv-empty">Loading…</div>';
+    try {
+      const data = await fetch('/medicines').then(r => r.json());
+      _profileMeds = Array.isArray(data) ? data : [];
+      renderDelList(_profileMeds);
+    } catch(_) {
+      document.getElementById('inv-del-items').innerHTML = '<div class="inv-empty">❌ Could not load.</div>';
+    }
+  }
+
+  function filterDelList() {
+    const q = document.getElementById('inv-del-search').value.trim().toLowerCase();
+    renderDelList(q ? _profileMeds.filter(m => m.name.toLowerCase().includes(q) || m.barcode.toLowerCase().includes(q)) : _profileMeds);
+  }
+
+  function renderDelList(list) {
+    const area = document.getElementById('inv-del-items');
+    if (!list.length) { area.innerHTML = '<div class="inv-empty">No medicines found.</div>'; return; }
+    area.innerHTML = list.map(m => `
+      <div class="inv-list-item" id="inv-row-${esc(m.barcode)}">
+        <div>
+          <div class="inv-item-name">${esc(m.name)}</div>
+          <div class="inv-item-meta">${esc(m.barcode)} · Stock: ${m.stock} · ₹${Number(m.price).toFixed(2)}</div>
+        </div>
+        <button class="inv-item-del" onclick="deleteMedicine('${esc(m.barcode)}','${esc(m.name)}')" title="Delete permanently">🗑</button>
+      </div>`).join('');
+  }
+
+  async function deleteMedicine(barcode, name) {
+    if (!confirm(`Permanently delete "${name}" from your inventory?\n\nThis cannot be undone.`)) return;
+    try {
+      const res  = await fetch(`/medicine/${encodeURIComponent(barcode)}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) { showMMsg('inv-msg','err', data.error); return; }
+      // Remove from local list and re-render
+      _profileMeds = _profileMeds.filter(m => m.barcode !== barcode);
+      filterDelList();
+      showMMsg('inv-msg','ok',`✅ "${name}" deleted.`);
+    } catch(e) {
+      showMMsg('inv-msg','err','❌ Server unreachable.');
+    }
+  }
+
+  function showMMsg(id, type, text) {
+    const el = document.getElementById(id);
+    el.textContent = text;
+    el.className   = `m-msg show ${type}`;
+    clearTimeout(el._t);
+    el._t = setTimeout(() => { el.className = 'm-msg'; }, 4000);
+  }
+
+  // Close modal with Escape key
+  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeProfile(); });
+
+</script>
+
+<!-- ═══════════ PROFILE MODAL ═══════════ -->
+<div class="modal-backdrop" id="profile-modal" onclick="closeProfileIfBackdrop(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <div class="modal-title">👤 My Account</div>
+      <button class="modal-close" onclick="closeProfile()">✕</button>
+    </div>
+    <div class="modal-body">
+
+      <!-- Tabs -->
+      <div class="modal-tabs">
+        <button class="modal-tab active" onclick="switchTab('tab-account',this)">Account Settings</button>
+        <button class="modal-tab" onclick="switchTab('tab-inventory',this)">Manage Inventory</button>
+      </div>
+
+      <!-- ── Tab 1: Account Settings ── -->
+      <div class="tab-panel active" id="tab-account">
+
+        <div class="m-field">
+          <label class="m-label">Full Name</label>
+          <input class="m-input" type="text" id="p-name" placeholder="Your name"/>
+        </div>
+        <div class="m-field">
+          <label class="m-label">Email Address</label>
+          <input class="m-input" type="email" id="p-email" placeholder="you@example.com"/>
+        </div>
+
+        <div class="m-divider"></div>
+        <div style="font-size:.75rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.8rem">Change Password <span style="font-weight:400;text-transform:none;letter-spacing:0">(leave blank to keep current)</span></div>
+
+        <div class="m-field">
+          <label class="m-label">Current Password</label>
+          <input class="m-input" type="password" id="p-cur-pw" placeholder="Enter current password"/>
+        </div>
+        <div class="m-field">
+          <label class="m-label">New Password</label>
+          <input class="m-input" type="password" id="p-new-pw" placeholder="Min. 6 characters"/>
+        </div>
+
+        <button class="m-btn m-btn-primary" id="p-save-btn" onclick="saveProfile()">💾 Save Changes</button>
+        <div class="m-msg" id="p-msg"></div>
+      </div>
+
+      <!-- ── Tab 2: Manage Inventory ── -->
+      <div class="tab-panel" id="tab-inventory">
+        <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.55;">
+          Permanently delete medicines from your pharmacy database. <strong style="color:var(--red)">This cannot be undone.</strong>
+        </div>
+        <div class="inv-list" id="inv-del-list">
+          <div class="inv-search-wrap">
+            <input type="text" id="inv-del-search" placeholder="🔍  Search medicines to delete…" oninput="filterDelList()"/>
+          </div>
+          <div id="inv-del-items"><div class="inv-empty">Loading…</div></div>
+        </div>
+        <div class="m-msg" id="inv-msg"></div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="/js/mediflow-brand.js"></script>
+</body>
+</html>

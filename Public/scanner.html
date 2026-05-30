@@ -1,0 +1,605 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no"/>
+  <title>Barcode Scanner — MediFlow</title>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Serif+Display&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/mediflow-brand.css"/>
+  <link rel="icon" href="/assets/mediflow-logo-icon.svg" type="image/svg+xml"/>
+  <!-- Socket.IO -->
+  <script src="/socket.io/socket.io.js"></script>
+  <!-- QuaggaJS barcode scanner -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/quagga/0.12.1/quagga.min.js"></script>
+  <style>
+    :root {
+      --bg:#1a2332; --surface:#212d3f; --surface2:#293548;
+      --accent:#4a8fe8; --accent-lt:#1e3a5c;
+      --text:#e8edf5; --muted:#7a8fa8; --border:#2e3f56;
+      --ok:#2ecc71; --ok-dk:#1a7a42; --ok-lt:#0d3320;
+      --danger:#e74c3c; --danger-lt:#3d1515;
+      --warn:#f39c12;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{
+      font-family:'DM Sans',sans-serif;
+      background:var(--bg);color:var(--text);
+      min-height:100vh;display:flex;flex-direction:column;
+      /* Prevent scroll bounce on iOS */
+      overflow-x:hidden;
+    }
+
+    /* ── Header ── */
+    header{
+      background:#111c2c;
+      color:#fff;height:56px;padding:0 1.25rem;
+      display:flex;align-items:center;justify-content:space-between;
+      position:sticky;top:0;z-index:50;
+      box-shadow:0 2px 12px rgba(0,0,0,.4);
+    }
+    .logo{font-family:'DM Serif Display',serif;font-size:1.3rem;display:flex;align-items:center;gap:.4rem;text-decoration:none;color:#fff}
+    .header-right{display:flex;align-items:center;gap:.75rem}
+    .back-btn{color:rgba(255,255,255,.7);text-decoration:none;font-size:.85rem;font-weight:500;transition:color .18s;display:flex;align-items:center;gap:.3rem}
+    .back-btn:hover{color:#fff}
+
+    /* WS dot */
+    .ws-pill{display:flex;align-items:center;gap:.4rem;font-size:.75rem;font-weight:600;padding:.25rem .65rem;border-radius:999px;background:rgba(255,255,255,.08);color:var(--muted);transition:all .3s}
+    .ws-pill.connected{background:rgba(46,204,113,.15);color:var(--ok)}
+    .ws-dot{width:7px;height:7px;border-radius:50%;background:currentColor}
+
+    /* ── Main ── */
+    .page{flex:1;display:flex;flex-direction:column;align-items:center;padding:1.25rem 1rem 2rem;gap:1.1rem;max-width:540px;margin:0 auto;width:100%}
+
+    /* ── Camera viewport ── */
+    .camera-wrap{
+      width:100%;max-width:440px;
+      border-radius:18px;overflow:hidden;
+      position:relative;
+      background:#000;
+      box-shadow:0 8px 32px rgba(0,0,0,.5);
+      border:2px solid var(--border);
+    }
+    #camera-viewport{
+      position:relative;
+      width:100%;
+      /* 4:3 aspect ratio */
+      padding-top:75%;
+      background:#000;
+    }
+    #camera-viewport video,
+    #camera-viewport canvas{
+      position:absolute;
+      top:0;left:0;
+      width:100%!important;
+      height:100%!important;
+      object-fit:cover;
+    }
+    /* Quagga draws on a <canvas> — make it overlay the video */
+    #camera-viewport canvas.drawingBuffer{
+      pointer-events:none;
+      opacity:.85;
+    }
+
+    /* Scanning reticle overlay */
+    .reticle{
+      position:absolute;
+      top:50%;left:50%;
+      transform:translate(-50%,-50%);
+      width:72%;height:30%;
+      border:2px solid var(--accent);
+      border-radius:6px;
+      pointer-events:none;
+      z-index:10;
+    }
+    .reticle::before,.reticle::after{
+      content:'';position:absolute;
+      top:-2px;left:-2px;right:-2px;bottom:-2px;
+      border:2px solid var(--accent);border-radius:6px;
+      animation:pulse 2s ease infinite;
+    }
+    .reticle::after{animation-delay:.5s}
+    @keyframes pulse{
+      0%,100%{opacity:.3;transform:scale(1)}
+      50%{opacity:1;transform:scale(1.015)}
+    }
+
+    /* Scan line animation */
+    .scan-line{
+      position:absolute;
+      top:50%;left:14%;right:14%;
+      height:2px;
+      background:linear-gradient(90deg,transparent,var(--accent),var(--accent),transparent);
+      border-radius:2px;
+      pointer-events:none;
+      z-index:11;
+      animation:scanLine 1.8s ease-in-out infinite;
+    }
+    @keyframes scanLine{
+      0%{top:35%;opacity:1}
+      50%{top:65%;opacity:.8}
+      100%{top:35%;opacity:1}
+    }
+
+    /* Flash on detection */
+    .flash-overlay{
+      position:absolute;inset:0;
+      background:rgba(74,143,232,.3);
+      pointer-events:none;z-index:20;
+      opacity:0;transition:opacity .08s;
+    }
+    .flash-overlay.flash{opacity:1}
+
+    /* Camera status bar */
+    .cam-status{
+      position:absolute;bottom:0;left:0;right:0;
+      padding:.6rem .9rem;
+      background:linear-gradient(transparent,rgba(0,0,0,.75));
+      font-size:.78rem;font-weight:600;
+      color:rgba(255,255,255,.8);
+      text-align:center;z-index:12;
+    }
+
+    /* ── Controls ── */
+    .controls{width:100%;max-width:440px;display:flex;flex-direction:column;gap:.8rem}
+
+    .btn{
+      width:100%;padding:.85rem;
+      border:none;border-radius:12px;
+      font-size:.95rem;font-weight:700;font-family:inherit;
+      cursor:pointer;transition:all .2s;
+      display:flex;align-items:center;justify-content:center;gap:.5rem;
+    }
+    .btn-start{background:var(--accent);color:#fff}
+    .btn-start:hover{background:#3a7dd8;transform:translateY(-1px)}
+    .btn-start:active{transform:scale(.98)}
+    .btn-stop{background:var(--surface2);color:var(--danger);border:1.5px solid var(--danger)}
+    .btn-stop:hover{background:var(--danger-lt)}
+
+    /* Manual input row */
+    .manual-row{display:flex;gap:.65rem}
+    .manual-input{
+      flex:1;padding:.75rem 1rem;
+      border:1.5px solid var(--border);border-radius:10px;
+      font-size:.95rem;font-family:inherit;
+      background:var(--surface);color:var(--text);
+      outline:none;transition:border-color .2s,box-shadow .2s;
+    }
+    .manual-input::placeholder{color:var(--muted)}
+    .manual-input:focus{border-color:var(--accent);box-shadow:0 0 0 3px rgba(74,143,232,.15)}
+    .btn-send{
+      padding:.75rem 1.1rem;border:none;border-radius:10px;
+      background:var(--accent);color:#fff;
+      font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer;
+      transition:background .2s,transform .15s;white-space:nowrap;
+    }
+    .btn-send:hover{background:#3a7dd8;transform:translateY(-1px)}
+
+    /* ── Result card ── */
+    .result-card{
+      width:100%;max-width:440px;
+      background:var(--surface);border:1.5px solid var(--border);
+      border-radius:14px;padding:1.1rem 1.25rem;
+      display:none;gap:.75rem;align-items:center;
+      animation:slideUp .3s ease both;
+    }
+    .result-card.show{display:flex}
+    @keyframes slideUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+    .result-card.ok  {border-color:var(--ok);background:var(--ok-lt)}
+    .result-card.err {border-color:var(--danger);background:var(--danger-lt)}
+    .result-icon{font-size:1.9rem;flex-shrink:0}
+    .result-name{font-weight:700;font-size:.97rem;margin-bottom:.2rem}
+    .result-meta{font-size:.8rem;color:var(--muted)}
+
+    /* ── Scan history log ── */
+    .history-panel{
+      width:100%;max-width:440px;
+      background:var(--surface);border:1.5px solid var(--border);
+      border-radius:14px;overflow:hidden;
+    }
+    .history-head{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:.75rem 1.1rem;border-bottom:1px solid var(--border);
+      font-size:.82rem;font-weight:600;color:var(--muted);
+    }
+    .clear-hist{
+      background:none;border:none;color:var(--muted);
+      font-size:.78rem;cursor:pointer;font-family:inherit;
+      padding:.2rem .4rem;border-radius:5px;transition:color .15s;
+    }
+    .clear-hist:hover{color:var(--danger)}
+    .history-list{max-height:180px;overflow-y:auto}
+    .hist-item{
+      display:flex;align-items:center;justify-content:space-between;
+      padding:.6rem 1.1rem;border-bottom:1px solid var(--border);
+      font-size:.83rem;animation:slideUp .2s ease;
+    }
+    .hist-item:last-child{border-bottom:none}
+    .hist-bc{font-family:monospace;font-weight:600;color:var(--accent);font-size:.85rem}
+    .hist-time{font-size:.73rem;color:var(--muted)}
+    .hist-empty{padding:1.5rem;text-align:center;color:var(--muted);font-size:.85rem}
+
+    /* ── Help tip ── */
+    .tip{
+      width:100%;max-width:440px;
+      background:var(--accent-lt);border:1px solid rgba(74,143,232,.25);
+      border-radius:10px;padding:.8rem 1rem;
+      font-size:.82rem;color:rgba(232,237,245,.75);line-height:1.6;
+      text-align:center;
+    }
+
+    /* ── Cooldown toast ── */
+    #scan-toast{
+      position:fixed;bottom:2rem;left:50%;
+      transform:translateX(-50%) translateY(16px);
+      padding:.75rem 1.5rem;border-radius:12px;
+      font-size:.9rem;font-weight:700;
+      display:flex;align-items:center;gap:.5rem;
+      opacity:0;pointer-events:none;
+      transition:opacity .28s,transform .28s;
+      z-index:999;white-space:nowrap;
+      box-shadow:0 6px 24px rgba(0,0,0,.4);
+    }
+    #scan-toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+    #scan-toast.ok {background:#1a5c3a;color:#fff;border:1px solid var(--ok)}
+    #scan-toast.err{background:#7a1a1a;color:#fff;border:1px solid var(--danger)}
+    #scan-toast.ws {background:#1a3060;color:#fff;border:1px solid var(--accent)}
+  </style>
+</head>
+<body>
+
+<header>
+  <a class="logo" href="index.html"><img src="/assets/mediflow-logo-icon.svg" alt="" class="mf-logo-img" style="width:28px;height:28px;display:inline-block;vertical-align:middle;margin-right:.4rem;color:#fff"/> MediFlow</a>
+  <div class="header-right">
+    <div class="ws-pill" id="ws-pill">
+      <div class="ws-dot"></div>
+      <span id="ws-label">Connecting…</span>
+    </div>
+    <a class="back-btn" href="billing.html">🛒 Billing</a>
+  </div>
+</header>
+
+<div class="page">
+
+  <!-- Camera Viewport -->
+  <div class="camera-wrap" id="camera-wrap">
+    <div id="camera-viewport">
+      <!-- Quagga injects video + canvas here -->
+      <div class="reticle"></div>
+      <div class="scan-line" id="scan-line"></div>
+      <div class="flash-overlay" id="flash-overlay"></div>
+    </div>
+    <div class="cam-status" id="cam-status">📷 Camera off — tap Start Scanner</div>
+  </div>
+
+  <!-- Controls -->
+  <div class="controls">
+    <button class="btn btn-start" id="start-btn" onclick="startScanner()">📷 Start Scanner</button>
+    <button class="btn btn-stop"  id="stop-btn"  onclick="stopScanner()" style="display:none">⏹ Stop Scanner</button>
+
+    <!-- Manual barcode entry -->
+    <div class="manual-row">
+      <input class="manual-input" id="manual-input" type="text" placeholder="Or type barcode manually…" autocomplete="off"/>
+      <button class="btn-send" onclick="sendManual()">Send</button>
+    </div>
+  </div>
+
+  <!-- Last scanned result card -->
+  <div class="result-card" id="result-card">
+    <div class="result-icon" id="result-icon">💊</div>
+    <div>
+      <div class="result-name" id="result-name">—</div>
+      <div class="result-meta" id="result-meta">—</div>
+    </div>
+  </div>
+
+  <!-- Scan history -->
+  <div class="history-panel">
+    <div class="history-head">
+      <span>📋 Scan History</span>
+      <button class="clear-hist" onclick="clearHistory()">Clear</button>
+    </div>
+    <div class="history-list" id="history-list">
+      <div class="hist-empty">No scans yet. Start the camera to begin.</div>
+    </div>
+  </div>
+
+  <!-- Help tip -->
+  <div class="tip">
+    💡 Point the camera at a barcode — it auto-detects and sends it to the billing page via WebSocket.<br/>
+    Make sure billing.html is open in another tab to see items added in real time.
+  </div>
+
+</div>
+
+<div id="scan-toast"></div>
+
+<script>
+// ════════════════════════════════════════════════════════
+//  SOCKET.IO
+// ════════════════════════════════════════════════════════
+const socket = io();
+socket.on('connect',    () => setWs(true));
+socket.on('disconnect', () => setWs(false));
+
+// ── Multi-tenant: join this pharmacy's private room ──────
+// Barcodes will only be broadcast to sockets in the same room,
+// so Pharmacy A's scanner never triggers Pharmacy B's billing.
+let myOwnerId = null;
+fetch('/me').then(r => r.json()).then(me => {
+  if (!me.loggedIn) return;
+  myOwnerId = me.ownerId;
+  socket.emit('joinPharmacy', me.ownerId);
+});
+
+function setWs(ok) {
+  const pill = document.getElementById('ws-pill');
+  const lbl  = document.getElementById('ws-label');
+  pill.className = 'ws-pill ' + (ok ? 'connected' : '');
+  lbl.textContent = ok ? 'Live' : 'Offline';
+}
+
+// ════════════════════════════════════════════════════════
+//  STATE
+// ════════════════════════════════════════════════════════
+let scannerRunning = false;
+let cooldownUntil  = 0;          // timestamp — prevents duplicate rapid scans
+const COOLDOWN_MS  = 2500;       // 2.5 s between identical barcode detections
+let lastBarcode    = null;
+const history      = [];         // [{barcode, time}]
+
+// ════════════════════════════════════════════════════════
+//  SCANNER
+// ════════════════════════════════════════════════════════
+function startScanner() {
+  if (scannerRunning) return;
+
+  document.getElementById('cam-status').textContent = '⏳ Starting camera…';
+  document.getElementById('start-btn').style.display = 'none';
+  document.getElementById('stop-btn').style.display  = 'flex';
+
+  Quagga.init({
+    inputStream: {
+      name:    'Live',
+      type:    'LiveStream',
+      target:  document.getElementById('camera-viewport'),
+      constraints: {
+        facingMode: 'environment',   // back camera on mobile
+        width:  { ideal: 1280 },
+        height: { ideal: 720 },
+      },
+    },
+    locator:   { patchSize: 'medium', halfSample: true },
+    numOfWorkers: navigator.hardwareConcurrency ? Math.min(4, navigator.hardwareConcurrency) : 2,
+    frequency: 10,
+    decoder: {
+      readers: [
+        'ean_reader', 'ean_8_reader',
+        'code_128_reader', 'code_39_reader',
+        'code_93_reader', 'upc_reader',
+        'upc_e_reader', 'codabar_reader',
+        'i2of5_reader',
+      ]
+    },
+    locate: true,
+  }, err => {
+    if (err) {
+      console.error('Quagga init error:', err);
+      document.getElementById('cam-status').textContent = '❌ Camera error: ' + (err.message || err);
+      document.getElementById('start-btn').style.display = 'flex';
+      document.getElementById('stop-btn').style.display  = 'none';
+      showToast('Camera permission denied or unavailable.', 'err');
+      return;
+    }
+    Quagga.start();
+    scannerRunning = true;
+    document.getElementById('cam-status').textContent = '🔍 Scanning — point at a barcode';
+    document.getElementById('scan-line').style.display = 'block';
+  });
+
+  // ── Detection handler ──────────────────────────────────
+  Quagga.onDetected(result => {
+    const code = result?.codeResult?.code;
+    if (!code) return;
+
+    const now = Date.now();
+    // Cooldown: skip if same barcode within cooldown window
+    if (code === lastBarcode && now < cooldownUntil) return;
+
+    lastBarcode   = code;
+    cooldownUntil = now + COOLDOWN_MS;
+
+    // Visual flash
+    const flash = document.getElementById('flash-overlay');
+    flash.classList.add('flash');
+    setTimeout(() => flash.classList.remove('flash'), 150);
+
+    // Beep
+    playBeep();
+
+    // Send via WebSocket → billing page picks it up (scoped to this pharmacy)
+    socket.emit('barcode', { ownerId: myOwnerId, barcode: code });
+    document.getElementById('cam-status').textContent = `✅ Sent: ${code}`;
+
+    // Look up medicine info for display
+    fetchMedicineInfo(code);
+
+    // Add to history
+    addHistory(code);
+
+    showToast(`📡 Sent: ${code}`, 'ws');
+  });
+
+  // Draw detection boxes on canvas
+  Quagga.onProcessed(result => {
+    const canvas = Quagga.canvas.ctx.overlay;
+    const drawCtx = Quagga.canvas.dom.overlay;
+    if (!canvas || !drawCtx) return;
+    canvas.clearRect(0, 0, parseInt(drawCtx.getAttribute('width')), parseInt(drawCtx.getAttribute('height')));
+    if (result?.boxes) {
+      result.boxes.filter(b => b !== result.box).forEach(box => {
+        Quagga.ImageDebug.drawPath(box, { x:0, y:1 }, canvas, { color:'rgba(74,143,232,.3)', lineWidth:2 });
+      });
+    }
+    if (result?.box) {
+      Quagga.ImageDebug.drawPath(result.box, { x:0, y:1 }, canvas, { color:'var(--accent)', lineWidth:3 });
+    }
+    if (result?.codeResult?.code) {
+      Quagga.ImageDebug.drawPath(result?.line, { x:'x', y:'y' }, canvas, { color:'#2ecc71', lineWidth:3 });
+    }
+  });
+}
+
+function stopScanner() {
+  if (!scannerRunning) return;
+  Quagga.stop();
+  scannerRunning = false;
+  document.getElementById('start-btn').style.display = 'flex';
+  document.getElementById('stop-btn').style.display  = 'none';
+  document.getElementById('cam-status').textContent  = '📷 Camera off — tap Start Scanner';
+  document.getElementById('scan-line').style.display = 'none';
+}
+
+// ════════════════════════════════════════════════════════
+//  MEDICINE LOOKUP (for result card)
+// ════════════════════════════════════════════════════════
+async function fetchMedicineInfo(barcode) {
+  const card = document.getElementById('result-card');
+  const icon = document.getElementById('result-icon');
+  const name = document.getElementById('result-name');
+  const meta = document.getElementById('result-meta');
+  try {
+    const res  = await fetch(`/medicine/${encodeURIComponent(barcode)}`);
+    const data = await res.json();
+    if (res.ok) {
+      icon.textContent = '💊';
+      name.textContent = data.name;
+      meta.textContent = `₹${Number(data.price).toFixed(2)}  ·  Stock: ${data.stock}  ·  ${data.barcode}`;
+      card.className   = 'result-card show ok';
+    } else {
+      icon.textContent = '❓';
+      name.textContent = barcode;
+      meta.textContent = data.error || 'Not found in database';
+      card.className   = 'result-card show err';
+    }
+  } catch (_) {
+    icon.textContent = '⚠️';
+    name.textContent = barcode;
+    meta.textContent = 'Could not reach server';
+    card.className   = 'result-card show err';
+  }
+}
+
+// ════════════════════════════════════════════════════════
+//  MANUAL SEND
+// ════════════════════════════════════════════════════════
+function sendManual() {
+  const input = document.getElementById('manual-input');
+  const code  = input.value.trim();
+  if (!code) return;
+  socket.emit('barcode', { ownerId: myOwnerId, barcode: code });
+  fetchMedicineInfo(code);
+  addHistory(code);
+  playBeep();
+  showToast(`📡 Sent: ${code}`, 'ws');
+  input.value = '';
+}
+document.getElementById('manual-input').addEventListener('keydown', e => {
+  if (e.key === 'Enter') sendManual();
+});
+
+// ════════════════════════════════════════════════════════
+//  HISTORY
+// ════════════════════════════════════════════════════════
+function addHistory(barcode) {
+  history.unshift({ barcode, time: new Date().toLocaleTimeString() });
+  if (history.length > 30) history.pop();
+  renderHistory();
+}
+
+function renderHistory() {
+  const list = document.getElementById('history-list');
+  if (!history.length) {
+    list.innerHTML = '<div class="hist-empty">No scans yet.</div>';
+    return;
+  }
+  list.innerHTML = history.map(h => `
+    <div class="hist-item">
+      <span class="hist-bc">${esc(h.barcode)}</span>
+      <span class="hist-time">${h.time}</span>
+    </div>`).join('');
+}
+
+function clearHistory() {
+  history.length = 0;
+  renderHistory();
+}
+
+// ════════════════════════════════════════════════════════
+//  BEEP (Enhanced)
+// ════════════════════════════════════════════════════════
+function playBeep() {
+  try {
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    // Pleasant scan beep
+    osc.frequency.value = 1000;
+    gain.gain.setValueAtTime(0.12, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.15);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.15);
+  } catch (_) {}
+}
+
+function playSuccessBeep() {
+  try {
+    const ctx  = new (window.AudioContext || window.webkitAudioContext)();
+    const osc  = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.type = 'sine';
+    // Two-tone success
+    osc.frequency.setValueAtTime(880, ctx.currentTime);
+    osc.frequency.setValueAtTime(1108.73, ctx.currentTime + 0.08);
+    gain.gain.setValueAtTime(0.15, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.0001, ctx.currentTime + 0.2);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + 0.2);
+  } catch (_) {}
+}
+
+// ════════════════════════════════════════════════════════
+//  TOAST
+// ════════════════════════════════════════════════════════
+function showToast(msg, type = 'ok') {
+  const t = document.getElementById('scan-toast');
+  t.textContent = msg;
+  t.className   = `show ${type}`;
+  clearTimeout(t._tid);
+  t._tid = setTimeout(() => { t.className = ''; }, 2800);
+}
+
+// ════════════════════════════════════════════════════════
+//  HELPERS
+// ════════════════════════════════════════════════════════
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');
+}
+
+// Stop scanner cleanly if page is hidden (tab switch / lock screen)
+document.addEventListener('visibilitychange', () => {
+  if (document.hidden && scannerRunning) stopScanner();
+});
+</script>
+<script>
+  // Auth guard — redirect to login if session expired
+  fetch('/me').then(r => r.json()).then(d => {
+    if (!d.loggedIn) window.location.href = '/login.html';
+  });
+</script>
+</body>
+</html>

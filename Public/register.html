@@ -1,0 +1,339 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Register — MediFlow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/mediflow-brand.css"/>
+  <link rel="icon" href="/assets/mediflow-logo-icon.svg" type="image/svg+xml"/>
+  <style>
+    :root{
+      --teal:#0d6b6e;--teal-dk:#094a4c;--teal-md:#0f8a8e;--teal-lt:#e0f4f4;
+      --amber:#e8870a;--green:#1a7a4a;--green-lt:#e3f5ec;
+      --red:#c0392b;--red-lt:#fdecea;
+      --bg:#f0f4f5;--surface:#ffffff;--surface2:#f7fafa;
+      --text:#0f2b2d;--text-2:#3a5a5c;--muted:#7a9ea0;
+      --border:#d4e6e7;--border-dk:#b8d4d5;
+      --shadow-lg:0 12px 40px rgba(13,107,110,.18);
+      --radius-sm:8px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex;align-items:flex-start;justify-content:center;padding:1.5rem;position:relative;overflow:auto}
+    body::before,body::after{content:'';position:fixed;border-radius:50%;pointer-events:none;z-index:0}
+    body::before{width:500px;height:500px;background:radial-gradient(circle,rgba(13,107,110,.08) 0%,transparent 70%);top:-100px;left:-100px}
+    body::after{width:400px;height:400px;background:radial-gradient(circle,rgba(13,168,173,.07) 0%,transparent 70%);bottom:-80px;right:-80px}
+
+    .register-wrap{display:flex;width:100%;max-width:880px;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow-lg);overflow:visible;position:relative;z-index:1;animation:popIn .35s ease;margin:auto}
+    @keyframes popIn{from{opacity:0;transform:scale(.97) translateY(10px)}to{opacity:1;transform:scale(1) translateY(0)}}
+
+    /* Left brand panel */
+    .brand-panel{width:260px;background:linear-gradient(160deg,var(--teal-dk) 0%,#0d6b6e 60%,#0f8a8e 100%);padding:2.5rem 1.75rem;display:flex;flex-direction:column;justify-content:space-between;flex-shrink:0;position:relative;overflow:hidden}
+    .brand-panel::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:24px 24px;pointer-events:none}
+    .brand-panel::after{content:'';position:absolute;width:220px;height:220px;border:1.5px solid rgba(255,255,255,.08);border-radius:50%;bottom:-60px;right:-60px;pointer-events:none}
+    .brand-circle{position:absolute;width:140px;height:140px;border:1.5px solid rgba(255,255,255,.06);border-radius:50%;top:-40px;right:-20px}
+
+    .brand-logo{display:flex;align-items:center;gap:.65rem;position:relative;z-index:1}
+    .brand-icon{width:42px;height:42px;background:rgba(255,255,255,.12);border:1px solid rgba(255,255,255,.2);border-radius:11px;display:flex;align-items:center;justify-content:center;font-size:1.2rem}
+    .brand-name{font-family:'Sora',sans-serif;font-size:1.3rem;font-weight:700;color:#fff;letter-spacing:-.02em}
+    .brand-sub{font-size:.62rem;color:rgba(255,255,255,.45);text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}
+
+    .brand-body{position:relative;z-index:1}
+    .brand-tagline{font-family:'Sora',sans-serif;font-size:1.1rem;font-weight:600;color:#fff;line-height:1.45;margin-bottom:.65rem}
+    .brand-desc{font-size:.76rem;color:rgba(255,255,255,.5);line-height:1.6}
+
+    /* Steps indicator */
+    .brand-steps{position:relative;z-index:1}
+    .step-item{display:flex;align-items:flex-start;gap:.65rem;padding:.45rem 0}
+    .step-num{width:22px;height:22px;border-radius:50%;background:rgba(255,255,255,.1);border:1px solid rgba(255,255,255,.2);display:flex;align-items:center;justify-content:center;font-size:.65rem;font-weight:700;color:rgba(255,255,255,.7);flex-shrink:0;margin-top:.05rem}
+    .step-text{font-size:.74rem;color:rgba(255,255,255,.5);line-height:1.4}
+    .step-text strong{display:block;color:rgba(255,255,255,.75);font-weight:600;font-size:.76rem;margin-bottom:.08rem}
+
+    /* Right form panel */
+    .form-panel{flex:1;padding:2.25rem 2.1rem;display:flex;flex-direction:column;justify-content:flex-start;overflow-y:visible}
+    .form-title{font-family:'Sora',sans-serif;font-size:1.25rem;font-weight:700;color:var(--text);margin-bottom:.25rem}
+    .form-sub{font-size:.81rem;color:var(--muted);margin-bottom:1.5rem}
+
+    .field{margin-bottom:.95rem}
+    label{display:block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.36rem}
+    input[type=email],input[type=password],input[type=text]{width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+    input:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1);background:var(--surface)}
+    input.invalid{border-color:var(--red)!important;box-shadow:0 0 0 3px rgba(192,57,43,.08)!important}
+    input.valid{border-color:var(--green)!important}
+
+    .field-hint{font-size:.71rem;color:var(--muted);margin-top:.25rem}
+
+    /* Password strength bar */
+    .pw-strength{margin-top:.4rem}
+    .pw-strength-bar{height:3px;background:var(--border);border-radius:99px;overflow:hidden;margin-bottom:.25rem}
+    .pw-strength-fill{height:100%;border-radius:99px;width:0%;transition:width .3s,background .3s}
+    .pw-strength-label{font-size:.68rem;color:var(--muted)}
+
+    /* Password wrap */
+    .pw-wrap{position:relative}
+    .pw-wrap input{padding-right:2.6rem}
+    .pw-eye{position:absolute;right:.7rem;top:50%;transform:translateY(-50%);background:none;border:none;cursor:pointer;font-size:.95rem;color:var(--muted);padding:.2rem;border-radius:4px;transition:color .18s;line-height:1}
+    .pw-eye:hover{color:var(--teal-md)}
+
+    /* Divider */
+    .form-divider{height:1px;background:var(--border);margin:.9rem 0}
+
+    /* Submit */
+    .btn-submit{width:100%;padding:.72rem;background:var(--teal);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.92rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s;box-shadow:0 2px 8px rgba(13,107,110,.25);margin-top:.35rem;display:flex;align-items:center;justify-content:center;gap:.4rem}
+    .btn-submit:hover{background:var(--teal-md);transform:translateY(-1px);box-shadow:0 4px 14px rgba(13,107,110,.3)}
+    .btn-submit:active{transform:translateY(0)}
+    .btn-submit:disabled{opacity:.55;cursor:not-allowed;transform:none}
+
+    /* Messages */
+    .msg-box{padding:.65rem .9rem;border-radius:var(--radius-sm);font-size:.81rem;font-weight:600;display:none;align-items:center;gap:.45rem;margin-bottom:.9rem;border:1px solid transparent;animation:fadeUp .2s ease}
+    .msg-box.show{display:flex}
+    .msg-box.err {background:var(--red-lt);  color:#7a1a1a;border-color:#f5c6c2}
+    .msg-box.ok  {background:var(--green-lt);color:var(--green);border-color:#a7d9be}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(5px)}to{opacity:1;transform:translateY(0)}}
+
+    .form-switch{text-align:center;margin-top:1.2rem;font-size:.81rem;color:var(--muted)}
+    .form-switch a{color:var(--teal-md);font-weight:700;text-decoration:none}
+    .form-switch a:hover{text-decoration:underline}
+
+    /* Terms note */
+    .terms-note{font-size:.7rem;color:var(--muted);text-align:center;margin-top:.75rem;line-height:1.5}
+
+    .section-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.08em;color:var(--teal-dk);margin-bottom:.7rem;padding:.3rem 0;border-bottom:1.5px solid var(--teal-lt)}
+    .field-row{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    @media(max-width:680px){.brand-panel{display:none}.register-wrap{max-width:440px}.field-row{grid-template-columns:1fr}}
+  </style>
+</head>
+<body>
+
+<div class="register-wrap">
+
+  <!-- Left brand panel -->
+  <div class="brand-panel">
+    <div class="brand-circle"></div>
+
+    <div class="brand-logo">
+      <div data-mf-logo-mark></div>
+      <div>
+        <div class="brand-name">MediFlow</div>
+        <div class="brand-sub">Your own Pharmacy</div>
+      </div>
+    </div>
+
+    <div class="brand-body">
+      <div class="brand-tagline">Set up your<br/>pharmacy in minutes.</div>
+      <div class="brand-desc">Create your account and start managing medicines, billing, and stock today.</div>
+    </div>
+
+    <div class="brand-steps">
+      <div class="step-item">
+        <div class="step-num">1</div>
+        <div class="step-text"><strong>Pharmacy Profile</strong>Name, contact & license details.</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">2</div>
+        <div class="step-text"><strong>Add Medicines</strong>Register your inventory with barcodes.</div>
+      </div>
+      <div class="step-item">
+        <div class="step-num">3</div>
+        <div class="step-text"><strong>Professional Bills</strong>Your pharmacy details on every receipt.</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Right form panel -->
+  <div class="form-panel">
+    <div class="form-title">Create your account</div>
+    <div class="form-sub">Your pharmacy profile will appear on every bill.</div>
+
+    <div class="msg-box err" id="err-box"></div>
+    <div class="msg-box ok"  id="ok-box"></div>
+
+    <!-- ── Section 1: Pharmacy Profile ── -->
+    <div class="section-label">🏥 Pharmacy Details</div>
+
+    <div class="field">
+      <label for="pharmacyName">Pharmacy Name <span style="color:var(--red)">*</span></label>
+      <input type="text" id="pharmacyName" placeholder="e.g. City Medical Store" autocomplete="organization"/>
+    </div>
+
+    <div class="field-row">
+      <div class="field">
+        <label for="pharmacyPhone">Phone Number <span style="color:var(--red)">*</span></label>
+        <input type="text" id="pharmacyPhone" placeholder="+91-9876543210"/>
+      </div>
+      <div class="field">
+        <label for="pharmacyEmail">Pharmacy Email <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+        <input type="email" id="pharmacyEmail" placeholder="store@example.com"/>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="pharmacyAddress">Address <span style="color:var(--red)">*</span></label>
+      <input type="text" id="pharmacyAddress" placeholder="e.g. 123 MG Road, Mumbai - 400001"/>
+    </div>
+
+    <div class="field">
+      <label for="pharmacyLicense">Drug License No. <span style="color:var(--muted);font-weight:400">(optional)</span></label>
+      <input type="text" id="pharmacyLicense" placeholder="e.g. MH-MUM-123456"/>
+      <div class="field-hint">Printed on receipts for regulatory compliance.</div>
+    </div>
+
+    <div class="form-divider"></div>
+
+    <!-- ── Section 2: Account Credentials ── -->
+    <div class="section-label">🔐 Account Credentials</div>
+
+    <div class="field">
+      <label for="name">Your Full Name <span style="color:var(--red)">*</span></label>
+      <input type="text" id="name" placeholder="e.g. Ravi Kumar" autocomplete="name"/>
+    </div>
+
+    <div class="field">
+      <label for="email">Email Address <span style="color:var(--red)">*</span></label>
+      <input type="email" id="email" placeholder="you@example.com" autocomplete="email"/>
+    </div>
+
+    <div class="field">
+      <label for="password">Password <span style="color:var(--red)">*</span></label>
+      <div class="pw-wrap">
+        <input type="password" id="password" placeholder="Minimum 6 characters" autocomplete="new-password" oninput="checkStrength()"/>
+        <button type="button" class="pw-eye" id="pw-eye" onclick="togglePw('password','pw-eye')" title="Show / hide">👁</button>
+      </div>
+      <div class="pw-strength">
+        <div class="pw-strength-bar"><div class="pw-strength-fill" id="pw-fill"></div></div>
+        <div class="pw-strength-label" id="pw-label">Enter a password</div>
+      </div>
+    </div>
+
+    <div class="field">
+      <label for="confirm">Confirm Password <span style="color:var(--red)">*</span></label>
+      <div class="pw-wrap">
+        <input type="password" id="confirm" placeholder="Re-enter your password" autocomplete="new-password"/>
+        <button type="button" class="pw-eye" onclick="togglePw('confirm',this)" title="Show / hide">👁</button>
+      </div>
+    </div>
+
+    <button class="btn-submit" id="reg-btn" onclick="doRegister()">
+      Create Account →
+    </button>
+
+    <div class="terms-note">By creating an account you confirm this is for authorised pharmacy use only.</div>
+
+    <div class="form-switch">
+      Already have an account? <a href="login.html">Sign in here</a>
+    </div>
+  </div>
+
+</div>
+
+<script>
+  // Skip registration page if already logged in
+  fetch('/me').then(r=>r.json()).then(d=>{if(d.loggedIn)window.location.href='/index.html';});
+
+  // Enter key submits
+  document.addEventListener('keydown',e=>{if(e.key==='Enter')doRegister();});
+
+  // ── Show / hide password ────────────────────────────
+  function togglePw(inputId, btnEl){
+    const inp = document.getElementById(inputId);
+    const btn = typeof btnEl === 'string' ? document.getElementById(btnEl) : btnEl;
+    const hidden = inp.type === 'password';
+    inp.type = hidden ? 'text' : 'password';
+    btn.textContent = hidden ? '🙈' : '👁';
+    btn.title = hidden ? 'Hide password' : 'Show password';
+  }
+
+  // ── Password strength meter ─────────────────────────
+  function checkStrength(){
+    const pw  = document.getElementById('password').value;
+    const fill = document.getElementById('pw-fill');
+    const lbl  = document.getElementById('pw-label');
+    let score = 0;
+    if(pw.length >= 6)  score++;
+    if(pw.length >= 10) score++;
+    if(/[A-Z]/.test(pw)) score++;
+    if(/[0-9]/.test(pw)) score++;
+    if(/[^A-Za-z0-9]/.test(pw)) score++;
+
+    const levels = [
+      { pct:'0%',   color:'var(--border)',  text:'Enter a password' },
+      { pct:'20%',  color:'var(--red)',     text:'Very weak' },
+      { pct:'40%',  color:'#e8870a',        text:'Weak' },
+      { pct:'65%',  color:'#c9a800',        text:'Fair' },
+      { pct:'85%',  color:'#5ca800',        text:'Strong' },
+      { pct:'100%', color:'var(--green)',   text:'Very strong ✓' },
+    ];
+    const lvl = levels[Math.min(score, 5)];
+    fill.style.width      = pw.length ? lvl.pct : '0%';
+    fill.style.background = lvl.color;
+    lbl.textContent       = pw.length ? lvl.text : 'Enter a password';
+    lbl.style.color       = pw.length ? lvl.color : 'var(--muted)';
+  }
+
+  // ── Register ────────────────────────────────────────
+  async function doRegister(){
+    const pharmacyName    = document.getElementById('pharmacyName').value.trim();
+    const pharmacyPhone   = document.getElementById('pharmacyPhone').value.trim();
+    const pharmacyAddress = document.getElementById('pharmacyAddress').value.trim();
+    const pharmacyEmail   = document.getElementById('pharmacyEmail').value.trim();
+    const pharmacyLicense = document.getElementById('pharmacyLicense').value.trim();
+    const name     = document.getElementById('name').value.trim();
+    const email    = document.getElementById('email').value.trim();
+    const password = document.getElementById('password').value;
+    const confirm  = document.getElementById('confirm').value;
+    const btn      = document.getElementById('reg-btn');
+
+    hide('err-box'); hide('ok-box');
+
+    // Client-side validation
+    if(!pharmacyName){show('err-box','⚠️ Pharmacy name is required.');document.getElementById('pharmacyName').focus();return;}
+    if(!pharmacyPhone){show('err-box','⚠️ Phone number is required.');document.getElementById('pharmacyPhone').focus();return;}
+    if(!pharmacyAddress){show('err-box','⚠️ Address is required.');document.getElementById('pharmacyAddress').focus();return;}
+    if(!name || !email || !password || !confirm){
+      show('err-box','⚠️ Please fill in all required fields.');return;
+    }
+    if(password.length < 6){
+      show('err-box','⚠️ Password must be at least 6 characters.');return;
+    }
+    if(password !== confirm){
+      show('err-box','⚠️ Passwords do not match. Please check and try again.');
+      document.getElementById('confirm').classList.add('invalid');return;
+    }
+    document.getElementById('confirm').classList.remove('invalid');
+
+    btn.disabled = true;
+    btn.textContent = 'Creating account…';
+
+    try{
+      const res  = await fetch('/register',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body:JSON.stringify({name,email,password,pharmacyName,pharmacyPhone,pharmacyAddress,pharmacyEmail,pharmacyLicense})
+      });
+      const data = await res.json();
+
+      if(!res.ok){
+        show('err-box', data.error || 'Registration failed. Please try again.');
+        btn.disabled    = false;
+        btn.textContent = 'Create Account →';
+        return;
+      }
+
+      // Success — server auto-logs in, redirect to dashboard
+      document.querySelector('.register-wrap').style.visibility='hidden';
+      showMediFlowSplash(() => { window.location.href = '/index.html'; });
+
+    }catch(e){
+      show('err-box','❌ Cannot reach server. Is MediFlow running?');
+      btn.disabled    = false;
+      btn.textContent = 'Create Account →';
+    }
+  }
+
+  function show(id, msg){ const b=document.getElementById(id); b.textContent=msg; b.classList.add('show'); }
+  function hide(id){ document.getElementById(id).classList.remove('show'); }
+</script>
+<script src="/js/mediflow-brand.js"></script>
+<script src="/js/mediflow-splash.js"></script>
+</body>
+</html>

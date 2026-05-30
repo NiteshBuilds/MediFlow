@@ -1,0 +1,61 @@
+/* MediFlow brand — logo + login splash */
+.mf-logo-img{width:100%;height:100%;object-fit:contain;display:block}
+.logo-icon,.brand-icon{
+  width:48px!important;
+  height:48px!important;
+  padding:2px;
+  background:transparent!important;
+  box-shadow:none!important;
+  border:none!important;
+}
+.logo-icon .mf-logo-img,.brand-icon .mf-logo-svg{width:100%;height:100%;color:#fff}
+.brand-logo-full{display:block;max-width:200px;width:100%;height:auto;margin-bottom:1rem}
+.brand-logo-mark{display:block;width:88px;height:88px;object-fit:contain;margin-bottom:.65rem}
+.brand-sub,.logo-sub{white-space:nowrap;letter-spacing:.06em}
+
+/* Login splash — real logo + flowing ring animation */
+.mf-splash{
+  position:fixed;inset:0;z-index:9999;display:flex;flex-direction:column;align-items:center;justify-content:center;
+  background:linear-gradient(160deg,#094a4c 0%,#0d6b6e 55%,#0f8a8e 100%);
+  opacity:1;transition:opacity .5s ease;
+}
+.mf-splash.hide{opacity:0;pointer-events:none}
+.mf-splash-inner{text-align:center;padding:2rem;animation:mfSplashIn .55s ease}
+.mf-splash-logo-wrap{
+  position:relative;width:240px;height:240px;margin:0 auto 1.75rem;
+  display:flex;align-items:center;justify-content:center;
+}
+.mf-splash-ring{
+  position:absolute;inset:0;border:2px solid rgba(255,255,255,.25);border-radius:50%;
+  animation:mfRingDraw 1.4s ease forwards;
+}
+.mf-splash-ring-2{
+  inset:14px;border-style:dashed;border-color:rgba(255,255,255,.18);
+  animation:mfRingDraw 1.2s ease .25s forwards, mfRingSpin 8s linear 1.4s infinite;
+}
+.mf-splash-logo-img{
+  width:190px;height:190px;object-fit:contain;display:block;
+  opacity:0;transform:scale(.72);
+  animation:mfLogoReveal .85s cubic-bezier(.22,1,.36,1) .35s forwards;
+  filter:drop-shadow(0 8px 24px rgba(0,0,0,.25));
+}
+.mf-splash-title{
+  font-family:'Sora',sans-serif;font-size:2.45rem;font-weight:700;color:#fff;
+  letter-spacing:-.02em;line-height:1.1;
+  opacity:0;transform:translateY(14px);
+  animation:mfTextUp .65s ease 1s forwards;
+}
+.mf-splash-tag{
+  font-size:.88rem;color:rgba(255,255,255,.62);text-transform:uppercase;
+  letter-spacing:.12em;margin-top:.55rem;white-space:nowrap;
+  opacity:0;transform:translateY(10px);
+  animation:mfTextUp .55s ease 1.25s forwards;
+}
+@keyframes mfSplashIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+@keyframes mfLogoReveal{to{opacity:1;transform:scale(1)}}
+@keyframes mfTextUp{to{opacity:1;transform:translateY(0)}}
+@keyframes mfRingDraw{
+  from{opacity:0;transform:scale(.55);clip-path:circle(0% at 50% 50%)}
+  to{opacity:1;transform:scale(1);clip-path:circle(100% at 50% 50%)}
+}
+@keyframes mfRingSpin{to{transform:rotate(360deg)}}
