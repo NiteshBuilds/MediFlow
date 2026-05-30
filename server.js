@@ -33,7 +33,7 @@ app.use((req, res, next) => {
   return res.status(401).json({ error: 'Not logged in.' });
 });
 
-app.use(express.static('public'));
+app.use(express.static('Public'));
 
 mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB connected'))
