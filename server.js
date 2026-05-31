@@ -5,8 +5,17 @@ const { Server } = require('socket.io');
 const session    = require('express-session');
 const MongoStore = require('connect-mongo').default;
 const bcrypt     = require('bcrypt');
-const { Resend } = require('resend');
-const resend = new Resend(process.env.RESEND_API_KEY);
+const nodemailer = require('nodemailer');
+
+const transporter = nodemailer.createTransport({
+  host: 'smtp.gmail.com',
+  port: 465,
+  secure: true, // SSL
+  auth: {
+    user: process.env.EMAIL_USER,
+    pass: process.env.EMAIL_PASS
+  }
+});
 
 const app = express();
 
@@ -61,7 +70,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB error:', err));
 
-// Email is handled via Resend API (see RESEND_API_KEY env var)
+
 
 // ── OTP Schema ────────────────────────────────────────────
 // Stores one-time recovery codes. Auto-deletes after 15 minutes.
@@ -375,8 +384,8 @@ app.post('/profile/request-edit-code', requireOwner, async (req, res) => {
 
   try {
     console.log(`[PROFILE_OTP] Sending code to ${user.email}`);
-    await resend.emails.send({
-      from: 'MediFlow <onboarding@resend.dev>',
+    await transporter.sendMail({
+      from: '"MediFlow" <mediflow.pharmacy@gmail.com>',
       to: user.email,
       subject: 'MediFlow — Profile Edit Verification Code',
       html: `
@@ -594,8 +603,8 @@ app.post('/forgot-password', async (req, res) => {
     await OTP.create({ email: email.toLowerCase(), code, purpose: 'password_reset', expiresAt });
 
     // Send email
-    await resend.emails.send({
-      from: 'MediFlow <onboarding@resend.dev>',
+    await transporter.sendMail({
+      from: '"MediFlow" <mediflow.pharmacy@gmail.com>',
       to: user.email,
       subject: 'MediFlow — Password Recovery Code',
       html: `
