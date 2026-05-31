@@ -5,7 +5,8 @@ const { Server } = require('socket.io');
 const session    = require('express-session');
 const MongoStore = require('connect-mongo').default;
 const bcrypt     = require('bcrypt');
-const nodemailer = require('nodemailer');
+const { Resend } = require('resend');
+const resend = new Resend(process.env.RESEND_API_KEY);
 
 const app = express();
 
@@ -60,23 +61,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB error:', err));
 
-// ── Email transporter (Gmail) ──────────────────────────────
-// Replace these with your Gmail address and App Password.
-// To get App Password: Google Account → Security → 2-Step Verification → App Passwords
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 587,
-  secure: false,
-
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  },
-
-  tls: {
-    rejectUnauthorized: false
-  }
-});
+// Email is handled via Resend API (see RESEND_API_KEY env var)
 
 // ── OTP Schema ────────────────────────────────────────────
 // Stores one-time recovery codes. Auto-deletes after 15 minutes.
@@ -390,8 +375,8 @@ app.post('/profile/request-edit-code', requireOwner, async (req, res) => {
 
   try {
     console.log(`[PROFILE_OTP] Sending code to ${user.email}`);
-    await transporter.sendMail({
-      from: '"MediFlow" <mediflow.pharmacy@gmail.com>',
+    await resend.emails.send({
+      from: 'MediFlow <onboarding@resend.dev>',
       to: user.email,
       subject: 'MediFlow — Profile Edit Verification Code',
       html: `
@@ -609,8 +594,8 @@ app.post('/forgot-password', async (req, res) => {
     await OTP.create({ email: email.toLowerCase(), code, purpose: 'password_reset', expiresAt });
 
     // Send email
-    await transporter.sendMail({
-      from: '"MediFlow" <mediflow.pharmacy@gmail.com>',   // ← replace with your Gmail
+    await resend.emails.send({
+      from: 'MediFlow <onboarding@resend.dev>',
       to: user.email,
       subject: 'MediFlow — Password Recovery Code',
       html: `
