@@ -9,6 +9,11 @@ const nodemailer = require('nodemailer');
 
 const app = express();
 
+// Required for Render (and any reverse proxy): tells Express to trust
+// the X-Forwarded-Proto header so it knows the connection is HTTPS,
+// which makes secure cookies work correctly.
+app.set('trust proxy', 1);
+
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
@@ -29,7 +34,7 @@ app.use(session({
     maxAge: 1000 * 60 * 60 * 8,
     httpOnly: true,
     secure: process.env.NODE_ENV === 'production',
-    sameSite: 'lax'
+    sameSite: process.env.NODE_ENV === 'production' ? 'none' : 'lax'
   }
 }));
 
