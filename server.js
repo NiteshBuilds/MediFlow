@@ -5,17 +5,46 @@ const { Server } = require('socket.io');
 const session    = require('express-session');
 const MongoStore = require('connect-mongo').default;
 const bcrypt     = require('bcrypt');
-const nodemailer = require('nodemailer');
+const https = require('https');
 
-const transporter = nodemailer.createTransport({
-  host: 'smtp.gmail.com',
-  port: 465,
-  secure: true, // SSL
-  auth: {
-    user: process.env.EMAIL_USER,
-    pass: process.env.EMAIL_PASS
-  }
-});
+// EmailJS — all credentials stored as environment variables
+function sendEmailJS(toEmail, passcode) {
+  return new Promise((resolve, reject) => {
+    const now = new Date();
+    const time = now.toLocaleTimeString('en-IN', { hour: '2-digit', minute: '2-digit' });
+    const payload = JSON.stringify({
+      service_id:  process.env.EMAILJS_SERVICE_ID,
+      template_id: process.env.EMAILJS_TEMPLATE_ID,
+      user_id:     process.env.EMAILJS_PUBLIC_KEY,
+      accessToken: process.env.EMAILJS_PRIVATE_KEY,
+      template_params: {
+        to_email: toEmail,
+        passcode: passcode,
+        time:     time
+      }
+    });
+    const options = {
+      hostname: 'api.emailjs.com',
+      path:     '/api/v1.0/email/send',
+      method:   'POST',
+      headers:  {
+        'Content-Type':   'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+    const req = https.request(options, res => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode === 200) resolve();
+        else reject(new Error(`EmailJS error ${res.statusCode}: ${data}`));
+      });
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+}
 
 const app = express();
 
@@ -384,32 +413,7 @@ app.post('/profile/request-edit-code', requireOwner, async (req, res) => {
 
   try {
     console.log(`[PROFILE_OTP] Sending code to ${user.email}`);
-    await transporter.sendMail({
-      from: '"MediFlow" <mediflow.pharmacy@gmail.com>',
-      to: user.email,
-      subject: 'MediFlow — Profile Edit Verification Code',
-      html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;border:1px solid #e0f4f4;border-radius:12px">
-          <h2 style="color:#0d6b6e;margin-bottom:.5rem">
-            🔐 Profile Update Verification
-          </h2>
-
-          <p style="color:#3a5a5c;margin-bottom:1.5rem">
-            Hi ${user.name}, use this code to unlock profile editing in MediFlow:
-          </p>
-
-          <div style="background:#f0f4f5;border:2px dashed #0d6b6e;border-radius:10px;padding:1.5rem;text-align:center;margin-bottom:1.5rem">
-            <span style="font-size:2.5rem;font-weight:800;letter-spacing:.4rem;color:#0d6b6e">
-              ${code}
-            </span>
-          </div>
-
-          <p style="color:#7a9ea0;font-size:.85rem">
-            This code expires in <strong>10 minutes</strong>.
-          </p>
-        </div>
-      `
-    });
+    await sendEmailJS(user.email, code);
 
     console.log('[PROFILE_OTP] OTP sent successfully');
 
@@ -603,24 +607,7 @@ app.post('/forgot-password', async (req, res) => {
     await OTP.create({ email: email.toLowerCase(), code, purpose: 'password_reset', expiresAt });
 
     // Send email
-    await transporter.sendMail({
-      from: '"MediFlow" <mediflow.pharmacy@gmail.com>',
-      to: user.email,
-      subject: 'MediFlow — Password Recovery Code',
-      html: `
-        <div style="font-family:sans-serif;max-width:480px;margin:0 auto;padding:2rem;border:1px solid #e0f4f4;border-radius:12px">
-          <h2 style="color:#0d6b6e;margin-bottom:.5rem">🔐 Password Recovery</h2>
-          <p style="color:#3a5a5c;margin-bottom:1.5rem">Hi ${user.name}, here is your MediFlow recovery code:</p>
-          <div style="background:#f0f4f5;border:2px dashed #0d6b6e;border-radius:10px;padding:1.5rem;text-align:center;margin-bottom:1.5rem">
-            <span style="font-size:2.5rem;font-weight:800;letter-spacing:.4rem;color:#0d6b6e">${code}</span>
-          </div>
-          <p style="color:#7a9ea0;font-size:.85rem">This code expires in <strong>15 minutes</strong>. Do not share it with anyone.</p>
-          <p style="color:#7a9ea0;font-size:.85rem;margin-top:1rem">If you did not request this, you can safely ignore this email.</p>
-          <hr style="border:none;border-top:1px solid #e0f4f4;margin:1.5rem 0"/>
-          <p style="color:#b0c8ca;font-size:.75rem;text-align:center">Simplified With MediFlow</p>
-        </div>
-      `
-    });
+    await sendEmailJS(user.email, code);
 
     res.json({ success: true, message: 'Recovery code sent to your email.' });
   } catch (err) {
