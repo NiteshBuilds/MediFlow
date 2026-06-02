@@ -918,12 +918,21 @@ app.post('/bill', requireOwner, async (req, res) => {
       const med = await Medicine.findOne({ ownerId: req.ownerId, barcode: item.barcode });
       if (!med)
         return res.status(404).json({ error: `Medicine not found: ${item.barcode}` });
-      const totalStock = med.batches.reduce((s, b) => s + b.stock, 0);
-      if (totalStock < item.qty)
+      
+      let available = 0;
+      if (item.batchLabel && item.batchLabel !== 'auto') {
+        const batch = med.batches.find(b => b.batchLabel === item.batchLabel);
+        if (!batch) return res.status(404).json({ error: `Batch ${item.batchLabel} not found for ${med.name}.` });
+        available = batch.stock;
+      } else {
+        available = med.batches.reduce((s, b) => s + b.stock, 0);
+      }
+      
+      if (available < item.qty)
         return res.status(409).json({
-          error: `Not enough stock for "${med.name}". Only ${totalStock} available.`,
+          error: `Not enough stock for "${med.name}"${item.batchLabel && item.batchLabel !== 'auto' ? ` in ${item.batchLabel}` : ''}. Only ${available} available.`,
           barcode: med.barcode,
-          available: totalStock,
+          available: available,
         });
     }
 
@@ -932,12 +941,22 @@ app.post('/bill', requireOwner, async (req, res) => {
     for (const item of items) {
       const med = await Medicine.findOne({ ownerId: req.ownerId, barcode: item.barcode }); // 🔑
       let remaining = item.qty;
-      const sorted  = med.batches.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
-      for (const batch of sorted) {
-        if (remaining <= 0) break;
-        const deduct = Math.min(batch.stock, remaining);
-        batch.stock  -= deduct;
-        remaining    -= deduct;
+      
+      if (item.batchLabel && item.batchLabel !== 'auto') {
+        const batch = med.batches.find(b => b.batchLabel === item.batchLabel);
+        if (batch) {
+          const deduct = Math.min(batch.stock, remaining);
+          batch.stock -= deduct;
+          remaining -= deduct;
+        }
+      } else {
+        const sorted  = med.batches.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+        for (const batch of sorted) {
+          if (remaining <= 0) break;
+          const deduct = Math.min(batch.stock, remaining);
+          batch.stock  -= deduct;
+          remaining    -= deduct;
+        }
       }
       await doAutoShift(med);
       soldEntries.push({

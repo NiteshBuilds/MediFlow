@@ -493,11 +493,16 @@
   /* ── Add to cart ── */
   function addToCart(data){
     const bc=data.barcode,isNew=!cart[bc];
-    const totalStock=data.stock||0;
+    let limit=data.stock||0;
+    let bName=data.name;
+    if(!isNew && cart[bc].selectedBatch !== 'auto'){
+      const b=(cart[bc].batches||[]).find(x=>x.batchLabel===cart[bc].selectedBatch);
+      if(b){ limit=b.stock; bName=`${data.name} (${b.batchLabel})`; }
+    }
     const cur=isNew?0:cart[bc].qty,nq=cur+1;
-    if(nq>totalStock){playStockWarnSound();showStockWarn(data.name,totalStock,cur);showToast(`⚠️ Only ${totalStock} in stock!`,'warn');return;}
+    if(nq>limit){playStockWarnSound();showStockWarn(bName,limit,cur);showToast(`⚠️ Only ${limit} in stock!`,'warn');return;}
     if(!isNew){cart[bc].qty++;setStatus('ok',`✅ ${data.name} ×${cart[bc].qty}`);}
-    else{cart[bc]={name:data.name,barcode:bc,price:Number(data.price),qty:1,stock:totalStock};setStatus('ok',`✅ Added — ${data.name}`);}
+    else{cart[bc]={name:data.name,barcode:bc,price:Number(data.price),qty:1,stock:data.stock||0,batches:data.batches||[],selectedBatch:'auto'};setStatus('ok',`✅ Added — ${data.name}`);}
     hideStockWarn();
     document.getElementById('lookup-name').textContent=data.name;
 
@@ -696,8 +701,17 @@
     let grand=0,units=0;
     cartBody.innerHTML=keys.map(bc=>{
       const it=cart[bc],ln=it.price*it.qty;grand+=ln;units+=it.qty;
+      const batchOptions = '<option value="auto">Auto (FEFO / Nearest Expiry)</option>' + (it.batches||[]).map(b => `<option value="${esc(b.batchLabel)}" ${it.selectedBatch===b.batchLabel?'selected':''}>${esc(b.batchLabel)} (Stock: ${b.stock})</option>`).join('');
       return `<tr class="${bc===hlBc?'new-item':''}" id="row-${esc(bc)}">
-        <td><div class="td-name">${esc(it.name)}</div><div class="td-barcode">${esc(it.barcode)}</div></td>
+        <td>
+          <div class="td-name">${esc(it.name)}</div>
+          <div class="td-barcode">${esc(it.barcode)}</div>
+          <div style="margin-top: .4rem;">
+            <select class="inp" style="padding: .2rem .4rem; font-size: .75rem; max-width: 180px; width: 100%; border: 1px solid var(--border);" onchange="changeBatch('${esc(bc)}', this.value)">
+              ${batchOptions}
+            </select>
+          </div>
+        </td>
         <td style="text-align:center"><div class="qty-ctrl"><button class="qty-btn" onclick="adjQty('${esc(bc)}',-1)">−</button><div class="qty-num">${it.qty}</div><button class="qty-btn" onclick="adjQty('${esc(bc)}',1)">+</button></div></td>
         <td style="text-align:right">₹${it.price.toFixed(2)}</td>
         <td style="text-align:right;font-weight:700">₹${ln.toFixed(2)}</td>
@@ -715,9 +729,27 @@
     if(!cart[bc])return;
     const nq=cart[bc].qty+d;
     if(nq<1)return;
-    if(d>0&&nq>cart[bc].stock){playStockWarnSound();showStockWarn(cart[bc].name,cart[bc].stock,cart[bc].qty);showToast(`⚠️ Only ${cart[bc].stock} in stock!`,'warn');return;}
+    let limit=cart[bc].stock;
+    let bName=cart[bc].name;
+    if(cart[bc].selectedBatch !== 'auto'){
+      const b=(cart[bc].batches||[]).find(x=>x.batchLabel===cart[bc].selectedBatch);
+      if(b){ limit=b.stock; bName=`${cart[bc].name} (${b.batchLabel})`; }
+    }
+    if(d>0&&nq>limit){playStockWarnSound();showStockWarn(bName,limit,cart[bc].qty);showToast(`⚠️ Only ${limit} in stock!`,'warn');return;}
     cart[bc].qty=nq;renderCart();
   }
+  
+  window.changeBatch = function(bc, val) {
+    if(!cart[bc]) return;
+    cart[bc].selectedBatch = val;
+    if(val !== 'auto') {
+      const b = (cart[bc].batches||[]).find(x => x.batchLabel === val);
+      if(b && cart[bc].qty > b.stock) {
+        cart[bc].qty = Math.max(1, Math.min(cart[bc].qty, b.stock));
+      }
+    }
+    renderCart();
+  };
   function removeItem(bc){delete cart[bc];renderCart();showToast('Item removed.','ok');lookupCard.classList.remove('show');hideStockWarn();}
   function clearCart(){if(!Object.keys(cart).length)return;if(!confirm('Clear the entire cart?'))return;Object.keys(cart).forEach(k=>delete cart[k]);renderCart();setStatus('','');lookupCard.classList.remove('show');hideStockWarn();showToast('Cart cleared.','ok');}
 
@@ -849,7 +881,7 @@
     try{
       const r=await fetch('/bill',{method:'POST',headers:{'Content-Type':'application/json'},
 body:JSON.stringify({
-  items:keys.map(bc=>({barcode:bc,qty:cart[bc].qty})),
+  items:keys.map(bc=>({barcode:bc,qty:cart[bc].qty,batchLabel:cart[bc].selectedBatch})),
   patientName: pName,
   patientAge: pAge ? Number(pAge) : null,
   patientPhone: pPhone
