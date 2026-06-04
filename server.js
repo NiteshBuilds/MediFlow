@@ -1066,6 +1066,16 @@ io.on('connection', (socket) => {
 // ── Start ──────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 
+// Keep Render free tier awake — self-ping every 14 minutes
+const APP_URL = process.env.RENDER_EXTERNAL_URL;
+if (APP_URL) {
+  setInterval(() => {
+    https.get(APP_URL, (res) => {
+      console.log(`🏓 Keep-alive ping: ${res.statusCode}`);
+    }).on('error', () => {});
+  }, 14 * 60 * 1000);
+}
+
 server.listen(PORT, () => {
   console.log(`🚀 MediFlow running on port ${PORT}`);
 });
