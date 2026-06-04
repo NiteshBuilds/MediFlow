@@ -1068,8 +1068,11 @@ io.on('connection', (socket) => {
 // ── Start ──────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 
-// Keep Render free tier awake — self-ping every 14 minutes
-const APP_URL = process.env.RENDER_EXTERNAL_URL;
+// Keep awake on platforms like Railway that may sleep 
+const APP_URL = process.env.RAILWAY_STATIC_URL
+  ? `https://${process.env.RAILWAY_STATIC_URL}`
+  : null;
+
 if (APP_URL) {
   setInterval(() => {
     https.get(APP_URL, (res) => {
