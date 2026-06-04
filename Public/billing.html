@@ -385,6 +385,7 @@
 <div id="print-root" style="display:none"><div class="receipt" id="the-receipt"></div></div>
 
 <script>
+  fetch('/health').catch(() => {});
   const cart={};
   let allMedicines=[];
   let pharmacyProfile={};
