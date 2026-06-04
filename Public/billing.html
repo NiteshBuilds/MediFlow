@@ -1,10 +1,5 @@
 <!DOCTYPE html>
 <html lang="en">
-<!-- 
-  Autocomplete popup for medicine names in Billing section, 
-  per the Restock screenshot suggestion.
--->
-<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
@@ -138,9 +133,13 @@
     .deduct-from{display:none;align-items:center;gap:.4rem;margin-top:.45rem;padding:.35rem .6rem;border-radius:6px;font-size:.73rem;font-weight:600;background:var(--green-lt);color:var(--green);border:1px solid #a7d9be}
     .deduct-from.show{display:flex}
 
-    /* Batch badge expiry state overrides */
-    .batch-badge.expiring{background:#fdecea;color:#7a1a1a;border-color:#f5c6c2}
-    .batch-badge.expiring-soon{background:#fffbeb;color:#7a4a00;border-color:#f6d860}
+    /* ── BATCH SELECTOR in cart row ── */
+    .batch-selector-wrap{margin-top:.45rem;display:flex;align-items:center;gap:.35rem;flex-wrap:wrap}
+    .batch-sel-label{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);white-space:nowrap}
+    .batch-sel{appearance:none;-webkit-appearance:none;padding:.25rem .65rem .25rem .55rem;border:1.5px solid var(--border);border-radius:20px;font-size:.72rem;font-weight:700;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;cursor:pointer;transition:border-color .18s,background .18s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a9ea0'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .45rem center;padding-right:1.4rem}
+    .batch-sel:focus{border-color:var(--teal-md);background-color:var(--surface)}
+    .batch-sel.auto{border-color:#a7d9be;background-color:#f0fbf5;color:var(--green)}
+    .batch-sel.manual{border-color:#b0c4f5;background-color:#eef2fe;color:#1a3a7a}
 
     /* ── CART ── */
     .cart-panel{animation-delay:.07s}
@@ -654,70 +653,78 @@
     }
   }
 
+
   function hideAc() { autoList.classList.remove('show'); autoList.innerHTML = ''; }
-
-  nameInput.addEventListener('keydown', e => {
-    const items = autoList.querySelectorAll('.autocomplete-item');
-    let cur = [...items].findIndex(el => el.classList.contains('active'));
-    if (e.key === 'ArrowDown') {
-      e.preventDefault();
-      if (!items.length) return;
-      cur = cur < 0 ? 0 : Math.min(cur + 1, items.length - 1);
-      items.forEach((el, i) => el.classList.toggle('active', i === cur));
-    } else if (e.key === 'ArrowUp') {
-      e.preventDefault();
-      if (!items.length) return;
-      cur = cur < 0 ? items.length - 1 : Math.max(cur - 1, 0);
-      items.forEach((el, i) => el.classList.toggle('active', i === cur));
-    } else if (e.key === 'Enter') {
-      if (autoList.classList.contains('show') && items.length) {
-        e.preventDefault();
-        if (cur < 0) cur = 0;
-        pickAc(cur);
-      }
-    } else if (e.key === 'Escape') {
-      hideAc();
-    }
-  });
-
-  document.addEventListener('click', e => {
-    if (!document.getElementById('ac-wrap').contains(e.target)) hideAc();
-  });
-
-  nameInput.addEventListener('keydown', async e => {
-    if(e.key!=='Enter') return;
-    const items=autoList.querySelectorAll('.autocomplete-item');
-    const hasSuggestions=autoList.classList.contains('show') && items.length>0;
-    if(hasSuggestions) return; // autocomplete Enter is handled above
-    e.preventDefault();
-    await fetchByBarcode(); // fallback to name search if barcode is empty
-  });
 
   /* ── Render cart ── */
   function renderCart(hlBc=null){
     const keys=Object.keys(cart);
-    if(!keys.length){emptyState.style.display='block';cartTableWrap.style.display='none';cartFooter.style.display='none';actionRow.style.display='none';document.getElementById('patient-info-row').style.display='none';itemCountBadge.textContent='0 items';grandTotalEl.textContent='₹0.00';return;}
-    emptyState.style.display='none';cartTableWrap.style.display='block';cartFooter.style.display='block';actionRow.style.display='flex';document.getElementById('patient-info-row').style.display='block';
+    if(!keys.length){
+      emptyState.style.display='block';cartTableWrap.style.display='none';
+      cartFooter.style.display='none';actionRow.style.display='none';
+      document.getElementById('patient-info-row').style.display='none';
+      itemCountBadge.textContent='0 items';grandTotalEl.textContent='₹0.00';
+      return;
+    }
+    emptyState.style.display='none';cartTableWrap.style.display='block';
+    cartFooter.style.display='block';actionRow.style.display='flex';
+    document.getElementById('patient-info-row').style.display='block';
+
     let grand=0,units=0;
     cartBody.innerHTML=keys.map(bc=>{
-      const it=cart[bc],ln=it.price*it.qty;grand+=ln;units+=it.qty;
-      const batchOptions = '<option value="auto">Auto (FEFO / Nearest Expiry)</option>' + (it.batches||[]).map(b => `<option value="${esc(b.batchLabel)}" ${it.selectedBatch===b.batchLabel?'selected':''}>${esc(b.batchLabel)} (Stock: ${b.stock})</option>`).join('');
+      const it=cart[bc],ln=it.price*it.qty;
+      grand+=ln;units+=it.qty;
+
+      // Build batch dropdown options
+      const batches = (it.batches||[]).slice().sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
+      const opts = batches.map(b=>{
+        const exp=new Date(b.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'yy'});
+        const sel = it.selectedBatch===b.batchLabel ? 'selected' : '';
+        return `<option value="${esc(b.batchLabel)}" ${sel}>${esc(b.batchLabel)} · ${b.stock} units · exp ${exp}</option>`;
+      }).join('');
+
+      const isAuto = !it.selectedBatch || it.selectedBatch==='auto';
+      const selClass = isAuto ? 'auto' : 'manual';
+      const selLabel = isAuto
+        ? '📦 Auto (Nearest Expiry)'
+        : `📦 ${it.selectedBatch}`;
+
+      // Show which batch will actually be deducted
+      let deductNote='';
+      if(batches.length>0){
+        const active = isAuto ? batches[0] : batches.find(b=>b.batchLabel===it.selectedBatch);
+        if(active){
+          const exp=new Date(active.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+          deductNote=`<div style="font-size:.68rem;color:var(--green);margin-top:.22rem;font-weight:600">✅ Billing from ${active.batchLabel} · exp ${exp} · ${active.stock} available</div>`;
+        }
+      }
+
       return `<tr class="${bc===hlBc?'new-item':''}" id="row-${esc(bc)}">
         <td>
           <div class="td-name">${esc(it.name)}</div>
           <div class="td-barcode">${esc(it.barcode)}</div>
-          <div style="margin-top: .4rem;">
-            <select class="inp" style="padding: .2rem .4rem; font-size: .75rem; max-width: 180px; width: 100%; border: 1px solid var(--border);" onchange="changeBatch('${esc(bc)}', this.value)">
-              ${batchOptions}
+          <div class="batch-selector-wrap">
+            <span class="batch-sel-label">Batch:</span>
+            <select class="batch-sel ${selClass}" onchange="changeBatch('${esc(bc)}',this)">
+              <option value="auto" ${isAuto?'selected':''}>📦 Auto (Nearest Expiry)</option>
+              ${opts}
             </select>
           </div>
+          ${deductNote}
         </td>
-        <td style="text-align:center"><div class="qty-ctrl"><button class="qty-btn" onclick="adjQty('${esc(bc)}',-1)">−</button><div class="qty-num">${it.qty}</div><button class="qty-btn" onclick="adjQty('${esc(bc)}',1)">+</button></div></td>
+        <td style="text-align:center">
+          <div class="qty-ctrl">
+            <button class="qty-btn" onclick="adjQty('${esc(bc)}',-1)">−</button>
+            <div class="qty-num">${it.qty}</div>
+            <button class="qty-btn" onclick="adjQty('${esc(bc)}',1)">+</button>
+          </div>
+        </td>
         <td style="text-align:right">₹${it.price.toFixed(2)}</td>
         <td style="text-align:right;font-weight:700">₹${ln.toFixed(2)}</td>
         <td style="text-align:right"><button class="del-btn" onclick="removeItem('${esc(bc)}')">✕</button></td>
       </tr>`;
     }).join('');
+
     if(hlBc)setTimeout(()=>{const r=document.getElementById(`row-${esc(hlBc)}`);if(r)r.scrollIntoView({behavior:'smooth',block:'center'});},100);
     itemCountBadge.textContent=`${keys.length} item${keys.length!==1?'s':''}`;
     grandTotalEl.textContent=`₹${grand.toFixed(2)}`;
@@ -739,13 +746,18 @@
     cart[bc].qty=nq;renderCart();
   }
   
-  window.changeBatch = function(bc, val) {
+  window.changeBatch = function(bc, selectEl) {
+    const val = selectEl.value;
     if(!cart[bc]) return;
     cart[bc].selectedBatch = val;
+    // Update styling — green pill for auto, blue pill for manual
+    selectEl.className = `batch-sel ${val==='auto'?'auto':'manual'}`;
+    // Clamp qty if selected batch has less stock
     if(val !== 'auto') {
       const b = (cart[bc].batches||[]).find(x => x.batchLabel === val);
       if(b && cart[bc].qty > b.stock) {
-        cart[bc].qty = Math.max(1, Math.min(cart[bc].qty, b.stock));
+        cart[bc].qty = Math.max(1, b.stock);
+        showToast(`⚠️ Qty capped to ${b.stock} (max in ${val})`,'warn');
       }
     }
     renderCart();
