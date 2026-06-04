@@ -527,7 +527,7 @@
         return `<span class="batch-badge ${cls}">📦 ${b.batchLabel}: ${b.stock} units · exp ${exp}${tag}</span>`;
       }).join('');
     }
-    document.getElementById('lookup-meta').textContent=`₹${Number(data.price).toFixed(2)} · Total stock: ${totalStock} · ${bc}`;
+    document.getElementById('lookup-meta').textContent=`₹${Number(data.price).toFixed(2)} · Total stock: ${data.stock||0} · ${bc}`;
     document.getElementById('lookup-batches').innerHTML=batchHTML;
 
     // ── Deduct-from tag: show which batch server will bill from (FEFO = first in sortedBatches)
