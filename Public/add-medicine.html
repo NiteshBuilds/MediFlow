@@ -228,8 +228,16 @@
           📦 <strong>Batch A</strong> will be created with <span id="preview-stock">—</span> units, expiring <span id="preview-expiry">—</span>
         </div>
 
-        <!-- Alerts toggle -->
+        <!-- Stock alerts toggle -->
         <div style="margin-top:1.2rem;display:flex;align-items:center;gap:.7rem;padding:.75rem 1rem;background:var(--teal-lt);border:1px solid var(--teal-md);border-radius:var(--radius-sm)">
+          <input type="checkbox" id="stock-alerts-enabled" checked style="width:1.1rem;height:1.1rem;accent-color:var(--teal);cursor:pointer;flex-shrink:0"/>
+          <label for="stock-alerts-enabled" style="font-size:.88rem;font-weight:600;color:var(--teal-dk);cursor:pointer;user-select:none">
+            📦 Enable Low Stock Alerts — get warnings when this medicine's stock is running low during billing
+          </label>
+        </div>
+
+        <!-- Alerts toggle -->
+        <div style="margin-top:.6rem;display:flex;align-items:center;gap:.7rem;padding:.75rem 1rem;background:var(--teal-lt);border:1px solid var(--teal-md);border-radius:var(--radius-sm)">
           <input type="checkbox" id="alerts-enabled" checked style="width:1.1rem;height:1.1rem;accent-color:var(--teal);cursor:pointer;flex-shrink:0"/>
           <label for="alerts-enabled" style="font-size:.88rem;font-weight:600;color:var(--teal-dk);cursor:pointer;user-select:none">
             🔔 Enable Expiry Alerts — get warnings when this medicine is nearing expiry during billing
@@ -275,15 +283,17 @@
     const stock=Number(document.getElementById('med-stock').value);
     const expiryDate=document.getElementById('med-expiry').value;
     const alertsEnabled=document.getElementById('alerts-enabled').checked;
+    const stockAlertsEnabled=document.getElementById('stock-alerts-enabled').checked;
     const msg=document.getElementById('msg');
     if(!name||!barcode||!expiryDate){show('err','⚠️ Please fill in all fields.');return;}
     try{
-      const res=await fetch('/add-medicine',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,barcode,price,stock,expiryDate,alertsEnabled})});
+      const res=await fetch('/add-medicine',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,barcode,price,stock,expiryDate,alertsEnabled,stockAlertsEnabled})});
       const data=await res.json();
       if(!res.ok){show('err',`❌ ${data.error}`);return;}
       show('ok',`✅ "${data.name}" added with Batch A (${stock} units)`);
       ['med-name','med-barcode','med-price','med-stock','med-expiry'].forEach(id=>document.getElementById(id).value='');
-      document.getElementById('alerts-enabled').checked=true; // reset to default ON
+      document.getElementById('alerts-enabled').checked=true;
+      document.getElementById('stock-alerts-enabled').checked=true;
       document.getElementById('batch-preview').style.display='none';
       document.getElementById('med-name').focus();
     }catch(e){show('err','❌ Server unreachable.');}

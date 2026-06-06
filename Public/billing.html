@@ -485,7 +485,14 @@
     const bc=data.barcode,isNew=!cart[bc];
     const totalStock=data.stock||0;
     const cur=isNew?0:cart[bc].qty,nq=cur+1;
-    if(nq>totalStock){playStockWarnSound();showStockWarn(data.name,totalStock,cur);showToast(`⚠️ Only ${totalStock} in stock!`,'warn');return;}
+    if(nq>totalStock){
+      // Out of stock — ALWAYS show regardless of stockAlertsEnabled
+      playStockWarnSound();showStockWarn(data.name,totalStock,cur);showToast(`⚠️ Only ${totalStock} in stock!`,'warn');return;
+    }
+    // Low stock warning — only show if stockAlertsEnabled is true
+    if(totalStock<=20 && data.stockAlertsEnabled!==false){
+      showToast(`⚠️ Low stock: only ${totalStock} units left!`,'warn');
+    }
     if(!isNew){cart[bc].qty++;setStatus('ok',`✅ ${data.name} ×${cart[bc].qty}`);}
     else{cart[bc]={name:data.name,barcode:bc,price:Number(data.price),qty:1,stock:totalStock};setStatus('ok',`✅ Added — ${data.name}`);}
     hideStockWarn();
