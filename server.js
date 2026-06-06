@@ -218,6 +218,9 @@ const Log = mongoose.model('Log', logSchema);
 const stockHistorySchema = new mongoose.Schema({
   ownerId:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
   type:         { type: String, enum: ['sold', 'restocked'], required: true, index: true },
+  // billId groups all line items from one billing session together
+  // so history can reconstruct the full receipt for a multi-item bill
+  billId:       { type: String, index: true },
   patientName:  String,
   patientAge:   Number,
   patientPhone: String,
@@ -230,6 +233,7 @@ const stockHistorySchema = new mongoose.Schema({
   createdAt:    { type: Date, default: Date.now },
 });
 stockHistorySchema.index({ ownerId: 1, type: 1, createdAt: -1 });
+stockHistorySchema.index({ ownerId: 1, billId: 1 });
 const StockHistory = mongoose.model('StockHistory', stockHistorySchema);
 
 
@@ -911,7 +915,10 @@ app.post('/restock', requireOwner, async (req, res) => {
 // Body: { items: [ { barcode, qty }, ... ] }
 app.post('/bill', requireOwner, async (req, res) => {
   try {
-    const { items, patientName, patientAge, patientPhone } = req.body;
+    const { items, patientName, patientAge, patientPhone, billId } = req.body;
+    // billId comes from the client — generated once per print session
+    // so all line items share the same ID and can be grouped in history
+    const resolvedBillId = billId || new mongoose.Types.ObjectId().toString();
     if (!Array.isArray(items) || items.length === 0)
       return res.status(400).json({ error: 'No items provided.' });
 
@@ -964,6 +971,7 @@ app.post('/bill', requireOwner, async (req, res) => {
       soldEntries.push({
         ownerId:      req.ownerId,
         type:         'sold',
+        billId:       resolvedBillId,
         patientName:  patientName || '',
         patientAge:   patientAge || null,
         patientPhone: patientPhone || '',
@@ -985,16 +993,50 @@ app.post('/bill', requireOwner, async (req, res) => {
 });
 
 // GET /stock-history — sold & restocked events for this pharmacy
+// Sold items are returned as grouped bills (by billId) so the
+// history page can reconstruct a full multi-item receipt.
 app.get('/stock-history', requireOwner, async (req, res) => {
   try {
-    const limit = 200;
-    const [sold, restocked] = await Promise.all([
+    const limit = 500;
+    const [soldRaw, restocked] = await Promise.all([
       StockHistory.find({ ownerId: req.ownerId, type: 'sold' })
         .sort({ createdAt: -1 }).limit(limit).lean(),
       StockHistory.find({ ownerId: req.ownerId, type: 'restocked' })
         .sort({ createdAt: -1 }).limit(limit).lean(),
     ]);
-    res.json({ sold, restocked });
+
+    // Group sold items by billId into bills array
+    // Each bill = { billId, patientName, patientAge, patientPhone, createdAt, items[], grandTotal }
+    const billMap = new Map();
+    for (const row of soldRaw) {
+      const key = row.billId || row._id.toString(); // fallback for old rows without billId
+      if (!billMap.has(key)) {
+        billMap.set(key, {
+          billId:       key,
+          patientName:  row.patientName  || '',
+          patientAge:   row.patientAge   || null,
+          patientPhone: row.patientPhone || '',
+          createdAt:    row.createdAt,
+          items:        [],
+          grandTotal:   0,
+        });
+      }
+      const bill = billMap.get(key);
+      bill.items.push({
+        _id:          row._id,
+        medicineName: row.medicineName,
+        barcode:      row.barcode,
+        quantity:     row.quantity,
+        unitPrice:    row.unitPrice,
+        lineTotal:    row.lineTotal,
+      });
+      bill.grandTotal += (row.lineTotal || 0);
+    }
+
+    // Convert map to array, sorted newest first
+    const bills = [...billMap.values()].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+
+    res.json({ bills, sold: soldRaw, restocked });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

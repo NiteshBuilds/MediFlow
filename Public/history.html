@@ -85,6 +85,75 @@
     .btn-refresh{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .9rem;background:var(--teal-lt);color:var(--teal-dk);border:1px solid var(--border-dk);border-radius:var(--radius-sm);font-size:.8rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all .18s}
     .btn-refresh:hover{border-color:var(--teal-md)}
     .count-badge{font-size:.72rem;background:var(--teal-lt);color:var(--teal-dk);padding:.18rem .6rem;border-radius:999px;font-weight:700}
+
+    /* ── Search bar ── */
+    .search-bar-wrap{padding:.9rem 1.4rem;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;gap:.75rem}
+    .search-bar{flex:1;padding:.55rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.86rem;font-family:inherit;background:#fff;color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s}
+    .search-bar:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1)}
+    .search-clear{padding:.45rem .7rem;border:1.5px solid var(--border-dk);border-radius:var(--radius-sm);background:transparent;color:var(--muted);font-size:.78rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all .16s;white-space:nowrap}
+    .search-clear:hover{background:var(--red-lt);border-color:var(--red);color:var(--red)}
+    .search-results-count{font-size:.75rem;color:var(--muted);white-space:nowrap}
+
+    /* ── Bill card (grouped) ── */
+    .bill-card{border:1px solid var(--border);border-radius:var(--radius);margin:.9rem 1.4rem;overflow:hidden;transition:box-shadow .18s}
+    .bill-card:hover{box-shadow:0 4px 16px rgba(13,107,110,.1)}
+    .bill-card-head{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;background:var(--surface2);border-bottom:1px solid var(--border);flex-wrap:wrap;gap:.5rem}
+    .bill-patient{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
+    .bill-patient-name{font-weight:700;font-size:.88rem;color:var(--text)}
+    .bill-patient-meta{font-size:.75rem;color:var(--muted)}
+    .bill-anon{font-size:.82rem;color:var(--muted);font-style:italic}
+    .bill-meta-right{display:flex;align-items:center;gap:.75rem}
+    .bill-time{font-size:.74rem;color:var(--muted);white-space:nowrap}
+    .bill-total{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:var(--teal-dk)}
+    .btn-view-receipt{display:inline-flex;align-items:center;gap:.3rem;padding:.32rem .75rem;background:var(--teal);color:#fff;border:none;border-radius:6px;font-size:.74rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .16s;white-space:nowrap}
+    .btn-view-receipt:hover{background:var(--teal-md);transform:translateY(-1px)}
+    .bill-items-table{width:100%;border-collapse:collapse;font-size:.82rem}
+    .bill-items-table th{text-align:left;padding:.5rem 1rem;font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border)}
+    .bill-items-table th.num{text-align:right}
+    .bill-items-table td{padding:.65rem 1rem;border-bottom:1px solid var(--border);vertical-align:middle}
+    .bill-items-table tr:last-child td{border-bottom:none}
+    .bill-items-table td.num{text-align:right;font-variant-numeric:tabular-nums}
+    .bill-items-table tr:hover td{background:var(--teal-lt)}
+
+    /* ── Receipt Modal ── */
+    .rcpt-backdrop{position:fixed;inset:0;background:rgba(5,20,22,.6);z-index:1000;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .22s}
+    .rcpt-backdrop.open{opacity:1;pointer-events:auto}
+    .rcpt-modal{background:#fff;border-radius:16px;width:100%;max-width:420px;box-shadow:0 24px 64px rgba(0,0,0,.25);transform:translateY(16px) scale(.98);transition:transform .25s,opacity .25s;opacity:0;display:flex;flex-direction:column;max-height:92vh;overflow:hidden}
+    .rcpt-backdrop.open .rcpt-modal{transform:translateY(0) scale(1);opacity:1}
+    .rcpt-modal-head{padding:1rem 1.3rem;border-bottom:1px solid #e0e8e8;display:flex;align-items:center;justify-content:space-between;flex-shrink:0;background:#f7fafa}
+    .rcpt-modal-title{font-family:'Sora',sans-serif;font-size:.92rem;font-weight:700;color:var(--text)}
+    .rcpt-modal-close{background:none;border:none;font-size:1.2rem;color:var(--muted);cursor:pointer;padding:.2rem .4rem;border-radius:6px;line-height:1}
+    .rcpt-modal-close:hover{background:var(--red-lt);color:var(--red)}
+    .rcpt-modal-body{padding:1.2rem;overflow-y:auto;flex:1;display:flex;flex-direction:column;gap:.75rem}
+    .rcpt-preview-wrap{border:1px solid #d0d8d8;border-radius:10px;overflow:hidden;background:#fff}
+    .rcpt-actions{display:flex;gap:.6rem}
+    .rcpt-print-btn{flex:1;padding:.65rem;background:var(--teal);color:#fff;border:none;border-radius:8px;font-size:.88rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:.4rem}
+    .rcpt-print-btn:hover{background:var(--teal-md);transform:translateY(-1px)}
+    .rcpt-cancel-btn{padding:.65rem 1rem;background:transparent;color:var(--text-2);border:1.5px solid var(--border-dk);border-radius:8px;font-size:.88rem;font-weight:600;font-family:inherit;cursor:pointer}
+    .rcpt-cancel-btn:hover{background:var(--surface2)}
+
+    /* ── Thermal Receipt inside modal ── */
+    .receipt{width:100%;font-family:'Courier New',Courier,monospace;font-size:11.5px;line-height:1.5;color:#000;background:#fff;padding:10px 12px}
+    .receipt-header{text-align:center;margin-bottom:5px}
+    .receipt-header h1{font-size:17px;font-weight:900;letter-spacing:2px;margin:0 0 2px}
+    .receipt-header .sub{font-size:9.5px;color:#444}
+    .receipt-dash{border:none;border-top:1px dashed #888;margin:6px 0}
+    .receipt-datetime{text-align:center;font-size:9.5px;color:#555;margin-bottom:4px}
+    .receipt-patient{font-size:9.5px;color:#333;margin-bottom:4px;text-align:center}
+    .receipt-col-head{display:flex;font-weight:bold;font-size:9.5px;border-bottom:1px solid #000;padding-bottom:2px;margin-bottom:3px}
+    .rch-name{flex:1}.rch-qty{width:26px;text-align:center}.rch-price{width:44px;text-align:right}.rch-total{width:50px;text-align:right}
+    .receipt-item{display:flex;align-items:flex-start;margin:2px 0;font-size:11px}
+    .ri-name{flex:1;word-break:break-word;line-height:1.3}.ri-qty{width:26px;text-align:center;flex-shrink:0}.ri-price{width:44px;text-align:right;flex-shrink:0}.ri-total{width:50px;text-align:right;flex-shrink:0;font-weight:600}
+    .receipt-summary{font-size:9.5px;color:#444}
+    .receipt-row{display:flex;justify-content:space-between;margin:1px 0}
+    .receipt-grand{display:flex;justify-content:space-between;font-weight:900;font-size:14px;margin-top:4px;padding-top:4px;border-top:2px solid #000}
+    .receipt-footer{text-align:center;font-size:9.5px;color:#555;margin-top:4px;line-height:1.6}
+    .receipt-rcptno{text-align:center;font-size:8.5px;color:#999;margin-top:4px}
+
+    @media print{
+      body>*{display:none!important}
+      #rcpt-print-only{display:block!important;font-family:'Courier New',Courier,monospace}
+    }
   </style>
 </head>
 <body>
@@ -133,6 +202,13 @@
         </div>
       </div>
 
+      <!-- Search bar — filters by patient name, phone, or medicine name -->
+      <div class="search-bar-wrap">
+        <input class="search-bar" type="text" id="hist-search" placeholder="🔍  Search by patient name, phone, or medicine…" oninput="filterBills()"/>
+        <button class="search-clear" onclick="clearSearch()">✕ Clear</button>
+        <span class="search-results-count" id="search-results-count"></span>
+      </div>
+
       <div class="hist-tabs">
         <button type="button" class="hist-tab active" data-tab="sold" onclick="switchTab('sold')">
           🛒 SOLD<span class="tab-count" id="sold-count">0</span>
@@ -159,11 +235,20 @@
 
 <script>
   let activeTab = 'sold';
+  let _allBills = [];       // all grouped bills from server
+  let _restocked = [];      // restock rows
+  let _pharmacyInfo = { name: 'MediFlow Pharmacy', phone: '', address: '', license: '' };
 
+  // ── Auth ────────────────────────────────────────────────
   fetch('/me').then(r=>r.json()).then(d=>{
     if(!d.loggedIn){window.location.href='/login.html';return;}
     document.getElementById('sb-name').textContent=d.name;
     document.getElementById('sb-avatar').textContent=d.name.charAt(0).toUpperCase();
+    // Load pharmacy profile for receipts
+    _pharmacyInfo.name    = d.pharmacyName    || (d.name + ' Pharmacy');
+    _pharmacyInfo.phone   = d.pharmacyPhone   || '';
+    _pharmacyInfo.address = d.pharmacyAddress || '';
+    _pharmacyInfo.license = d.pharmacyLicense || '';
   });
   function doLogout(){fetch('/logout',{method:'POST'}).then(()=>window.location.href='/login.html');}
 
@@ -175,7 +260,6 @@
       hour:'2-digit',minute:'2-digit',hour12:true
     });
   }
-
   function formatExpiry(dateStr){
     if(!dateStr) return '—';
     return new Date(dateStr).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
@@ -190,28 +274,76 @@
     document.getElementById('section-restocked').classList.toggle('active', tab === 'restocked');
   }
 
-  function renderSold(rows){
-    const el = document.getElementById('sold-body');
-    if(!rows.length){
-      el.innerHTML='<div class="hist-empty"><div class="empty-icon">🛒</div><p>No medicines sold yet.<br/>Sales are recorded when you print a receipt from Billing.</p></div>';
+  // ── Search / filter ──────────────────────────────────────
+  function filterBills() {
+    const q = document.getElementById('hist-search').value.trim().toLowerCase();
+    if (!q) {
+      renderBills(_allBills);
+      document.getElementById('search-results-count').textContent = '';
       return;
     }
-    el.innerHTML=`<table class="hist-table">
-      <thead><tr>
-        <th>Medicine</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Total</th><th>When</th>
-      </tr></thead>
-      <tbody>${rows.map(r=>`<tr>
-        <td>
-          <div class="med-name">${esc(r.medicineName)}</div>
-          <div class="med-barcode">${esc(r.barcode)}</div>
-          ${r.patientName ? `<div style="margin-top: .4rem; font-size: .72rem; color: var(--text-2); background: var(--surface2); padding: .3rem .5rem; border-radius: 4px; display: inline-block; border: 1px solid var(--border);">👤 <strong>${esc(r.patientName)}</strong>${r.patientAge ? `, Age ${r.patientAge}` : ''}${r.patientPhone ? ` &nbsp;📞 ${esc(r.patientPhone)}` : ''}</div>` : ''}
-        </td>
-        <td class="num">${r.quantity}</td>
-        <td class="num">₹${Number(r.unitPrice||0).toFixed(2)}</td>
-        <td class="num"><strong>₹${Number(r.lineTotal||0).toFixed(2)}</strong></td>
-        <td class="hist-time">${formatDate(r.createdAt)}</td>
-      </tr>`).join('')}</tbody>
-    </table>`;
+    const filtered = _allBills.filter(bill => {
+      const name  = (bill.patientName  || '').toLowerCase();
+      const phone = (bill.patientPhone || '').toLowerCase();
+      const meds  = bill.items.map(i => i.medicineName.toLowerCase()).join(' ');
+      return name.includes(q) || phone.includes(q) || meds.includes(q);
+    });
+    renderBills(filtered);
+    document.getElementById('search-results-count').textContent =
+      filtered.length === _allBills.length ? '' : `${filtered.length} of ${_allBills.length} bills`;
+  }
+
+  function clearSearch() {
+    document.getElementById('hist-search').value = '';
+    filterBills();
+  }
+
+  // ── Render grouped bills ────────────────────────────────
+  function renderBills(bills) {
+    const el = document.getElementById('sold-body');
+    if (!bills.length) {
+      el.innerHTML = '<div class="hist-empty"><div class="empty-icon">🛒</div><p>No bills found.<br/>Sales are recorded when you print a receipt from Billing.</p></div>';
+      return;
+    }
+
+    el.innerHTML = bills.map((bill, i) => {
+      const patientHtml = bill.patientName
+        ? `<div class="bill-patient">
+            <span class="bill-patient-name">👤 ${esc(bill.patientName)}</span>
+            ${bill.patientAge  ? `<span class="bill-patient-meta">Age ${bill.patientAge}</span>` : ''}
+            ${bill.patientPhone ? `<span class="bill-patient-meta">📞 ${esc(bill.patientPhone)}</span>` : ''}
+           </div>`
+        : `<span class="bill-anon">Anonymous patient</span>`;
+
+      const itemRows = bill.items.map(item => `
+        <tr>
+          <td><div class="med-name">${esc(item.medicineName)}</div><div class="med-barcode">${esc(item.barcode)}</div></td>
+          <td class="num">${item.quantity}</td>
+          <td class="num">₹${Number(item.unitPrice||0).toFixed(2)}</td>
+          <td class="num"><strong>₹${Number(item.lineTotal||0).toFixed(2)}</strong></td>
+        </tr>`).join('');
+
+      return `
+        <div class="bill-card">
+          <div class="bill-card-head">
+            ${patientHtml}
+            <div class="bill-meta-right">
+              <span class="bill-time">${formatDate(bill.createdAt)}</span>
+              <span class="bill-total">₹${Number(bill.grandTotal||0).toFixed(2)}</span>
+              <button class="btn-view-receipt" onclick="viewReceipt(${i})">🖨️ Print Receipt</button>
+            </div>
+          </div>
+          <table class="bill-items-table">
+            <thead><tr>
+              <th>Medicine</th><th class="num">Qty</th><th class="num">Rate</th><th class="num">Total</th>
+            </tr></thead>
+            <tbody>${itemRows}</tbody>
+          </table>
+        </div>`;
+    }).join('');
+
+    // Store for viewReceipt
+    window._displayedBills = bills;
   }
 
   function renderRestocked(rows){
@@ -237,19 +369,20 @@
     const summary = document.getElementById('hist-summary');
     summary.textContent = 'Loading…';
     try{
-      const res = await fetch('/stock-history');
+      const res  = await fetch('/stock-history');
       const data = await res.json();
       if(!res.ok) throw new Error(data.error || 'Failed to load');
 
-      const sold = Array.isArray(data.sold) ? data.sold : [];
-      const restocked = Array.isArray(data.restocked) ? data.restocked : [];
+      _allBills  = Array.isArray(data.bills)     ? data.bills     : [];
+      _restocked = Array.isArray(data.restocked)  ? data.restocked : [];
 
-      document.getElementById('sold-count').textContent = sold.length;
-      document.getElementById('restocked-count').textContent = restocked.length;
-      summary.textContent = `${sold.length} sold · ${restocked.length} restocked`;
+      const totalSoldItems = _allBills.reduce((s, b) => s + b.items.length, 0);
+      document.getElementById('sold-count').textContent      = _allBills.length;
+      document.getElementById('restocked-count').textContent = _restocked.length;
+      summary.textContent = `${_allBills.length} bills · ${_restocked.length} restocked`;
 
-      renderSold(sold);
-      renderRestocked(restocked);
+      filterBills();   // respects active search
+      renderRestocked(_restocked);
     }catch(e){
       const err = '<div class="hist-empty"><div class="empty-icon">❌</div><p>Could not load history.<br/>Make sure the server is running.</p></div>';
       document.getElementById('sold-body').innerHTML = err;
@@ -258,15 +391,116 @@
     }
   }
 
+  // ── Receipt Modal ───────────────────────────────────────
+  function viewReceipt(billIdx) {
+    const bill = (window._displayedBills || _allBills)[billIdx];
+    if (!bill) return;
+
+    const dateStr = new Date(bill.createdAt).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    const timeStr = new Date(bill.createdAt).toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+    const rcptNo  = 'MF-' + String(bill.billId || Date.now()).slice(-7).toUpperCase();
+
+    const patientLine = bill.patientName
+      ? `<div class="receipt-patient">&#128100; ${esc(bill.patientName)}${bill.patientAge ? ', Age ' + bill.patientAge : ''}${bill.patientPhone ? '  &#128222; ' + esc(bill.patientPhone) : ''}</div>`
+      : '';
+
+    const pharmacyLines = [
+      _pharmacyInfo.phone   ? 'Tel: ' + _pharmacyInfo.phone   : '',
+      _pharmacyInfo.address ? _pharmacyInfo.address            : '',
+      _pharmacyInfo.license ? 'Lic: ' + _pharmacyInfo.license : '',
+    ].filter(Boolean).map(l => `<div class="sub">${esc(l)}</div>`).join('');
+
+    const itemsHtml = bill.items.map(item => {
+      const name = item.medicineName.length > 20 ? item.medicineName.slice(0,19) + '…' : item.medicineName;
+      return `<div class="receipt-item">
+        <span class="ri-name">${esc(name)}</span>
+        <span class="ri-qty">${item.quantity}</span>
+        <span class="ri-price">&#8377;${Number(item.unitPrice||0).toFixed(2)}</span>
+        <span class="ri-total">&#8377;${Number(item.lineTotal||0).toFixed(2)}</span>
+      </div>`;
+    }).join('');
+
+    const totalUnits  = bill.items.reduce((s, i) => s + i.quantity, 0);
+    const grandTotal  = Number(bill.grandTotal || 0).toFixed(2);
+
+    const receiptHtml = `
+      <div class="receipt-header">
+        <h1>${esc(_pharmacyInfo.name.toUpperCase())}</h1>
+        ${pharmacyLines}
+      </div>
+      <hr class="receipt-dash"/>
+      <div class="receipt-datetime">Date: ${dateStr} &nbsp; Time: ${timeStr}</div>
+      ${patientLine}
+      <hr class="receipt-dash"/>
+      <div class="receipt-col-head">
+        <span class="rch-name">Item</span>
+        <span class="rch-qty">Qty</span>
+        <span class="rch-price">Rate</span>
+        <span class="rch-total">Amount</span>
+      </div>
+      ${itemsHtml}
+      <hr class="receipt-dash"/>
+      <div class="receipt-summary">
+        <div class="receipt-row"><span>Items:</span><span>${bill.items.length}</span></div>
+        <div class="receipt-row"><span>Total Units:</span><span>${totalUnits}</span></div>
+      </div>
+      <div class="receipt-grand">
+        <span>GRAND TOTAL</span>
+        <span>&#8377;${grandTotal}</span>
+      </div>
+      <hr class="receipt-dash"/>
+      <div class="receipt-footer">
+        Thank you for choosing ${esc(_pharmacyInfo.name)}!<br/>
+        Get Well Soon &#128591;<br/>
+        Consult a doctor before taking medicines.
+      </div>
+      <div class="receipt-rcptno">${rcptNo}</div>
+    `;
+
+    document.getElementById('rcpt-preview-content').innerHTML = receiptHtml;
+    document.getElementById('rcpt-print-only').innerHTML =
+      `<div class="receipt" style="width:76mm;padding:4mm 5mm">${receiptHtml}</div>`;
+    document.getElementById('rcpt-backdrop').classList.add('open');
+  }
+
+  function closeReceipt() { document.getElementById('rcpt-backdrop').classList.remove('open'); }
+  function closeReceiptIfBackdrop(e) { if(e.target===document.getElementById('rcpt-backdrop')) closeReceipt(); }
+  function doPrint() {
+    document.getElementById('rcpt-print-only').style.display = 'block';
+    window.print();
+  }
+  window.addEventListener('afterprint', () => {
+    document.getElementById('rcpt-print-only').style.display = 'none';
+  });
+  document.addEventListener('keydown', e => { if(e.key==='Escape') closeReceipt(); });
+
   loadHistory();
-  // Auto-switch to RESTOCKED tab if navigated here with #restocked
   if (window.location.hash === '#restocked') switchTab('restocked');
   setInterval(loadHistory, 30000);
-  // Reload whenever the tab becomes visible again (e.g. navigating back from restock)
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') loadHistory();
   });
 </script>
 <script src="/js/mediflow-brand.js"></script>
+<!-- ═══════════ RECEIPT MODAL ═══════════ -->
+<div class="rcpt-backdrop" id="rcpt-backdrop" onclick="closeReceiptIfBackdrop(event)">
+  <div class="rcpt-modal">
+    <div class="rcpt-modal-head">
+      <div class="rcpt-modal-title">🖨️ Receipt Preview</div>
+      <button class="rcpt-modal-close" onclick="closeReceipt()">✕</button>
+    </div>
+    <div class="rcpt-modal-body">
+      <div class="rcpt-preview-wrap">
+        <div class="receipt" id="rcpt-preview-content"></div>
+      </div>
+      <div class="rcpt-actions">
+        <button class="rcpt-print-btn" onclick="doPrint()">🖨️ Print Bill</button>
+        <button class="rcpt-cancel-btn" onclick="closeReceipt()">Cancel</button>
+      </div>
+    </div>
+  </div>
+</div>
+<div id="rcpt-print-only" style="display:none"></div>
+
 </body>
 </html>

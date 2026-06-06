@@ -891,13 +891,18 @@
     const pAge = document.getElementById('patient-age').value.trim();
     const pPhone = document.getElementById('patient-phone').value.trim();
 
+    // Generate a unique billId for this session — all line items share this ID
+    // so history.html can group them back into a single receipt
+    const billId = 'BILL-' + Date.now() + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
+
     try{
       const r=await fetch('/bill',{method:'POST',headers:{'Content-Type':'application/json'},
 body:JSON.stringify({
   items:keys.map(bc=>({barcode:bc,qty:cart[bc].qty,batchLabel:cart[bc].selectedBatch})),
   patientName: pName,
   patientAge: pAge ? Number(pAge) : null,
-  patientPhone: pPhone
+  patientPhone: pPhone,
+  billId: billId
 })});
       const d=await r.json();
       if(!r.ok){showToast(`❌ ${d.error}`,'err');playErrorBeep();return;}
