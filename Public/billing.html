@@ -1,12 +1,17 @@
 <!DOCTYPE html>
 <html lang="en">
+<!-- 
+  Autocomplete popup for medicine names in Billing section, 
+  per the Restock screenshot suggestion.
+-->
+<html lang="en">
 <head>
   <meta charset="UTF-8"/>
   <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
   <title>Billing — MediFlow</title>
   <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
   <link rel="stylesheet" href="/css/mediflow-brand.css"/>
-  <link rel="icon" href="/assets/mediflow-logo-icon.png" type="image/png"/>
+  <link rel="icon" href="/assets/mediflow-logo-icon.svg" type="image/svg+xml"/>
   <script src="/socket.io/socket.io.js"></script>
   <style>
     :root{
@@ -133,13 +138,9 @@
     .deduct-from{display:none;align-items:center;gap:.4rem;margin-top:.45rem;padding:.35rem .6rem;border-radius:6px;font-size:.73rem;font-weight:600;background:var(--green-lt);color:var(--green);border:1px solid #a7d9be}
     .deduct-from.show{display:flex}
 
-    /* ── BATCH SELECTOR in cart row ── */
-    .batch-selector-wrap{margin-top:.45rem;display:flex;align-items:center;gap:.35rem;flex-wrap:wrap}
-    .batch-sel-label{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);white-space:nowrap}
-    .batch-sel{appearance:none;-webkit-appearance:none;padding:.25rem .65rem .25rem .55rem;border:1.5px solid var(--border);border-radius:20px;font-size:.72rem;font-weight:700;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;cursor:pointer;transition:border-color .18s,background .18s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a9ea0'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .45rem center;padding-right:1.4rem}
-    .batch-sel:focus{border-color:var(--teal-md);background-color:var(--surface)}
-    .batch-sel.auto{border-color:#a7d9be;background-color:#f0fbf5;color:var(--green)}
-    .batch-sel.manual{border-color:#b0c4f5;background-color:#eef2fe;color:#1a3a7a}
+    /* Batch badge expiry state overrides */
+    .batch-badge.expiring{background:#fdecea;color:#7a1a1a;border-color:#f5c6c2}
+    .batch-badge.expiring-soon{background:#fffbeb;color:#7a4a00;border-color:#f6d860}
 
     /* ── CART ── */
     .cart-panel{animation-delay:.07s}
@@ -272,7 +273,7 @@
     <a class="nav-item active" href="billing.html"><div class="nav-icon">🧾</div>Billing</a>
     <div class="nav-label">Inventory</div>
     <a class="nav-item" href="add-medicine.html"><div class="nav-icon">➕</div>Add Medicine</a>
-    <a class="nav-item" href="restock.html"><div class="nav-icon">♻️</div>Restock</a>
+    <a class="nav-item" href="restock.html"><div class="nav-icon">♻️</div>Restock Stock</a>
     <a class="nav-item" href="history.html"><div class="nav-icon">📜</div>History</a>
     <a class="nav-item" href="order.html"><div class="nav-icon">📋</div>Order</a>
     <div class="nav-label">Tools</div>
@@ -363,15 +364,6 @@
         </div>
       </div>
 
-      <div class="patient-info-row" id="patient-info-row" style="display:none; padding: 1rem 1.2rem; border-top: 1px solid var(--border); background: var(--surface2);">
-        <div style="font-size: .75rem; font-weight: 700; color: var(--muted); margin-bottom: .5rem; text-transform: uppercase;">Patient Details (Optional)</div>
-        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: .5rem;">
-          <input type="text" id="patient-name" class="inp" placeholder="Patient Name" style="padding: .4rem .6rem; font-size: .8rem; margin-bottom: .5rem;" />
-          <input type="number" id="patient-age" class="inp" placeholder="Age" style="padding: .4rem .6rem; font-size: .8rem; margin-bottom: .5rem;" />
-          <input type="text" id="patient-phone" class="inp" placeholder="Phone" style="padding: .4rem .6rem; font-size: .8rem; grid-column: span 2;" />
-        </div>
-      </div>
-
       <div class="action-row" id="action-row" style="display:none">
         <button class="btn btn-green" style="flex:1;justify-content:center" onclick="printReceipt()">🖨️ Print Bill</button>
         <button class="btn btn-danger-s" onclick="clearCart()">🗑 Clear</button>
@@ -385,10 +377,8 @@
 <div id="print-root" style="display:none"><div class="receipt" id="the-receipt"></div></div>
 
 <script>
-  fetch('/health').catch(() => {});
   const cart={};
   let allMedicines=[];
-  let pharmacyProfile={};
 
   const nameInput=document.getElementById('name-input');
   const autoList=document.getElementById('autocomplete-list');
@@ -493,16 +483,11 @@
   /* ── Add to cart ── */
   function addToCart(data){
     const bc=data.barcode,isNew=!cart[bc];
-    let limit=data.stock||0;
-    let bName=data.name;
-    if(!isNew && cart[bc].selectedBatch !== 'auto'){
-      const b=(cart[bc].batches||[]).find(x=>x.batchLabel===cart[bc].selectedBatch);
-      if(b){ limit=b.stock; bName=`${data.name} (${b.batchLabel})`; }
-    }
+    const totalStock=data.stock||0;
     const cur=isNew?0:cart[bc].qty,nq=cur+1;
-    if(nq>limit){playStockWarnSound();showStockWarn(bName,limit,cur);showToast(`⚠️ Only ${limit} in stock!`,'warn');return;}
+    if(nq>totalStock){playStockWarnSound();showStockWarn(data.name,totalStock,cur);showToast(`⚠️ Only ${totalStock} in stock!`,'warn');return;}
     if(!isNew){cart[bc].qty++;setStatus('ok',`✅ ${data.name} ×${cart[bc].qty}`);}
-    else{cart[bc]={name:data.name,barcode:bc,price:Number(data.price),qty:1,stock:data.stock||0,batches:data.batches||[],selectedBatch:'auto'};setStatus('ok',`✅ Added — ${data.name}`);}
+    else{cart[bc]={name:data.name,barcode:bc,price:Number(data.price),qty:1,stock:totalStock};setStatus('ok',`✅ Added — ${data.name}`);}
     hideStockWarn();
     document.getElementById('lookup-name').textContent=data.name;
 
@@ -512,7 +497,7 @@
     // Sort batches by expiry (FEFO) — same order server will deduct from
     const sortedBatches=(data.batches||[]).slice().sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
 
-    // Build batch badges with expiry colour coding
+    // Build batch badges with expiry colour coding (only if alerts enabled)
     let batchHTML='';
     if(sortedBatches.length){
       batchHTML=sortedBatches.map((b,i)=>{
@@ -521,13 +506,15 @@
         const exp=expDate.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
         let cls=batchColors[Math.min(i,3)];
         let tag='';
-        if(daysLeft<=0){cls='expiring';tag=' ⛔ EXPIRED';}
-        else if(daysLeft<=30){cls='expiring';tag=` ⚠️ ${daysLeft}d left`;}
-        else if(daysLeft<=90){cls='expiring-soon';tag=` 🔔 ${daysLeft}d left`;}
+        if(data.alertsEnabled !== false){
+          if(daysLeft<=0){cls='expiring';tag=' ⛔ EXPIRED';}
+          else if(daysLeft<=30){cls='expiring';tag=` ⚠️ ${daysLeft}d left`;}
+          else if(daysLeft<=90){cls='expiring-soon';tag=` 🔔 ${daysLeft}d left`;}
+        }
         return `<span class="batch-badge ${cls}">📦 ${b.batchLabel}: ${b.stock} units · exp ${exp}${tag}</span>`;
       }).join('');
     }
-    document.getElementById('lookup-meta').textContent=`₹${Number(data.price).toFixed(2)} · Total stock: ${data.stock||0} · ${bc}`;
+    document.getElementById('lookup-meta').textContent=`₹${Number(data.price).toFixed(2)} · Total stock: ${totalStock} · ${bc}`;
     document.getElementById('lookup-batches').innerHTML=batchHTML;
 
     // ── Deduct-from tag: show which batch server will bill from (FEFO = first in sortedBatches)
@@ -542,8 +529,9 @@
     }
 
     // ── Expiry warning: alert if nearest batch is expiring within 90 days
+    // Only show if alertsEnabled is true for this medicine (set during Add Medicine)
     const warnEl=document.getElementById('expiry-warn');
-    if(sortedBatches.length){
+    if(sortedBatches.length && data.alertsEnabled !== false){
       const first=sortedBatches[0];
       const daysLeft=Math.ceil((new Date(first.expiryDate)-now)/(1000*60*60*24));
       if(daysLeft<=0){
@@ -654,78 +642,61 @@
     }
   }
 
-
   function hideAc() { autoList.classList.remove('show'); autoList.innerHTML = ''; }
+
+  nameInput.addEventListener('keydown', e => {
+    const items = autoList.querySelectorAll('.autocomplete-item');
+    let cur = [...items].findIndex(el => el.classList.contains('active'));
+    if (e.key === 'ArrowDown') {
+      e.preventDefault();
+      if (!items.length) return;
+      cur = cur < 0 ? 0 : Math.min(cur + 1, items.length - 1);
+      items.forEach((el, i) => el.classList.toggle('active', i === cur));
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault();
+      if (!items.length) return;
+      cur = cur < 0 ? items.length - 1 : Math.max(cur - 1, 0);
+      items.forEach((el, i) => el.classList.toggle('active', i === cur));
+    } else if (e.key === 'Enter') {
+      if (autoList.classList.contains('show') && items.length) {
+        e.preventDefault();
+        if (cur < 0) cur = 0;
+        pickAc(cur);
+      }
+    } else if (e.key === 'Escape') {
+      hideAc();
+    }
+  });
+
+  document.addEventListener('click', e => {
+    if (!document.getElementById('ac-wrap').contains(e.target)) hideAc();
+  });
+  barcodeInput.addEventListener('keydown',e=>{if(e.key==='Enter')fetchByBarcode();});
+  nameInput.addEventListener('keydown', async e => {
+    if(e.key!=='Enter') return;
+    const items=autoList.querySelectorAll('.autocomplete-item');
+    const hasSuggestions=autoList.classList.contains('show') && items.length>0;
+    if(hasSuggestions) return; // autocomplete Enter is handled above
+    e.preventDefault();
+    await fetchByBarcode(); // fallback to name search if barcode is empty
+  });
 
   /* ── Render cart ── */
   function renderCart(hlBc=null){
     const keys=Object.keys(cart);
-    if(!keys.length){
-      emptyState.style.display='block';cartTableWrap.style.display='none';
-      cartFooter.style.display='none';actionRow.style.display='none';
-      document.getElementById('patient-info-row').style.display='none';
-      itemCountBadge.textContent='0 items';grandTotalEl.textContent='₹0.00';
-      return;
-    }
-    emptyState.style.display='none';cartTableWrap.style.display='block';
-    cartFooter.style.display='block';actionRow.style.display='flex';
-    document.getElementById('patient-info-row').style.display='block';
-
+    if(!keys.length){emptyState.style.display='block';cartTableWrap.style.display='none';cartFooter.style.display='none';actionRow.style.display='none';itemCountBadge.textContent='0 items';grandTotalEl.textContent='₹0.00';return;}
+    emptyState.style.display='none';cartTableWrap.style.display='block';cartFooter.style.display='block';actionRow.style.display='flex';
     let grand=0,units=0;
     cartBody.innerHTML=keys.map(bc=>{
-      const it=cart[bc],ln=it.price*it.qty;
-      grand+=ln;units+=it.qty;
-
-      // Build batch dropdown options
-      const batches = (it.batches||[]).slice().sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
-      const opts = batches.map(b=>{
-        const exp=new Date(b.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'});
-        const sel = it.selectedBatch===b.batchLabel ? 'selected' : '';
-        return `<option value="${esc(b.batchLabel)}" ${sel}>${esc(b.batchLabel)} · ${b.stock} units · exp ${exp}</option>`;
-      }).join('');
-
-      const isAuto = !it.selectedBatch || it.selectedBatch==='auto';
-      const selClass = isAuto ? 'auto' : 'manual';
-      const selLabel = isAuto
-        ? '📦 Auto (Nearest Expiry)'
-        : `📦 ${it.selectedBatch}`;
-
-      // Show which batch will actually be deducted
-      let deductNote='';
-      if(batches.length>0){
-        const active = isAuto ? batches[0] : batches.find(b=>b.batchLabel===it.selectedBatch);
-        if(active){
-          const exp=new Date(active.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-          deductNote=`<div style="font-size:.68rem;color:var(--green);margin-top:.22rem;font-weight:600">✅ Billing from ${active.batchLabel} · exp ${exp} · ${active.stock} available</div>`;
-        }
-      }
-
+      const it=cart[bc],ln=it.price*it.qty;grand+=ln;units+=it.qty;
       return `<tr class="${bc===hlBc?'new-item':''}" id="row-${esc(bc)}">
-        <td>
-          <div class="td-name">${esc(it.name)}</div>
-          <div class="td-barcode">${esc(it.barcode)}</div>
-          <div class="batch-selector-wrap">
-            <span class="batch-sel-label">Batch:</span>
-            <select class="batch-sel ${selClass}" onchange="changeBatch('${esc(bc)}',this)">
-              <option value="auto" ${isAuto?'selected':''}>📦 Auto (Nearest Expiry)</option>
-              ${opts}
-            </select>
-          </div>
-          ${deductNote}
-        </td>
-        <td style="text-align:center">
-          <div class="qty-ctrl">
-            <button class="qty-btn" onclick="adjQty('${esc(bc)}',-1)">−</button>
-            <div class="qty-num">${it.qty}</div>
-            <button class="qty-btn" onclick="adjQty('${esc(bc)}',1)">+</button>
-          </div>
-        </td>
+        <td><div class="td-name">${esc(it.name)}</div><div class="td-barcode">${esc(it.barcode)}</div></td>
+        <td style="text-align:center"><div class="qty-ctrl"><button class="qty-btn" onclick="adjQty('${esc(bc)}',-1)">−</button><div class="qty-num">${it.qty}</div><button class="qty-btn" onclick="adjQty('${esc(bc)}',1)">+</button></div></td>
         <td style="text-align:right">₹${it.price.toFixed(2)}</td>
         <td style="text-align:right;font-weight:700">₹${ln.toFixed(2)}</td>
         <td style="text-align:right"><button class="del-btn" onclick="removeItem('${esc(bc)}')">✕</button></td>
       </tr>`;
     }).join('');
-
     if(hlBc)setTimeout(()=>{const r=document.getElementById(`row-${esc(hlBc)}`);if(r)r.scrollIntoView({behavior:'smooth',block:'center'});},100);
     itemCountBadge.textContent=`${keys.length} item${keys.length!==1?'s':''}`;
     grandTotalEl.textContent=`₹${grand.toFixed(2)}`;
@@ -737,32 +708,9 @@
     if(!cart[bc])return;
     const nq=cart[bc].qty+d;
     if(nq<1)return;
-    let limit=cart[bc].stock;
-    let bName=cart[bc].name;
-    if(cart[bc].selectedBatch !== 'auto'){
-      const b=(cart[bc].batches||[]).find(x=>x.batchLabel===cart[bc].selectedBatch);
-      if(b){ limit=b.stock; bName=`${cart[bc].name} (${b.batchLabel})`; }
-    }
-    if(d>0&&nq>limit){playStockWarnSound();showStockWarn(bName,limit,cart[bc].qty);showToast(`⚠️ Only ${limit} in stock!`,'warn');return;}
+    if(d>0&&nq>cart[bc].stock){playStockWarnSound();showStockWarn(cart[bc].name,cart[bc].stock,cart[bc].qty);showToast(`⚠️ Only ${cart[bc].stock} in stock!`,'warn');return;}
     cart[bc].qty=nq;renderCart();
   }
-  
-  window.changeBatch = function(bc, selectEl) {
-    const val = selectEl.value;
-    if(!cart[bc]) return;
-    cart[bc].selectedBatch = val;
-    // Update styling — green pill for auto, blue pill for manual
-    selectEl.className = `batch-sel ${val==='auto'?'auto':'manual'}`;
-    // Clamp qty if selected batch has less stock
-    if(val !== 'auto') {
-      const b = (cart[bc].batches||[]).find(x => x.batchLabel === val);
-      if(b && cart[bc].qty > b.stock) {
-        cart[bc].qty = Math.max(1, b.stock);
-        showToast(`⚠️ Qty capped to ${b.stock} (max in ${val})`,'warn');
-      }
-    }
-    renderCart();
-  };
   function removeItem(bc){delete cart[bc];renderCart();showToast('Item removed.','ok');lookupCard.classList.remove('show');hideStockWarn();}
   function clearCart(){if(!Object.keys(cart).length)return;if(!confirm('Clear the entire cart?'))return;Object.keys(cart).forEach(k=>delete cart[k]);renderCart();setStatus('','');lookupCard.classList.remove('show');hideStockWarn();showToast('Cart cleared.','ok');}
 
@@ -788,7 +736,7 @@
     .receipt-powered{text-align:center;font-size:9px;color:#aaa;margin-top:5px;letter-spacing:.04em;border-top:1px dashed #ddd;padding-top:4px}
   `;
 
-  function buildReceiptHtml(keys, pName, pAge){
+  function buildReceiptHtml(keys){
     const now=new Date();
     const ds=now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
     const ts=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
@@ -812,7 +760,6 @@
       </div>
       <hr class="receipt-dash"/>
       <div class="receipt-datetime">Date: ${ds} &nbsp; Time: ${ts}</div>
-      ${pName ? `<div class="receipt-datetime">Patient: ${esc(pName)} ${pAge ? `(Age: ${esc(pAge)})` : ''}</div>` : ''}
       <hr class="receipt-dash"/>
       <div class="receipt-col-head">
         <span class="rch-name">Item</span><span class="rch-qty">Qty</span>
@@ -840,7 +787,7 @@
     return new Promise((resolve,reject)=>{
       const iframe=document.createElement('iframe');
       iframe.setAttribute('title','Receipt');
-      iframe.style.cssText='position:fixed;right:0;bottom:0;width:80mm;height:1px;border:0;opacity:0;pointer-events:none';
+      iframe.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';
       document.body.appendChild(iframe);
       const win=iframe.contentWindow;
       const doc=win.document;
@@ -886,29 +833,13 @@
   async function printReceipt(){
     const keys=Object.keys(cart);
     if(!keys.length){showToast('Cart is empty!','err');playErrorBeep();return;}
-    
-    const pName = document.getElementById('patient-name').value.trim();
-    const pAge = document.getElementById('patient-age').value.trim();
-    const pPhone = document.getElementById('patient-phone').value.trim();
-
-    // Generate a unique billId for this session — all line items share this ID
-    // so history.html can group them back into a single receipt
-    const billId = 'BILL-' + Date.now() + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
-
     try{
-      const r=await fetch('/bill',{method:'POST',headers:{'Content-Type':'application/json'},
-body:JSON.stringify({
-  items:keys.map(bc=>({barcode:bc,qty:cart[bc].qty,batchLabel:cart[bc].selectedBatch})),
-  patientName: pName,
-  patientAge: pAge ? Number(pAge) : null,
-  patientPhone: pPhone,
-  billId: billId
-})});
+      const r=await fetch('/bill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:keys.map(bc=>({barcode:bc,qty:cart[bc].qty}))})});
       const d=await r.json();
       if(!r.ok){showToast(`❌ ${d.error}`,'err');playErrorBeep();return;}
     }catch(e){showToast('❌ Could not deduct stock.','err');playErrorBeep();return;}
 
-    const receiptHtml=buildReceiptHtml(keys, pName, pAge);
+    const receiptHtml=buildReceiptHtml(keys);
     try{
       await printThermalReceipt(receiptHtml);
     }catch(_){
@@ -920,9 +851,6 @@ body:JSON.stringify({
     lookupCard.classList.remove('show');
     hideStockWarn();
     showToast('Bill printed — stock updated','ok');
-    document.getElementById('patient-name').value = '';
-    document.getElementById('patient-age').value = '';
-    document.getElementById('patient-phone').value = '';
     playSuccessBeep();
     loadAllMedicines();
   }
@@ -933,7 +861,7 @@ body:JSON.stringify({
     },200);
   });
 
-
+  let pharmacyProfile = {};
 
   async function loadMedicinesForSearch() {
     try {
