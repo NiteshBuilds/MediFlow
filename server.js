@@ -1069,9 +1069,7 @@ io.on('connection', (socket) => {
 const PORT = process.env.PORT || 3000;
 
 // Keep awake on platforms like Railway that may sleep 
-const APP_URL = process.env.RAILWAY_STATIC_URL
-  ? `https://${process.env.RAILWAY_STATIC_URL}`
-  : null;
+const APP_URL = process.env.APP_URL || process.env.RENDER_EXTERNAL_URL || null;
 
 if (APP_URL) {
   setInterval(() => {
