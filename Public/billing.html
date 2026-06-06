@@ -445,7 +445,7 @@
 
     // First, try autocomplete suggestions if visible
     const visibleItems=[...autoList.querySelectorAll('.autocomplete-item')];
-    if(autoList.classList.contains('show') && visibleItems.length && autoList._m && autoList._m.length){
+    if(autoList.classList.contains('show') && visibleItems.length){
       let cur=visibleItems.findIndex(el=>el.classList.contains('active'));
       if(cur<0) cur=0;
       await pickAc(cur);
@@ -633,18 +633,13 @@
   }
 
   async function pickAc(i) {
-    const m = autoList._m && autoList._m[i];
-    if (!m) {
-      // _m not set means no suggestions — fall through to barcode fetch
-      await fetchByBarcode();
-      return;
-    }
+    const m = autoList._m[i];
+    if (!m) return;
     nameInput.value = '';
     hideAc();
     setStatus('warn', '⏳ Looking up…');
     try {
       const res = await fetch(`/medicine/${encodeURIComponent(m.barcode)}`);
-      if(res.status === 401){window.location.href='/login.html';return;}
       const data = await res.json();
       if (!res.ok) {
         setStatus('err', `❌ Not found: "${m.name}"`);
@@ -684,7 +679,7 @@
       // Build batch dropdown options
       const batches = (it.batches||[]).slice().sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
       const opts = batches.map(b=>{
-        const exp=new Date(b.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'yy'});
+        const exp=new Date(b.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'});
         const sel = it.selectedBatch===b.batchLabel ? 'selected' : '';
         return `<option value="${esc(b.batchLabel)}" ${sel}>${esc(b.batchLabel)} · ${b.stock} units · exp ${exp}</option>`;
       }).join('');
