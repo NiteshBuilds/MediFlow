@@ -97,14 +97,14 @@
     /* ── Bill card (grouped) ── */
     .bill-card{border:1px solid var(--border);border-radius:var(--radius);margin:.9rem 1.4rem;overflow:hidden;transition:box-shadow .18s}
     .bill-card:hover{box-shadow:0 4px 16px rgba(13,107,110,.1)}
-    .bill-card-head{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;background:var(--surface2);border-bottom:1px solid var(--border);flex-wrap:wrap;gap:.5rem}
-    .bill-patient{display:flex;align-items:center;gap:.5rem;flex-wrap:wrap}
-    .bill-patient-name{font-weight:700;font-size:.88rem;color:var(--text)}
-    .bill-patient-meta{font-size:.75rem;color:var(--muted)}
+    .bill-card-head{display:flex;align-items:center;justify-content:space-between;padding:.75rem 1rem;background:var(--surface2);border-bottom:1px solid var(--border);gap:.75rem;min-height:52px}
+    .bill-patient{flex:1;display:flex;align-items:center;gap:.45rem;flex-wrap:wrap;min-width:0}
+    .bill-patient-name{font-weight:700;font-size:.88rem;color:var(--text);white-space:nowrap}
+    .bill-patient-meta{font-size:.75rem;color:var(--muted);white-space:nowrap}
     .bill-anon{font-size:.82rem;color:var(--muted);font-style:italic}
-    .bill-meta-right{display:flex;align-items:center;gap:.75rem}
-    .bill-time{font-size:.74rem;color:var(--muted);white-space:nowrap}
-    .bill-total{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:var(--teal-dk)}
+    .bill-meta-right{display:flex;align-items:center;gap:.75rem;flex-shrink:0;flex-wrap:nowrap}
+    .bill-time{font-size:.74rem;color:var(--muted);white-space:nowrap;min-width:130px;text-align:right}
+    .bill-total{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:var(--teal-dk);min-width:64px;text-align:right;white-space:nowrap}
     .btn-view-receipt{display:inline-flex;align-items:center;gap:.3rem;padding:.32rem .75rem;background:var(--teal);color:#fff;border:none;border-radius:6px;font-size:.74rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .16s;white-space:nowrap}
     .btn-view-receipt:hover{background:var(--teal-md);transform:translateY(-1px)}
     .bill-items-table{width:100%;border-collapse:collapse;font-size:.82rem}
@@ -237,18 +237,25 @@
   let activeTab = 'sold';
   let _allBills = [];       // all grouped bills from server
   let _restocked = [];      // restock rows
-  let _pharmacyInfo = { name: 'MediFlow Pharmacy', phone: '', address: '', license: '' };
+  let _pharmacyInfo = { name: 'MediFlow Pharmacy', phone: '', address: '', email: '', license: '' };
 
   // ── Auth ────────────────────────────────────────────────
   fetch('/me').then(r=>r.json()).then(d=>{
     if(!d.loggedIn){window.location.href='/login.html';return;}
     document.getElementById('sb-name').textContent=d.name;
     document.getElementById('sb-avatar').textContent=d.name.charAt(0).toUpperCase();
-    // Load pharmacy profile for receipts
-    _pharmacyInfo.name    = d.pharmacyName    || (d.name + ' Pharmacy');
-    _pharmacyInfo.phone   = d.pharmacyPhone   || '';
-    _pharmacyInfo.address = d.pharmacyAddress || '';
-    _pharmacyInfo.license = d.pharmacyLicense || '';
+    // /me does NOT return pharmacy fields — load them from /profile
+    fetch('/profile').then(r=>r.json()).then(p=>{
+      if(p && !p.error){
+        _pharmacyInfo.name    = p.pharmacyName    || (d.name + ' Pharmacy');
+        _pharmacyInfo.phone   = p.pharmacyPhone   || '';
+        _pharmacyInfo.address = p.pharmacyAddress || '';
+        _pharmacyInfo.email   = p.pharmacyEmail   || '';
+        _pharmacyInfo.license = p.pharmacyLicense || '';
+      } else {
+        _pharmacyInfo.name = d.name + ' Pharmacy';
+      }
+    }).catch(()=>{ _pharmacyInfo.name = d.name + ' Pharmacy'; });
   });
   function doLogout(){fetch('/logout',{method:'POST'}).then(()=>window.location.href='/login.html');}
 
@@ -405,8 +412,9 @@
       : '';
 
     const pharmacyLines = [
-      _pharmacyInfo.phone   ? 'Tel: ' + _pharmacyInfo.phone   : '',
       _pharmacyInfo.address ? _pharmacyInfo.address            : '',
+      _pharmacyInfo.phone   ? 'Tel: ' + _pharmacyInfo.phone   : '',
+      _pharmacyInfo.email   ? _pharmacyInfo.email              : '',
       _pharmacyInfo.license ? 'Lic: ' + _pharmacyInfo.license : '',
     ].filter(Boolean).map(l => `<div class="sub">${esc(l)}</div>`).join('');
 
