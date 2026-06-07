@@ -313,8 +313,9 @@
       if(!Array.isArray(data))return;
       const today=new Date();
       document.getElementById('stat-total').textContent=data.length;
-      document.getElementById('stat-low').textContent=data.filter(m=>m.stock>0&&m.stock<5).length;
+      document.getElementById('stat-low').textContent=data.filter(m=>m.stock>0&&m.stock<5&&m.stockAlertsEnabled!==false).length;
       document.getElementById('stat-expired').textContent=data.filter(m=>{
+        if(m.alertsEnabled===false) return false;
         const exp=nearestExpiry(m); if(!exp) return false;
         const days=Math.ceil((exp-today)/86400000); return days>=0&&days<=90;
       }).length;
@@ -331,20 +332,20 @@
       alerts.push(`<div class="alert-item danger"><span class="alert-icon">🚨</span><div class="alert-body"><strong>Out of Stock: ${esc(m.name)}</strong>Barcode ${esc(m.barcode)} — reorder immediately.</div></div>`)
     );
 
-    // ── Critical low (< 5 units) ────────────────────────────
-    data.filter(m=>m.stock>0&&m.stock<5).slice(0,3).forEach(m=>
+    // ── Critical low (< 5 units) — only if stockAlertsEnabled ──
+    data.filter(m=>m.stock>0&&m.stock<5&&m.stockAlertsEnabled!==false).slice(0,3).forEach(m=>
       alerts.push(`<div class="alert-item danger"><span class="alert-icon">⚠️</span><div class="alert-body"><strong>Critical Low: ${esc(m.name)}</strong>Only ${m.stock} unit${m.stock>1?'s':''} remaining.</div></div>`)
     );
 
-    // ── Low stock (5–20 units) ──────────────────────────────
-    data.filter(m=>m.stock>=5&&m.stock<=20).slice(0,3).forEach(m=>
+    // ── Low stock (5–20 units) — only if stockAlertsEnabled ────
+    data.filter(m=>m.stock>=5&&m.stock<=20&&m.stockAlertsEnabled!==false).slice(0,3).forEach(m=>
       alerts.push(`<div class="alert-item warning"><span class="alert-icon">📦</span><div class="alert-body"><strong>Low Stock: ${esc(m.name)}</strong>${m.stock} units — restock soon.</div></div>`)
     );
 
-    // ── Per-batch expiry alerts ─────────────────────────────
-    // Loop every medicine → every batch with stock > 0 → check expiry
+    // ── Per-batch expiry alerts — only if alertsEnabled ────────
     data.forEach(m=>{
       if(!m.batches||!m.batches.length) return;
+      if(m.alertsEnabled===false) return; // skip if expiry alerts disabled
       m.batches.filter(b=>b.stock>0).forEach(b=>{
         const expDate = new Date(b.expiryDate);
         const days    = Math.ceil((expDate - today) / 86400000);
@@ -354,13 +355,11 @@
         const name    = esc(m.name);
 
         if(days < 0){
-          // Already expired
+          // Always show expired regardless
           alerts.push(`<div class="alert-item danger"><span class="alert-icon">⛔</span><div class="alert-body"><strong>EXPIRED: ${name} — ${label}</strong>${units} unit${units!==1?'s':''} of ${name} from ${label} expired on ${expStr}. Remove from shelf immediately.</div></div>`);
         } else if(days<=30){
-          // Expiring within 30 days — red
           alerts.push(`<div class="alert-item danger"><span class="alert-icon">📅</span><div class="alert-body"><strong>Expiring Soon: ${name} — ${label}</strong>${units} unit${units!==1?'s':''} from ${label} will expire on ${expStr} (${days} day${days!==1?'s':''} left). Sell first!</div></div>`);
         } else if(days<=90){
-          // Expiring within 90 days — yellow
           alerts.push(`<div class="alert-item warning"><span class="alert-icon">🔔</span><div class="alert-body"><strong>Expiring in ${days} days: ${name} — ${label}</strong>${units} unit${units!==1?'s':''} from ${label} will expire on ${expStr}.</div></div>`);
         }
       });
@@ -391,10 +390,10 @@
       const days=exp?Math.ceil((exp-today)/86400000):9999;
       let badge='';
       if(m.stock===0)badge='<span class="badge badge-red">Out of Stock</span>';
-      else if(m.stock<5)badge=`<span class="badge badge-red">Only ${m.stock} left</span>`;
-      else if(m.stock<=20)badge='<span class="badge badge-amber">Low Stock</span>';
-      else if(days<=30)badge='<span class="badge badge-red">Exp. Soon</span>';
-      else if(days<=90)badge='<span class="badge badge-amber">Exp. 90d</span>';
+      else if(m.stock<5&&m.stockAlertsEnabled!==false)badge=`<span class="badge badge-red">Only ${m.stock} left</span>`;
+      else if(m.stock<=20&&m.stockAlertsEnabled!==false)badge='<span class="badge badge-amber">Low Stock</span>';
+      else if(days<=30&&m.alertsEnabled!==false)badge='<span class="badge badge-red">Exp. Soon</span>';
+      else if(days<=90&&m.alertsEnabled!==false)badge='<span class="badge badge-amber">Exp. 90d</span>';
       else badge='<span class="badge badge-green">In Stock</span>';
       return `<tr><td><strong style="color:var(--text)">${esc(m.name)}</strong></td><td style="font-family:monospace;font-size:.76rem">${esc(m.barcode)}</td><td>₹${Number(m.price).toFixed(2)}</td><td style="font-weight:600;${m.stock<5?'color:var(--red)':''}">${m.stock}</td><td>${expStr}</td><td>${badge}</td></tr>`;
     }).join('');
