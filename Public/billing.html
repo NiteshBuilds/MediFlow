@@ -379,6 +379,7 @@
 <script>
   const cart={};
   let allMedicines=[];
+  let pharmacyProfile={};
 
   const nameInput=document.getElementById('name-input');
   const autoList=document.getElementById('autocomplete-list');
@@ -678,7 +679,7 @@
   document.addEventListener('click', e => {
     if (!document.getElementById('ac-wrap').contains(e.target)) hideAc();
   });
-  barcodeInput.addEventListener('keydown',e=>{if(e.key==='Enter')fetchByBarcode();});
+  if(barcodeInput) barcodeInput.addEventListener('keydown',e=>{if(e.key==='Enter')fetchByBarcode();});
   nameInput.addEventListener('keydown', async e => {
     if(e.key!=='Enter') return;
     const items=autoList.querySelectorAll('.autocomplete-item');
@@ -868,7 +869,7 @@
     },200);
   });
 
-  let pharmacyProfile = {};
+  // pharmacyProfile declared at top of script
 
   async function loadMedicinesForSearch() {
     try {
