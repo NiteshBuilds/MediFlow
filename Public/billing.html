@@ -142,6 +142,14 @@
     .batch-badge.expiring{background:#fdecea;color:#7a1a1a;border-color:#f5c6c2}
     .batch-badge.expiring-soon{background:#fffbeb;color:#7a4a00;border-color:#f6d860}
 
+    /* ── BATCH SELECTOR in cart row ── */
+    .batch-selector-wrap{margin-top:.45rem;display:flex;align-items:center;gap:.35rem;flex-wrap:wrap}
+    .batch-sel-label{font-size:.67rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);white-space:nowrap}
+    .batch-sel{appearance:none;-webkit-appearance:none;padding:.25rem .65rem .25rem .55rem;border:1.5px solid var(--border);border-radius:20px;font-size:.72rem;font-weight:700;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;cursor:pointer;transition:border-color .18s,background .18s;background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='10' height='6'%3E%3Cpath d='M0 0l5 6 5-6z' fill='%237a9ea0'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right .45rem center;padding-right:1.4rem}
+    .batch-sel:focus{border-color:var(--teal-md);background-color:var(--surface)}
+    .batch-sel.auto{border-color:#a7d9be;background-color:#f0fbf5;color:var(--green)}
+    .batch-sel.manual{border-color:#b0c4f5;background-color:#eef2fe;color:#1a3a7a}
+
     /* ── CART ── */
     .cart-panel{animation-delay:.07s}
     .empty-state{text-align:center;padding:3rem 1.5rem;color:var(--muted)}
@@ -361,6 +369,15 @@
         <div class="grand-row">
           <span class="grand-label">Grand Total</span>
           <span class="grand-value" id="grand-total">₹0.00</span>
+        </div>
+      </div>
+
+      <div class="patient-info-row" id="patient-info-row" style="display:none; padding: 1rem 1.2rem; border-top: 1px solid var(--border); background: var(--surface2);">
+        <div style="font-size: .75rem; font-weight: 700; color: var(--muted); margin-bottom: .5rem; text-transform: uppercase;">Patient Details (Optional)</div>
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: .5rem;">
+          <input type="text" id="patient-name" class="inp" placeholder="Patient Name" style="padding: .4rem .6rem; font-size: .8rem; margin-bottom: .5rem;" />
+          <input type="number" id="patient-age" class="inp" placeholder="Age" style="padding: .4rem .6rem; font-size: .8rem; margin-bottom: .5rem;" />
+          <input type="text" id="patient-phone" class="inp" placeholder="Phone" style="padding: .4rem .6rem; font-size: .8rem; grid-column: span 2;" />
         </div>
       </div>
 
@@ -692,19 +709,61 @@
   /* ── Render cart ── */
   function renderCart(hlBc=null){
     const keys=Object.keys(cart);
-    if(!keys.length){emptyState.style.display='block';cartTableWrap.style.display='none';cartFooter.style.display='none';actionRow.style.display='none';itemCountBadge.textContent='0 items';grandTotalEl.textContent='₹0.00';return;}
-    emptyState.style.display='none';cartTableWrap.style.display='block';cartFooter.style.display='block';actionRow.style.display='flex';
+    if(!keys.length){
+      emptyState.style.display='block';cartTableWrap.style.display='none';
+      cartFooter.style.display='none';actionRow.style.display='none';
+      document.getElementById('patient-info-row').style.display='none';
+      itemCountBadge.textContent='0 items';grandTotalEl.textContent='₹0.00';
+      return;
+    }
+    emptyState.style.display='none';cartTableWrap.style.display='block';
+    cartFooter.style.display='block';actionRow.style.display='flex';
+    document.getElementById('patient-info-row').style.display='block';
+
     let grand=0,units=0;
     cartBody.innerHTML=keys.map(bc=>{
-      const it=cart[bc],ln=it.price*it.qty;grand+=ln;units+=it.qty;
+      const it=cart[bc],ln=it.price*it.qty;
+      grand+=ln;units+=it.qty;
+
+      const batches=(it.batches||[]).slice().sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
+      const opts=batches.map(b=>{
+        const exp=new Date(b.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'});
+        const sel=it.selectedBatch===b.batchLabel?'selected':'';
+        return `<option value="${esc(b.batchLabel)}" ${sel}>${esc(b.batchLabel)} · ${b.stock} units · exp ${exp}</option>`;
+      }).join('');
+
+      const isAuto=!it.selectedBatch||it.selectedBatch==='auto';
+      const selClass=isAuto?'auto':'manual';
+
+      let deductNote='';
+      if(batches.length>0){
+        const active=isAuto?batches[0]:batches.find(b=>b.batchLabel===it.selectedBatch);
+        if(active){
+          const exp=new Date(active.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+          deductNote=`<div style="font-size:.68rem;color:var(--green);margin-top:.22rem;font-weight:600">✅ Billing from ${active.batchLabel} · exp ${exp} · ${active.stock} available</div>`;
+        }
+      }
+
       return `<tr class="${bc===hlBc?'new-item':''}" id="row-${esc(bc)}">
-        <td><div class="td-name">${esc(it.name)}</div><div class="td-barcode">${esc(it.barcode)}</div></td>
+        <td>
+          <div class="td-name">${esc(it.name)}</div>
+          <div class="td-barcode">${esc(it.barcode)}</div>
+          <div class="batch-selector-wrap">
+            <span class="batch-sel-label">Batch:</span>
+            <select class="batch-sel ${selClass}" onchange="changeBatch('${esc(bc)}',this)">
+              <option value="auto" ${isAuto?'selected':''}>📦 Auto (Nearest Expiry)</option>
+              ${opts}
+            </select>
+          </div>
+          ${deductNote}
+        </td>
         <td style="text-align:center"><div class="qty-ctrl"><button class="qty-btn" onclick="adjQty('${esc(bc)}',-1)">−</button><div class="qty-num">${it.qty}</div><button class="qty-btn" onclick="adjQty('${esc(bc)}',1)">+</button></div></td>
         <td style="text-align:right">₹${it.price.toFixed(2)}</td>
         <td style="text-align:right;font-weight:700">₹${ln.toFixed(2)}</td>
         <td style="text-align:right"><button class="del-btn" onclick="removeItem('${esc(bc)}')">✕</button></td>
       </tr>`;
     }).join('');
+
     if(hlBc)setTimeout(()=>{const r=document.getElementById(`row-${esc(hlBc)}`);if(r)r.scrollIntoView({behavior:'smooth',block:'center'});},100);
     itemCountBadge.textContent=`${keys.length} item${keys.length!==1?'s':''}`;
     grandTotalEl.textContent=`₹${grand.toFixed(2)}`;
@@ -716,9 +775,27 @@
     if(!cart[bc])return;
     const nq=cart[bc].qty+d;
     if(nq<1)return;
-    if(d>0&&nq>cart[bc].stock){playStockWarnSound();showStockWarn(cart[bc].name,cart[bc].stock,cart[bc].qty);showToast(`⚠️ Only ${cart[bc].stock} in stock!`,'warn');return;}
+    let limit=cart[bc].stock;
+    let bName=cart[bc].name;
+    if(cart[bc].selectedBatch!=='auto'){
+      const b=(cart[bc].batches||[]).find(x=>x.batchLabel===cart[bc].selectedBatch);
+      if(b){limit=b.stock;bName=`${cart[bc].name} (${b.batchLabel})`;}
+    }
+    if(d>0&&nq>limit){playStockWarnSound();showStockWarn(bName,limit,cart[bc].qty);showToast(`⚠️ Only ${limit} in stock!`,'warn');return;}
     cart[bc].qty=nq;renderCart();
   }
+
+  window.changeBatch=function(bc,selectEl){
+    const val=selectEl.value;
+    if(!cart[bc])return;
+    cart[bc].selectedBatch=val;
+    selectEl.className=`batch-sel ${val==='auto'?'auto':'manual'}`;
+    if(val!=='auto'){
+      const b=(cart[bc].batches||[]).find(x=>x.batchLabel===val);
+      if(b&&cart[bc].qty>b.stock){cart[bc].qty=Math.max(1,b.stock);showToast(`⚠️ Qty capped to ${b.stock} (max in ${val})`,'warn');}
+    }
+    renderCart();
+  };
   function removeItem(bc){delete cart[bc];renderCart();showToast('Item removed.','ok');lookupCard.classList.remove('show');hideStockWarn();}
   function clearCart(){if(!Object.keys(cart).length)return;if(!confirm('Clear the entire cart?'))return;Object.keys(cart).forEach(k=>delete cart[k]);renderCart();setStatus('','');lookupCard.classList.remove('show');hideStockWarn();showToast('Cart cleared.','ok');}
 
@@ -744,7 +821,7 @@
     .receipt-powered{text-align:center;font-size:9px;color:#aaa;margin-top:5px;letter-spacing:.04em;border-top:1px dashed #ddd;padding-top:4px}
   `;
 
-  function buildReceiptHtml(keys){
+  function buildReceiptHtml(keys, pName, pAge){
     const now=new Date();
     const ds=now.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
     const ts=now.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
@@ -768,6 +845,7 @@
       </div>
       <hr class="receipt-dash"/>
       <div class="receipt-datetime">Date: ${ds} &nbsp; Time: ${ts}</div>
+      ${pName?`<div class="receipt-datetime">Patient: ${esc(pName)}${pAge?` (Age: ${esc(pAge)})`:''}` :''}
       <hr class="receipt-dash"/>
       <div class="receipt-col-head">
         <span class="rch-name">Item</span><span class="rch-qty">Qty</span>
@@ -795,28 +873,21 @@
     return new Promise((resolve,reject)=>{
       const iframe=document.createElement('iframe');
       iframe.setAttribute('title','Receipt');
-      iframe.style.cssText='position:fixed;right:0;bottom:0;width:0;height:0;border:0';
+      iframe.style.cssText='position:fixed;right:0;bottom:0;width:80mm;height:1px;border:0;opacity:0;pointer-events:none';
       document.body.appendChild(iframe);
-      const win=iframe.contentWindow;
-      const doc=win.document;
-      doc.open();
-      doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Receipt</title><style>${THERMAL_PRINT_CSS}</style></head><body><div class="receipt">${receiptHtml}</div></body></html>`);
-      doc.close();
       const cleanup=()=>{setTimeout(()=>{try{iframe.remove();}catch(_){}},400);};
-      const doPrint=()=>{
-        try{
-          win.focus();
-          win.print();
-          resolve();
-        }catch(err){
-          cleanup();
-          reject(err);
-        }
-        win.addEventListener('afterprint',cleanup,{once:true});
-        setTimeout(cleanup,8000);
+      iframe.onload=()=>{
+        const win=iframe.contentWindow;
+        const doc=win.document;
+        doc.open();
+        doc.write(`<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Receipt</title><style>${THERMAL_PRINT_CSS}</style></head><body><div class="receipt">${receiptHtml}</div></body></html>`);
+        doc.close();
+        setTimeout(()=>{
+          try{win.focus();win.print();win.addEventListener('afterprint',()=>{cleanup();resolve();},{once:true});setTimeout(()=>{cleanup();resolve();},10000);}
+          catch(err){cleanup();reject(err);}
+        },300);
       };
-      if(doc.readyState==='complete') setTimeout(doPrint,150);
-      else iframe.onload=()=>setTimeout(doPrint,150);
+      iframe.src='about:blank';
     });
   }
 
@@ -841,13 +912,17 @@
   async function printReceipt(){
     const keys=Object.keys(cart);
     if(!keys.length){showToast('Cart is empty!','err');playErrorBeep();return;}
+
+    const pName=document.getElementById('patient-name').value.trim();
+    const pAge=document.getElementById('patient-age').value.trim();
+
     try{
       const r=await fetch('/bill',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({items:keys.map(bc=>({barcode:bc,qty:cart[bc].qty}))})});
       const d=await r.json();
       if(!r.ok){showToast(`❌ ${d.error}`,'err');playErrorBeep();return;}
     }catch(e){showToast('❌ Could not deduct stock.','err');playErrorBeep();return;}
 
-    const receiptHtml=buildReceiptHtml(keys);
+    const receiptHtml=buildReceiptHtml(keys,pName,pAge);
     try{
       await printThermalReceipt(receiptHtml);
     }catch(_){
@@ -855,6 +930,8 @@
     }
 
     keys.forEach(bc=>delete cart[bc]);
+    // Clear patient fields
+    ['patient-name','patient-age','patient-phone'].forEach(id=>{const el=document.getElementById(id);if(el)el.value='';});
     renderCart();
     lookupCard.classList.remove('show');
     hideStockWarn();
