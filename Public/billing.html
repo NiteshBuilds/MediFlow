@@ -512,7 +512,7 @@
       showToast(`⚠️ Low stock: only ${totalStock} units left!`,'warn');
     }
     if(!isNew){cart[bc].qty++;setStatus('ok',`✅ ${data.name} ×${cart[bc].qty}`);}
-    else{cart[bc]={name:data.name,barcode:bc,price:Number(data.price),qty:1,stock:totalStock};setStatus('ok',`✅ Added — ${data.name}`);}
+    else{cart[bc]={name:data.name,barcode:bc,price:Number(data.price),qty:1,stock:totalStock,batches:data.batches||[],selectedBatch:'auto'};setStatus('ok',`✅ Added — ${data.name}`);}
     hideStockWarn();
     document.getElementById('lookup-name').textContent=data.name;
 
