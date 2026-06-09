@@ -1226,6 +1226,78 @@ app.get('/admin/pharmacy/:id/bills', requireAdmin, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
+// GET /admin/pharmacy/:id/medicines — paginated medicine inventory for one pharmacy
+app.get('/admin/pharmacy/:id/medicines', requireAdmin, async (req, res) => {
+  try {
+    const ownerId = req.params.id;
+    const page    = Math.max(1, parseInt(req.query.page) || 1);
+    const limit   = 20;
+    const skip    = (page - 1) * limit;
+    const q       = (req.query.q || '').trim();
+
+    const filter = { ownerId };
+    if (q) {
+      filter.$or = [
+        { name:    { $regex: q, $options: 'i' } },
+        { barcode: { $regex: q, $options: 'i' } },
+      ];
+    }
+
+    const [medicines, total] = await Promise.all([
+      Medicine.find(filter).sort({ name: 1 }).skip(skip).limit(limit).select('-__v'),
+      Medicine.countDocuments(filter),
+    ]);
+
+    const today = new Date();
+    const in90  = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+
+    // Summary counts (always unfiltered for the whole pharmacy)
+    const allMeds = await Medicine.find({ ownerId }).select('batches');
+    let totalMeds = allMeds.length, lowStock = 0, outOfStock = 0, expiringSoon = 0;
+    for (const m of allMeds) {
+      const stock = m.batches.reduce((s, b) => s + b.stock, 0);
+      if (stock === 0) outOfStock++;
+      else if (stock < 10) lowStock++;
+      const hasExpiring = m.batches.some(b => new Date(b.expiryDate) <= in90 && new Date(b.expiryDate) >= today);
+      if (hasExpiring) expiringSoon++;
+    }
+
+    res.json({
+      medicines: medicines.map(m => m.toJSON()),
+      total,
+      page,
+      pages: Math.ceil(total / limit),
+      summary: { totalMeds, lowStock, outOfStock, expiringSoon },
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// DELETE /admin/pharmacy/:id — cascade delete entire pharmacy
+app.delete('/admin/pharmacy/:id', requireAdmin, async (req, res) => {
+  try {
+    const ownerId = req.params.id;
+
+    // Verify pharmacy exists
+    const owner = await User.findOne({ _id: ownerId, role: 'owner' }).lean();
+    if (!owner) return res.status(404).json({ error: 'Pharmacy not found.' });
+
+    // Cascade delete — all collections scoped to this ownerId
+    await Promise.all([
+      Medicine.deleteMany({ ownerId }),
+      StockHistory.deleteMany({ ownerId }),
+      Log.deleteMany({ ownerId }),
+      User.deleteMany({ pharmacyId: ownerId }), // staff accounts
+      OTP.deleteMany({ email: owner.email }),
+    ]);
+
+    // Delete the owner account last
+    await User.findByIdAndDelete(ownerId);
+
+    console.log(`🗑️  Admin deleted pharmacy: ${owner.pharmacyName || owner.name} (${ownerId})`);
+    res.json({ success: true, deleted: owner.pharmacyName || owner.name });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── Start ──────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
 

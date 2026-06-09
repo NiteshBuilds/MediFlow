@@ -100,6 +100,51 @@
     .pc-last-active{font-size:.72rem;color:var(--muted);text-align:right}
     .btn-view-bills{background:var(--teal);color:#fff;border:none;border-radius:6px;padding:.32rem .75rem;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s}
     .btn-view-bills:hover{background:var(--teal-md)}
+    .btn-view-meds{background:var(--purple);color:#fff;border:none;border-radius:6px;padding:.32rem .75rem;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s}
+    .btn-view-meds:hover{background:#5a30b0}
+    .btn-del-pharmacy{background:var(--red-lt);color:var(--red);border:1px solid #f5c6c2;border-radius:6px;padding:.32rem .75rem;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s}
+    .btn-del-pharmacy:hover{background:#fbd9d7}
+
+    /* ── MEDICINES MODAL ── */
+    .modal-lg{max-width:900px}
+    .med-summary{display:grid;grid-template-columns:repeat(4,1fr);gap:.65rem;margin-bottom:1rem}
+    .med-sum-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.65rem .85rem;text-align:center}
+    .med-sum-val{font-family:'Sora',sans-serif;font-size:1.3rem;font-weight:700;color:var(--teal-dk);line-height:1}
+    .med-sum-lbl{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--muted);margin-top:.22rem}
+    .med-sum-card.red .med-sum-val{color:var(--red)}
+    .med-sum-card.amber .med-sum-val{color:var(--amber)}
+    .med-search{width:100%;padding:.6rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.85rem;font-family:inherit;outline:none;margin-bottom:.85rem;transition:border-color .2s}
+    .med-search:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1)}
+    .med-table{width:100%;border-collapse:collapse;font-size:.81rem}
+    .med-table th{text-align:left;padding:.55rem .85rem;font-size:.63rem;font-weight:700;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);background:var(--surface2);border-bottom:1px solid var(--border);white-space:nowrap}
+    .med-table td{padding:.65rem .85rem;border-bottom:1px solid var(--border);vertical-align:middle}
+    .med-table tr:last-child td{border-bottom:none}
+    .med-table tr:hover td{background:var(--teal-lt)}
+    .stock-badge{display:inline-block;padding:.12rem .45rem;border-radius:999px;font-size:.68rem;font-weight:700}
+    .stock-ok{background:var(--green-lt);color:var(--green)}
+    .stock-low{background:var(--amber-lt);color:#a85f00}
+    .stock-out{background:var(--red-lt);color:var(--red)}
+    .batch-pill{display:inline-block;background:var(--teal-lt);color:var(--teal-dk);border-radius:999px;padding:.1rem .4rem;font-size:.68rem;font-weight:700;margin:.08rem}
+    .pagination{display:flex;align-items:center;justify-content:center;gap:.5rem;padding:.85rem;border-top:1px solid var(--border);flex-shrink:0}
+    .page-btn{padding:.3rem .7rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);background:var(--surface);font-size:.78rem;font-weight:600;font-family:inherit;cursor:pointer;transition:all .15s}
+    .page-btn:hover{background:var(--teal-lt);border-color:var(--teal-md)}
+    .page-btn.active{background:var(--teal);color:#fff;border-color:var(--teal)}
+    .page-btn:disabled{opacity:.4;cursor:not-allowed}
+    .readonly-notice{display:flex;align-items:center;gap:.4rem;font-size:.73rem;color:var(--muted);background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.45rem .75rem;margin-bottom:.75rem}
+
+    /* ── DELETE CONFIRM MODAL ── */
+    .del-modal{max-width:480px}
+    .del-warning{background:#fff5f5;border:1.5px solid #f5c6c2;border-radius:var(--radius-sm);padding:.85rem 1rem;margin-bottom:1rem;font-size:.82rem;color:var(--red);line-height:1.6}
+    .del-warning strong{display:block;font-size:.88rem;margin-bottom:.35rem}
+    .del-list{margin:.35rem 0 0 1rem;color:#555;font-size:.79rem;line-height:1.8}
+    .del-confirm-label{font-size:.75rem;font-weight:700;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.35rem;display:block}
+    .del-confirm-input{width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.88rem;font-family:inherit;outline:none;transition:border-color .2s;margin-bottom:.9rem}
+    .del-confirm-input:focus{border-color:var(--red);box-shadow:0 0 0 3px rgba(192,57,43,.1)}
+    .del-confirm-input.match{border-color:var(--red)}
+    .btn-confirm-del{width:100%;padding:.75rem;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s}
+    .btn-confirm-del:disabled{opacity:.35;cursor:not-allowed}
+    .btn-confirm-del:not(:disabled):hover{background:#a02020}
+    .del-progress{text-align:center;padding:1.5rem;color:var(--muted);font-size:.85rem}
 
     /* ── BILLS MODAL ── */
     .modal-backdrop{position:fixed;inset:0;background:rgba(5,20,22,.55);z-index:500;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px);opacity:0;pointer-events:none;transition:opacity .22s}
@@ -220,6 +265,56 @@
       <button class="modal-close" onclick="closeBillsModal()">✕</button>
     </div>
     <div class="modal-body" id="modal-body"></div>
+  </div>
+</div>
+
+<!-- ── MEDICINES MODAL ── -->
+<div class="modal-backdrop" id="meds-modal" onclick="closeMedsIfBackdrop(event)">
+  <div class="modal modal-lg">
+    <div class="modal-head">
+      <div class="modal-title" id="meds-modal-title">Medicines</div>
+      <button class="modal-close" onclick="closeMedsModal()">✕</button>
+    </div>
+    <div style="padding:1rem 1.4rem;flex:1;overflow-y:auto;display:flex;flex-direction:column;gap:0">
+      <div class="readonly-notice">👁️ <span>Read-only view — Admin can view inventory but cannot edit, restock, or bill.</span></div>
+      <div class="med-summary" id="meds-summary">
+        <div class="med-sum-card"><div class="med-sum-val" id="ms-total">—</div><div class="med-sum-lbl">Total</div></div>
+        <div class="med-sum-card amber"><div class="med-sum-val" id="ms-low">—</div><div class="med-sum-lbl">Low Stock</div></div>
+        <div class="med-sum-card red"><div class="med-sum-val" id="ms-out">—</div><div class="med-sum-lbl">Out of Stock</div></div>
+        <div class="med-sum-card amber"><div class="med-sum-val" id="ms-exp">—</div><div class="med-sum-lbl">Expiring Soon</div></div>
+      </div>
+      <input class="med-search" id="med-search-input" type="text" placeholder="🔍 Search by name or barcode…" oninput="onMedSearch()"/>
+      <div id="meds-table-wrap" style="overflow-x:auto;flex:1"></div>
+    </div>
+    <div class="pagination" id="meds-pagination"></div>
+  </div>
+</div>
+
+<!-- ── DELETE CONFIRM MODAL ── -->
+<div class="modal-backdrop" id="del-modal" onclick="closeDelIfBackdrop(event)">
+  <div class="modal del-modal">
+    <div class="modal-head">
+      <div class="modal-title" style="color:var(--red)">⚠️ Delete Pharmacy</div>
+      <button class="modal-close" onclick="closeDelModal()">✕</button>
+    </div>
+    <div style="padding:1.2rem 1.4rem">
+      <div class="del-warning">
+        <strong id="del-pharmacy-title">Delete Pharmacy</strong>
+        This action will permanently remove:
+        <ul class="del-list">
+          <li>Pharmacy &amp; owner account</li>
+          <li>All staff accounts</li>
+          <li>All medicines &amp; batches</li>
+          <li>All bills &amp; stock history</li>
+          <li>Activity logs &amp; restock records</li>
+          <li>All pharmacy-related records</li>
+        </ul>
+      </div>
+      <span class="del-confirm-label">Type the pharmacy name to confirm:</span>
+      <input class="del-confirm-input" id="del-confirm-input" type="text" placeholder="Type exact pharmacy name…" oninput="onDelConfirmType()"/>
+      <button class="btn-confirm-del" id="del-confirm-btn" disabled onclick="executeDelete()">🗑️ Permanently Delete Pharmacy</button>
+      <div class="del-progress" id="del-progress" style="display:none">⏳ Deleting all records…</div>
+    </div>
   </div>
 </div>
 
@@ -364,7 +459,11 @@
             <div class="pc-reg-date">📅 Registered: ${regDate}</div>
             <div class="pc-last-active" style="text-align:left;margin-top:.2rem">🕐 Last active: ${lastActive}</div>
           </div>
-          <button class="btn-view-bills" onclick="viewBills('${esc(p._id)}','${esc(p.pharmacyName !== '—' ? p.pharmacyName : p.name)}')">View Bills →</button>
+          <div style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap">
+            <button class="btn-view-meds" onclick="viewMedicines('${esc(p._id)}','${esc(p.pharmacyName !== '—' ? p.pharmacyName : p.name)}')">💊 Medicines</button>
+            <button class="btn-view-bills" onclick="viewBills('${esc(p._id)}','${esc(p.pharmacyName !== '—' ? p.pharmacyName : p.name)}')">View Bills →</button>
+            <button class="btn-del-pharmacy" onclick="openDeleteModal('${esc(p._id)}','${esc(p.pharmacyName !== '—' ? p.pharmacyName : p.name)}')">🗑️</button>
+          </div>
         </div>
       </div>`;
     }).join('');
@@ -409,7 +508,6 @@
 
   function closeBillsModal() { document.getElementById('bills-modal').classList.remove('open'); }
   function closeBillsIfBackdrop(e) { if (e.target === document.getElementById('bills-modal')) closeBillsModal(); }
-  document.addEventListener('keydown', e => { if (e.key === 'Escape') closeBillsModal(); });
 
   // ── Helpers ──────────────────────────────────────────────
   function timeAgo(dateStr) {
@@ -423,6 +521,166 @@
   function esc(s) {
     return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
   }
+
+  // ── Medicines modal ──────────────────────────────────────
+  let _medsOwnerId = '', _medsPharmacyName = '', _medsPage = 1, _medsQuery = '';
+  let _medsSearchTimer = null;
+
+  async function viewMedicines(ownerId, pharmacyName) {
+    _medsOwnerId      = ownerId;
+    _medsPharmacyName = pharmacyName;
+    _medsPage         = 1;
+    _medsQuery        = '';
+    document.getElementById('meds-modal-title').textContent = `💊 ${pharmacyName} — Medicines`;
+    document.getElementById('med-search-input').value = '';
+    document.getElementById('meds-modal').classList.add('open');
+    await loadMeds();
+  }
+
+  async function loadMeds() {
+    const wrap = document.getElementById('meds-table-wrap');
+    const pag  = document.getElementById('meds-pagination');
+    wrap.innerHTML = '<div class="loading-row">⏳ Loading medicines…</div>';
+    pag.innerHTML  = '';
+    try {
+      const url  = `/admin/pharmacy/${_medsOwnerId}/medicines?page=${_medsPage}&q=${encodeURIComponent(_medsQuery)}`;
+      const res  = await fetch(url);
+      const data = await res.json();
+      if (!res.ok) { wrap.innerHTML = `<div class="loading-row">❌ ${data.error}</div>`; return; }
+
+      // Summary
+      const s = data.summary;
+      document.getElementById('ms-total').textContent = s.totalMeds;
+      document.getElementById('ms-low').textContent   = s.lowStock;
+      document.getElementById('ms-out').textContent   = s.outOfStock;
+      document.getElementById('ms-exp').textContent   = s.expiringSoon;
+
+      if (!data.medicines.length) {
+        wrap.innerHTML = '<div class="empty-state"><div class="empty-icon">💊</div><p>No medicines found.</p></div>';
+        return;
+      }
+
+      const today = new Date();
+      const in90  = new Date(today.getTime() + 90 * 24 * 60 * 60 * 1000);
+
+      wrap.innerHTML = `<table class="med-table">
+        <thead><tr>
+          <th>Name</th><th>Barcode</th><th>Price</th><th>Stock</th><th>Batches</th><th>Expires</th><th>Added</th>
+        </tr></thead>
+        <tbody>${data.medicines.map(m => {
+          const totalStock = m.stock || 0;
+          const stockCls   = totalStock === 0 ? 'stock-out' : totalStock < 10 ? 'stock-low' : 'stock-ok';
+          const stockLbl   = totalStock === 0 ? 'Out' : totalStock < 10 ? `Low (${totalStock})` : totalStock;
+          const batches    = (m.batches || []).map(b => {
+            const exp   = b.expiryDate ? new Date(b.expiryDate) : null;
+            const expStr = exp ? exp.toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+            const isExp  = exp && exp < today;
+            const isSoon = exp && exp >= today && exp <= in90;
+            const color  = isExp ? 'style="background:#fdecea;color:var(--red)"' : isSoon ? 'style="background:var(--amber-lt);color:#a85f00"' : '';
+            return `<span class="batch-pill" ${color}>${esc(b.batchLabel||'?')}: ${b.stock} · ${expStr}</span>`;
+          }).join('');
+          const firstExp = m.batches && m.batches.length
+            ? new Date(Math.min(...m.batches.map(b => new Date(b.expiryDate)))).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' })
+            : '—';
+          const addedDate = m.createdAt ? new Date(m.createdAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
+          return `<tr>
+            <td style="font-weight:600">${esc(m.name)}</td>
+            <td style="font-family:monospace;font-size:.75rem;background:var(--teal-lt);color:var(--teal-dk);padding:.1rem .4rem;border-radius:4px">${esc(m.barcode)}</td>
+            <td>₹${Number(m.price).toFixed(2)}</td>
+            <td><span class="stock-badge ${stockCls}">${stockLbl}</span></td>
+            <td style="max-width:220px">${batches || '—'}</td>
+            <td style="font-size:.75rem">${firstExp}</td>
+            <td style="font-size:.75rem;color:var(--muted)">${addedDate}</td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>`;
+
+      // Pagination
+      if (data.pages > 1) {
+        let btns = `<button class="page-btn" onclick="medsGoPage(${_medsPage-1})" ${_medsPage<=1?'disabled':''}>← Prev</button>`;
+        for (let i = 1; i <= data.pages; i++) {
+          if (i === 1 || i === data.pages || Math.abs(i - _medsPage) <= 1)
+            btns += `<button class="page-btn ${i===_medsPage?'active':''}" onclick="medsGoPage(${i})">${i}</button>`;
+          else if (Math.abs(i - _medsPage) === 2)
+            btns += `<span style="color:var(--muted);padding:0 .2rem">…</span>`;
+        }
+        btns += `<button class="page-btn" onclick="medsGoPage(${_medsPage+1})" ${_medsPage>=data.pages?'disabled':''}>Next →</button>`;
+        btns += `<span style="font-size:.76rem;color:var(--muted)">${data.total} total</span>`;
+        pag.innerHTML = btns;
+      }
+    } catch (_) {
+      wrap.innerHTML = '<div class="loading-row">❌ Could not load medicines.</div>';
+    }
+  }
+
+  async function medsGoPage(p) { _medsPage = p; await loadMeds(); }
+
+  function onMedSearch() {
+    clearTimeout(_medsSearchTimer);
+    _medsSearchTimer = setTimeout(async () => {
+      _medsQuery = document.getElementById('med-search-input').value.trim();
+      _medsPage  = 1;
+      await loadMeds();
+    }, 350);
+  }
+
+  function closeMedsModal()              { document.getElementById('meds-modal').classList.remove('open'); }
+  function closeMedsIfBackdrop(e)        { if (e.target === document.getElementById('meds-modal')) closeMedsModal(); }
+
+  // ── Delete pharmacy ──────────────────────────────────────
+  let _delOwnerId = '', _delPharmacyName = '';
+
+  function openDeleteModal(ownerId, pharmacyName) {
+    _delOwnerId      = ownerId;
+    _delPharmacyName = pharmacyName;
+    document.getElementById('del-pharmacy-title').textContent = `Delete Pharmacy: ${pharmacyName}`;
+    document.getElementById('del-confirm-input').value = '';
+    document.getElementById('del-confirm-btn').disabled = true;
+    document.getElementById('del-progress').style.display = 'none';
+    document.getElementById('del-modal').classList.add('open');
+    setTimeout(() => document.getElementById('del-confirm-input').focus(), 200);
+  }
+
+  function onDelConfirmType() {
+    const typed   = document.getElementById('del-confirm-input').value.trim();
+    const matches = typed === _delPharmacyName;
+    document.getElementById('del-confirm-btn').disabled = !matches;
+  }
+
+  async function executeDelete() {
+    if (!_delOwnerId) return;
+    const btn = document.getElementById('del-confirm-btn');
+    const prog = document.getElementById('del-progress');
+    btn.disabled    = true;
+    prog.style.display = 'block';
+    prog.textContent   = '⏳ Deleting all records… please wait.';
+    try {
+      const res  = await fetch(`/admin/pharmacy/${_delOwnerId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (!res.ok) {
+        prog.textContent = `❌ ${data.error}`;
+        btn.disabled     = false;
+        return;
+      }
+      prog.textContent = `✅ "${data.deleted}" deleted successfully.`;
+      setTimeout(() => {
+        closeDelModal();
+        loadPharmacies(); // refresh the grid
+        loadStats();      // refresh stats
+      }, 1400);
+    } catch (e) {
+      prog.textContent = '❌ Server error. Please try again.';
+      btn.disabled     = false;
+    }
+  }
+
+  function closeDelModal()         { document.getElementById('del-modal').classList.remove('open'); }
+  function closeDelIfBackdrop(e)   { if (e.target === document.getElementById('del-modal')) closeDelModal(); }
+
+  // Close all modals on Escape
+  document.addEventListener('keydown', e => {
+    if (e.key === 'Escape') { closeBillsModal(); closeMedsModal(); closeDelModal(); }
+  });
 
   // Auto-refresh stats every 60 seconds
   setInterval(() => {
