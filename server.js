@@ -83,7 +83,8 @@ app.use(session({
 // which is the pharmacy owner's _id — used as the ownerId fence
 // on every DB query throughout the file.
 const PUBLIC_PATHS = ['/login.html', '/register.html', '/login', '/register', 
-  '/forgot-password.html', '/forgot-password', '/verify-otp', '/reset-password'];
+  '/forgot-password.html', '/forgot-password', '/verify-otp', '/reset-password',
+  '/admin.html', '/admin/login', '/admin/logout'];
 app.use((req, res, next) => {
   const isPublic   = PUBLIC_PATHS.some(p => req.path === p || req.path.startsWith(p));
   const isAsset    = req.path.match(/\.(css|js|png|jpg|ico|woff|woff2)$/);
@@ -1110,6 +1111,120 @@ io.on('connection', (socket) => {
   });
 });
 
+
+// ══════════════════════════════════════════════════════════
+//  ADMIN ROUTES — protected by ADMIN_EMAIL + ADMIN_PASSWORD
+//  env vars. Completely separate from pharmacy session.
+//  Nothing below touches any pharmacy data or existing routes.
+// ══════════════════════════════════════════════════════════
+
+// Admin auth middleware
+function requireAdmin(req, res, next) {
+  if (req.session.adminLoggedIn) return next();
+  return res.status(401).json({ error: 'Admin not logged in.' });
+}
+
+// POST /admin/login
+app.post('/admin/login', (req, res) => {
+  const { email, password } = req.body;
+  const ADMIN_EMAIL    = process.env.ADMIN_EMAIL;
+  const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
+  if (!ADMIN_EMAIL || !ADMIN_PASSWORD)
+    return res.status(500).json({ error: 'Admin credentials not configured.' });
+  if (email === ADMIN_EMAIL && password === ADMIN_PASSWORD) {
+    req.session.adminLoggedIn = true;
+    return res.json({ success: true });
+  }
+  return res.status(401).json({ error: 'Invalid admin credentials.' });
+});
+
+// POST /admin/logout
+app.post('/admin/logout', (req, res) => {
+  req.session.adminLoggedIn = false;
+  res.json({ success: true });
+});
+
+// GET /admin/stats — overview numbers
+app.get('/admin/stats', requireAdmin, async (req, res) => {
+  try {
+    const [totalPharmacies, totalMedicines, totalBills, totalRestocks] = await Promise.all([
+      User.countDocuments({ role: 'owner' }),
+      Medicine.countDocuments(),
+      StockHistory.countDocuments({ type: 'sold' }),
+      StockHistory.countDocuments({ type: 'restocked' }),
+    ]);
+    res.json({ totalPharmacies, totalMedicines, totalBills, totalRestocks });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /admin/pharmacies — full list of all registered pharmacies
+app.get('/admin/pharmacies', requireAdmin, async (req, res) => {
+  try {
+    const owners = await User.find({ role: 'owner' })
+      .select('name email pharmacyName pharmacyPhone pharmacyAddress pharmacyEmail pharmacyLicense subscriptionEnd createdAt')
+      .sort({ createdAt: -1 })
+      .lean();
+
+    // For each owner, attach activity stats
+    const enriched = await Promise.all(owners.map(async (owner) => {
+      const ownerId = owner._id;
+      const [medicineCount, billCount, restockCount, lastBill, lastRestock, staffCount] = await Promise.all([
+        Medicine.countDocuments({ ownerId }),
+        StockHistory.countDocuments({ ownerId, type: 'sold' }),
+        StockHistory.countDocuments({ ownerId, type: 'restocked' }),
+        StockHistory.findOne({ ownerId, type: 'sold' }).sort({ createdAt: -1 }).select('createdAt').lean(),
+        StockHistory.findOne({ ownerId, type: 'restocked' }).sort({ createdAt: -1 }).select('createdAt').lean(),
+        User.countDocuments({ role: 'staff', pharmacyId: ownerId }),
+      ]);
+      return {
+        _id:             ownerId,
+        name:            owner.name,
+        email:           owner.email,
+        pharmacyName:    owner.pharmacyName    || '—',
+        pharmacyPhone:   owner.pharmacyPhone   || '—',
+        pharmacyAddress: owner.pharmacyAddress || '—',
+        pharmacyEmail:   owner.pharmacyEmail   || '—',
+        pharmacyLicense: owner.pharmacyLicense || '—',
+        subscriptionEnd: owner.subscriptionEnd || null,
+        registeredAt:    owner.createdAt,
+        medicineCount,
+        billCount,
+        restockCount,
+        staffCount,
+        lastBillAt:      lastBill    ? lastBill.createdAt    : null,
+        lastRestockAt:   lastRestock ? lastRestock.createdAt : null,
+        lastActiveAt:    lastBill && lastRestock
+          ? (new Date(lastBill.createdAt) > new Date(lastRestock.createdAt) ? lastBill.createdAt : lastRestock.createdAt)
+          : (lastBill?.createdAt || lastRestock?.createdAt || null),
+      };
+    }));
+
+    res.json(enriched);
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /admin/pharmacy/:id/bills — recent bills for one pharmacy
+app.get('/admin/pharmacy/:id/bills', requireAdmin, async (req, res) => {
+  try {
+    const ownerId = req.params.id;
+    const soldRaw = await StockHistory.find({ ownerId, type: 'sold' })
+      .sort({ createdAt: -1 }).limit(100).lean();
+    const billMap = new Map();
+    for (const row of soldRaw) {
+      const key = row.billId || row._id.toString();
+      if (!billMap.has(key)) {
+        billMap.set(key, {
+          billId: key, patientName: row.patientName || '',
+          createdAt: row.createdAt, items: [], grandTotal: 0,
+        });
+      }
+      const bill = billMap.get(key);
+      bill.items.push({ medicineName: row.medicineName, quantity: row.quantity, unitPrice: row.unitPrice, lineTotal: row.lineTotal });
+      bill.grandTotal += (row.lineTotal || 0);
+    }
+    res.json([...billMap.values()].sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt)));
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
 
 // ── Start ──────────────────────────────────────────────────
 const PORT = process.env.PORT || 3000;
