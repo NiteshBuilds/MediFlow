@@ -408,7 +408,7 @@
     const rcptNo  = 'MF-' + String(bill.billId || Date.now()).slice(-7).toUpperCase();
 
     const patientLine = bill.patientName
-      ? `<div class="receipt-patient">&#128100; ${esc(bill.patientName)}${bill.patientAge ? ', Age ' + bill.patientAge : ''}${bill.patientPhone ? '  &#128222; ' + esc(bill.patientPhone) : ''}</div>`
+      ? `<div class="receipt-patient">&#128100; ${esc(bill.patientName)}${bill.patientAge ? ', Age ' + bill.patientAge : ''}</div>`
       : '';
 
     const pharmacyLines = [
