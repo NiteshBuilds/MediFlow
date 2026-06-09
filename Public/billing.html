@@ -696,6 +696,7 @@
   document.addEventListener('click', e => {
     if (!document.getElementById('ac-wrap').contains(e.target)) hideAc();
   });
+  const barcodeInput=document.getElementById('barcode-input');
   if(barcodeInput) barcodeInput.addEventListener('keydown',e=>{if(e.key==='Enter')fetchByBarcode();});
   nameInput.addEventListener('keydown', async e => {
     if(e.key!=='Enter') return;
