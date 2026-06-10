@@ -414,7 +414,7 @@
     btn.textContent = '⏳ Updating stock…';
 
     try{
-      const res  = await fetch('restock.html',{
+      const res  = await fetch('/restock',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
         body:JSON.stringify({barcode, quantity, expiryDate})

@@ -869,9 +869,9 @@ app.get('/medicine-search', requireOwner, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// POST restock.html
+// POST /restock
 // Body: { barcode, quantity, expiryDate }
-app.post('restock.html', requireOwner, async (req, res) => {
+app.post('/restock', requireOwner, async (req, res) => {
   try {
     const { barcode, quantity, expiryDate } = req.body;
     if (!barcode || !quantity || !expiryDate)
