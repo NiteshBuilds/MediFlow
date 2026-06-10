@@ -100,7 +100,7 @@ mongoose.connect(process.env.MONGODB_URI)
   .then(() => console.log('✅ MongoDB connected'))
   .catch(err => console.error('❌ MongoDB error:', err));
 
-app.get('/health', (req, res) => res.json({ status: 'ok' }));
+app.get('/health', (req, res) => res.json({ status: 'ok' });
 
 
 
@@ -869,9 +869,9 @@ app.get('/medicine-search', requireOwner, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// POST /restock
+// POST restock.html
 // Body: { barcode, quantity, expiryDate }
-app.post('/restock', requireOwner, async (req, res) => {
+app.post('restock.html', requireOwner, async (req, res) => {
   try {
     const { barcode, quantity, expiryDate } = req.body;
     if (!barcode || !quantity || !expiryDate)
@@ -1045,8 +1045,8 @@ app.get('/stock-history', requireOwner, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET /activity-logs — scoped to this pharmacy
-app.get('/activity-logs', requireOwner, async (req, res) => {
+// GET activity-logs.html — scoped to this pharmacy
+app.get('activity-logs.html', requireOwner, async (req, res) => {
   try {
     const logs = await Log
       .find({ ownerId: req.ownerId })   // 🔑

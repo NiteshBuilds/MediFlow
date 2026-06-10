@@ -108,7 +108,7 @@
     <a class="nav-item" href="add-medicine.html"><div class="nav-icon">➕</div>Add Medicine</a>
     <a class="nav-item" href="restock.html"><div class="nav-icon">♻️</div>Restock</a>
     <a class="nav-item" href="history.html"><div class="nav-icon">📜</div>History</a>
-    <a class="nav-item" href="order.html"><div class="nav-icon">📋</div>Order</a>
+    <a class="nav-item" href="orders.html"><div class="nav-icon">📋</div>Order</a>
     <div class="nav-label">Tools</div>
     <a class="nav-item" href="scanner.html"><div class="nav-icon">📷</div>Camera Scanner</a>
     <a class="nav-item active" href="activity-log.html"><div class="nav-icon">📋</div>Activity Log</a>
@@ -176,7 +176,7 @@
     const badge=document.getElementById('log-count');
     list.innerHTML='<div class="log-empty"><div class="empty-icon">⏳</div><p>Loading…</p></div>';
     try{
-      const res=await fetch('/activity-logs');
+      const res=await fetch('activity-logs.html');
       const data=await res.json();
       if(!Array.isArray(data)||!data.length){
         list.innerHTML='<div class="log-empty"><div class="empty-icon">📋</div><p>No batch shifts have happened yet.<br/>Batch shifts are recorded automatically after billing.</p></div>';

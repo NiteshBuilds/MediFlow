@@ -274,7 +274,7 @@
     <a class="nav-item" href="add-medicine.html"><div class="nav-icon">➕</div>Add Medicine</a>
     <a class="nav-item" href="restock.html"><div class="nav-icon">♻️</div>Restock</a>
     <a class="nav-item" href="history.html"><div class="nav-icon">📜</div>History</a>
-    <a class="nav-item" href="order.html"><div class="nav-icon">📋</div>Order</a>
+    <a class="nav-item" href="orders.html"><div class="nav-icon">📋</div>Order</a>
     <div class="nav-label">Tools</div>
     <a class="nav-item" href="scanner.html"><div class="nav-icon">📷</div>Camera Scanner</a>
     <a class="nav-item" href="activity-log.html"><div class="nav-icon">📋</div>Activity Log</a>
@@ -892,7 +892,7 @@
     const pPhone = document.getElementById('patient-phone').value.trim();
 
     // Generate a unique billId for this session — all line items share this ID
-    // so history.html can group them back into a single receipt
+    // so history can group them back into a single receipt
     const billId = 'BILL-' + Date.now() + '-' + Math.random().toString(36).slice(2,7).toUpperCase();
 
     try{
