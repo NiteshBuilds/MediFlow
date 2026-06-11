@@ -1070,6 +1070,54 @@ app.get('/medicine-batches/:barcode', requireOwner, async (req, res) => {
 
 
 
+// ── DELETE /medicine-batch/:barcode/:batchId ─────────────
+// Deletes ONE batch from a medicine. If after deletion the
+// medicine has zero batches left, the parent medicine document
+// is automatically removed (auto-cleanup so no empty shells
+// linger in the database). The existing
+// `DELETE /medicine/:barcode` route is untouched and still
+// removes the entire medicine in one shot.
+app.delete('/medicine-batch/:barcode/:batchId', requireOwner, async (req, res) => {
+  try {
+    const { barcode, batchId } = req.params;
+
+    // 🔑 Tenant-scoped lookup
+    const med = await Medicine.findOne({ ownerId: req.ownerId, barcode });
+    if (!med) return res.status(404).json({ error: 'Medicine not found.' });
+
+    const before = med.batches.length;
+    const target = med.batches.find(b => b._id.toString() === batchId);
+    if (!target) return res.status(404).json({ error: 'Batch not found.' });
+
+    const removedLabel = target.batchLabel || 'Unlabelled';
+    const removedStock = target.stock;
+
+    // Remove the specific batch by _id
+    med.batches = med.batches.filter(b => b._id.toString() !== batchId);
+
+    // Auto-cleanup: if no batches remain, drop the parent medicine
+    if (med.batches.length === 0) {
+      await Medicine.deleteOne({ _id: med._id, ownerId: req.ownerId });
+      console.log(`🗑️  Batch ${removedLabel} deleted from [${req.ownerId}] ${med.name}; parent medicine also removed (no batches left).`);
+      return res.json({
+        success: true,
+        medicineRemoved: true,
+        removedBatch: { label: removedLabel, stock: removedStock },
+        message: `Batch ${removedLabel} deleted. Medicine "${med.name}" had no remaining batches and was also removed.`,
+      });
+    }
+
+    await doAutoShift(med);   // re-label remaining batches A, B, C… (FEFO preserved)
+    res.json({
+      success: true,
+      medicineRemoved: false,
+      removedBatch: { label: removedLabel, stock: removedStock },
+      remainingBatches: med.batches.length,
+      message: `Batch ${removedLabel} deleted.`,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ══════════════════════════════════════════════════════════
 // EXPIRED MEDICINES — Dashboard
 // Server-side count + list of batches whose expiryDate has

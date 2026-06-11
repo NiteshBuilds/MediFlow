@@ -206,6 +206,7 @@
     <a class="nav-item" href="restock.html"><div class="nav-icon">♻️</div>Restock</a>
     <a class="nav-item" href="history.html"><div class="nav-icon">📜</div>History</a>
     <a class="nav-item" href="order.html"><div class="nav-icon">📋</div>Order</a>
+    <a class="nav-item" href="inventory.html"><div class="nav-icon">📦</div>Manage Inventory</a>
     <div class="nav-label">Tools</div>
     <a class="nav-item" href="scanner.html"><div class="nav-icon">📷</div>Camera Scanner</a>
   </nav>
@@ -746,7 +747,6 @@
       <!-- Tabs -->
       <div class="modal-tabs">
         <button class="modal-tab active" onclick="switchTab('tab-account',this)">Account Settings</button>
-        <button class="modal-tab" onclick="switchTab('tab-inventory',this)">Manage Inventory</button>
       </div>
 
       <!-- ── Tab 1: Account Settings ── -->
@@ -807,20 +807,6 @@
 
         <button class="m-btn m-btn-primary" id="p-save-btn" onclick="saveProfile()" disabled>💾 Save Changes</button>
         <div class="m-msg" id="p-msg"></div>
-      </div>
-
-      <!-- ── Tab 2: Manage Inventory ── -->
-      <div class="tab-panel" id="tab-inventory">
-        <div style="font-size:.82rem;color:var(--muted);margin-bottom:1rem;line-height:1.55;">
-          Permanently delete medicines from your pharmacy database. <strong style="color:var(--red)">This cannot be undone.</strong>
-        </div>
-        <div class="inv-list" id="inv-del-list">
-          <div class="inv-search-wrap">
-            <input type="text" id="inv-del-search" placeholder="🔍  Search medicines to delete…" oninput="filterDelList()"/>
-          </div>
-          <div id="inv-del-items"><div class="inv-empty">Loading…</div></div>
-        </div>
-        <div class="m-msg" id="inv-msg"></div>
       </div>
 
     </div>
