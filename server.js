@@ -1070,6 +1070,79 @@ app.get('/medicine-batches/:barcode', requireOwner, async (req, res) => {
 
 
 
+// ══════════════════════════════════════════════════════════
+// EXPIRED MEDICINES — Dashboard
+// Server-side count + list of batches whose expiryDate has
+// passed and which still hold stock. Uses MongoDB aggregation
+// so we only ship the rows we actually need to the client.
+// ══════════════════════════════════════════════════════════
+
+// GET /api/dashboard/expired-count
+// Returns just the integer count for the Dashboard stat card.
+// Cheap to call repeatedly (refresh button, etc).
+app.get('/api/dashboard/expired-count', requireOwner, async (req, res) => {
+  try {
+    const now = new Date();
+    const result = await Medicine.aggregate([
+      { $match: { ownerId: req.ownerId } },                  // 🔑 tenant fence
+      { $unwind: '$batches' },
+      { $match: { 'batches.stock': { $gt: 0 }, 'batches.expiryDate': { $lt: now } } },
+      { $count: 'expired' },
+    ]);
+    const count = result.length ? result[0].expired : 0;
+    res.json({ count });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/expired-medicines
+// Returns the full list of expired batches for the
+// Expired Medicines page. Sorted "most recently expired first"
+// = oldest expiryDate first (longest ago). Capped at 500 to
+// keep the payload bounded.
+app.get('/api/expired-medicines', requireOwner, async (req, res) => {
+  try {
+    const now = new Date();
+    const limit = Math.min(parseInt(req.query.limit, 10) || 500, 1000);
+
+    const rows = await Medicine.aggregate([
+      { $match: { ownerId: req.ownerId } },                  // 🔑 tenant fence
+      { $unwind: '$batches' },
+      { $match: { 'batches.stock': { $gt: 0 }, 'batches.expiryDate': { $lt: now } } },
+      {
+        $project: {
+          _id:           0,
+          name:          1,
+          barcode:       1,
+          batchLabel:    '$batches.batchLabel',
+          stock:         '$batches.stock',
+          expiryDate:    '$batches.expiryDate',
+        },
+      },
+      { $sort: { expiryDate: 1 } },    // oldest expiry first = longest expired = "most recently expired"
+      { $limit: limit },
+    ]);
+
+    // Pre-compute daysSinceExpiry on the server so the client
+    // doesn't have to repeat the math on every render.
+    const items = rows.map(r => {
+      const exp = new Date(r.expiryDate);
+      const msPerDay = 86400000;
+      // Use floor of whole calendar days — "24 days ago" style
+      const daysSinceExpiry = Math.floor((now - exp) / msPerDay);
+      return {
+        name:           r.name,
+        barcode:        r.barcode,
+        batchLabel:     r.batchLabel || 'Unlabelled',
+        stock:          r.stock,
+        expiryDate:     r.expiryDate,
+        daysSinceExpiry,
+      };
+    });
+
+    res.json({ count: items.length, items });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
 // ── DELETE /medicine/:barcode ──────────────────────────────
 // Permanently delete a medicine from this pharmacy's inventory
 app.delete('/medicine/:barcode', requireOwner, async (req, res) => {

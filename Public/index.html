@@ -58,7 +58,7 @@
     .content{flex:1;padding:1.75rem 2rem 3rem}
 
     /* ── STAT CARDS ── */
-    .stats-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:1rem;margin-bottom:1.75rem}
+    .stats-grid{display:grid;grid-template-columns:repeat(5,1fr);gap:1rem;margin-bottom:1.75rem}
     .stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:1.2rem 1.4rem;display:flex;align-items:flex-start;justify-content:space-between;box-shadow:var(--shadow-sm);transition:transform .2s,box-shadow .2s;animation:fadeUp .3s ease both}
     .stat-card:nth-child(2){animation-delay:.05s}.stat-card:nth-child(3){animation-delay:.1s}.stat-card:nth-child(4){animation-delay:.15s}
     .stat-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
@@ -67,6 +67,8 @@
     .stat-sub{font-size:.7rem;color:var(--muted);margin-top:.3rem}
     .stat-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
     .si-teal{background:var(--teal-lt)}.si-amber{background:var(--amber-lt)}.si-red{background:var(--red-lt)}.si-green{background:var(--green-lt)}
+    .stat-card.clickable{cursor:pointer;text-decoration:none;color:inherit}
+    .stat-card.clickable:hover{border-color:var(--teal-md)}
     @keyframes fadeUp{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:translateY(0)}}
 
     /* ── LOWER GRID ── */
@@ -83,7 +85,7 @@
     .qa-card:nth-child(2){animation-delay:.06s}.qa-card:nth-child(3){animation-delay:.12s}.qa-card:nth-child(4){animation-delay:.18s}
     .qa-card:hover{transform:translateY(-3px);box-shadow:var(--shadow-md);border-color:var(--teal-md)}
     .qa-icon{width:40px;height:40px;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:1.1rem;flex-shrink:0}
-    .qi-billing{background:#deeeff}.qi-add{background:var(--green-lt)}.qi-restock{background:var(--amber-lt)}.qi-scanner{background:#ede0ff}
+    .qi-billing{background:#deeeff}.qi-add{background:var(--green-lt)}.qi-restock{background:var(--amber-lt)}.qi-scanner{background:#ede0ff}.qi-expired{background:var(--red-lt)}
     .qa-label{font-size:.86rem;font-weight:700;color:var(--text);margin-bottom:.18rem}
     .qa-desc{font-size:.73rem;color:var(--muted);line-height:1.45}
 
@@ -120,6 +122,7 @@
     .inv-toggle{width:100%;padding:.62rem;background:var(--surface);border:1.5px solid var(--border-dk);border-radius:var(--radius-sm);font-size:.8rem;font-weight:600;color:var(--text-2);cursor:pointer;font-family:inherit;transition:all .18s;margin-top:.9rem;display:flex;align-items:center;justify-content:center;gap:.4rem}
     .inv-toggle:hover{background:var(--teal-lt);border-color:var(--teal-md);color:var(--teal-dk)}
 
+    @media(max-width:1280px){.stats-grid{grid-template-columns:repeat(3,1fr)}}
     @media(max-width:1100px){.stats-grid{grid-template-columns:repeat(2,1fr)}.lower-grid{grid-template-columns:1fr}}
     @media(max-width:700px){.sidebar{transform:translateX(-100%)}.main-wrap{margin-left:0}.qa-grid{grid-template-columns:1fr}}
 
@@ -237,6 +240,10 @@
         <div><div class="stat-label">Out of Stock</div><div class="stat-value" id="stat-out" style="color:var(--red)">—</div><div class="stat-sub">needs reorder</div></div>
         <div class="stat-icon si-red">🚨</div>
       </div>
+      <a class="stat-card clickable" href="expired-medicines.html" id="stat-expired-card" style="border-left:4px solid var(--red)">
+        <div><div class="stat-label">Expired</div><div class="stat-value" id="stat-expired-batches" style="color:var(--red)">—</div><div class="stat-sub">expired batches</div></div>
+        <div class="stat-icon si-red">⛔</div>
+      </a>
     </div>
 
     <div class="lower-grid">
@@ -246,7 +253,7 @@
           <a class="qa-card" href="billing.html"><div class="qa-icon qi-billing">🧾</div><div><div class="qa-label">Billing Counter</div><div class="qa-desc">Scan barcodes, build cart, print receipts.</div></div></a>
           <a class="qa-card" href="add-medicine.html"><div class="qa-icon qi-add">➕</div><div><div class="qa-label">Add Medicine</div><div class="qa-desc">Register medicines with barcode and expiry.</div></div></a>
           <a class="qa-card" href="restock.html"><div class="qa-icon qi-restock">♻️</div><div><div class="qa-label">Restock</div><div class="qa-desc">Add stock when new medicines arrive.</div></div></a>
-          <a class="qa-card" href="scanner.html"><div class="qa-icon qi-scanner">📷</div><div><div class="qa-label">Camera Scanner</div><div class="qa-desc">Scan barcodes wirelessly from phone.</div></div></a>
+          <a class="qa-card" href="expired-medicines.html" style="border-left:4px solid var(--red)"><div class="qa-icon qi-expired">⛔</div><div><div class="qa-label">Expired Medicines</div><div class="qa-desc">Batches past their expiry date with stock remaining.</div></div></a>
         </div>
 
         <div id="inventory-section" style="display:none">
@@ -320,12 +327,38 @@
         const days=Math.ceil((exp-today)/86400000); return days>=0&&days<=90;
       }).length;
       document.getElementById('stat-out').textContent=data.filter(m=>m.stock===0).length;
-      buildAlerts(data);
+      // Expired batches: server-side count for the stat card,
+      // and full list for the alert panel — both in parallel.
+      // Always render alerts immediately with the local data, then
+      // re-render once the server-supplied expired list arrives so
+      // the new ❌ Expired alert can be prepended.
+      buildAlerts(data, []);
+      Promise.all([
+        fetch('/api/dashboard/expired-count').then(r=>r.json()).catch(()=>({count:0})),
+        fetch('/api/expired-medicines').then(r=>r.json()).catch(()=>({items:[]})),
+      ]).then(([cnt, list]) => {
+        const el=document.getElementById('stat-expired-batches');
+        if(el && typeof cnt.count==='number') el.textContent = cnt.count;
+        buildAlerts(data, list.items || []);
+      });
     }catch(_){}
   }
 
-  function buildAlerts(data){
+  function buildAlerts(data, expiredItems){
     const today=new Date(),alerts=[];
+
+    // ── EXPIRED batches — from server-side route ──────────────
+    // Shown ABOVE all other alerts because expired stock is the
+    // most urgent safety concern. Click → Expired Medicines page.
+    if (Array.isArray(expiredItems) && expiredItems.length){
+      // Pick the most-urgent: longest-expired, ties broken by stock
+      const worst = expiredItems.slice().sort((a,b)=>{
+        if (a.daysSinceExpiry !== b.daysSinceExpiry) return b.daysSinceExpiry - a.daysSinceExpiry;
+        return b.stock - a.stock;
+      })[0];
+      const expStr = new Date(worst.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+      alerts.push(`<a class="alert-item danger" href="expired-medicines.html" style="text-decoration:none;cursor:pointer"><span class="alert-icon">❌</span><div class="alert-body"><strong>Expired: ${esc(worst.name)} — ${esc(worst.batchLabel)}</strong>${worst.stock} unit${worst.stock!==1?'s':''} expired on ${esc(expStr)}. View all →</div></a>`);
+    }
 
     // ── Out of stock ────────────────────────────────────────
     data.filter(m=>m.stock===0).slice(0,3).forEach(m=>
