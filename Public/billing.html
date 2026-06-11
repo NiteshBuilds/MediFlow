@@ -994,8 +994,13 @@ body:JSON.stringify({
 
   async function showNameSuggestions(q) {
     const reqId = ++_acReqId;
+    // Performance: local-first autocomplete. Only fall back to the remote
+    // /medicine-search endpoint when in-memory matches are empty (e.g. an
+    // item was restocked in another tab and hasn't been pulled yet, or the
+    // local cache hasn't loaded). This matches Restock's instant local-only
+    // search behaviour and avoids a network round-trip on every keystroke.
     const localMatches = getNameMatches(q);
-    const remoteMatches = await getNameMatchesRemote(q);
+    const remoteMatches = localMatches.length ? [] : await getNameMatchesRemote(q);
     const matches = mergeMatches(localMatches, remoteMatches);
     if (reqId !== _acReqId) return; // ignore stale results
     if (!matches.length) { hideAc(); return; }
