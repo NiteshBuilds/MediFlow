@@ -685,7 +685,12 @@ app.put('/profile', requireOwner, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// GET /me — returns session info + subscription status
+// GET /me — returns session info + subscription + suspension status
+// Modified for active-session suspension: also returns `suspended`
+// and `suspensionReason` from the SAME field already used by
+// /login + requireOwner middleware. The frontend polls this
+// every 30s (via mediflow-brand.js watcher) to detect when an
+// admin suspends an already-logged-in pharmacy.
 app.get('/me', async (req, res) => {
   if (!req.session.userId) return res.json({ loggedIn: false });
   try {
@@ -697,7 +702,7 @@ app.get('/me', async (req, res) => {
       ? user.pharmacyId
       : user._id;
 
-    // If staff, read subscription from the owner account
+    // If staff, read subscription + suspension from the owner account
     const ownerDoc = (user.role === 'staff')
       ? await User.findById(ownerId).lean()
       : user;
@@ -707,6 +712,15 @@ app.get('/me', async (req, res) => {
       ? new Date(ownerDoc.subscriptionEnd) > now
       : false;
 
+    // ── Suspension status (admin-controlled) ─────────────
+    // Same field as /login + requireOwner (user.suspensionReason).
+    // Admin accounts are not stored in this User model — they use
+    // a separate session key (req.session.adminLoggedIn) and
+    // never hit this code path on a real session.
+    const isSuspended = !!(ownerDoc && ownerDoc.isSuspended);
+    const suspensionReason = (ownerDoc && ownerDoc.suspensionReason)
+      || 'Access to MediFlow services is currently restricted.';
+
     res.json({
       loggedIn:           true,
       name:               user.name,
@@ -715,6 +729,8 @@ app.get('/me', async (req, res) => {
       ownerId:            ownerId,
       subscriptionEnd:    ownerDoc.subscriptionEnd || null,
       subscriptionActive,
+      suspended:          isSuspended,
+      suspensionReason:   isSuspended ? suspensionReason : '',
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
