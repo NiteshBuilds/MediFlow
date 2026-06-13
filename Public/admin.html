@@ -483,32 +483,76 @@
   }
 
   // ── Load dashboard ───────────────────────────────────────
+  // Each load() has its own AbortController with a 15s timeout so
+  // the Admin dashboard can never hang forever on "Loading…".
+  // If the request is slow, we show a clear error + a Retry button
+  // instead of leaving the spinner running indefinitely.
+  const ADMIN_LOAD_TIMEOUT_MS = 15000;
+
+  function fetchWithTimeout(url, opts = {}) {
+    const controller = new AbortController();
+    const t = setTimeout(() => controller.abort(), ADMIN_LOAD_TIMEOUT_MS);
+    return fetch(url, { ...opts, signal: controller.signal })
+      .finally(() => clearTimeout(t));
+  }
+
   async function loadDashboard() {
     await Promise.all([loadStats(), loadPharmacies()]);
   }
 
   async function loadStats() {
     try {
-      const res  = await fetch('/admin/stats');
+      const res = await fetchWithTimeout('/admin/stats');
       if (res.status === 401) return;
+      if (!res.ok) {
+        console.error('[ADMIN] /admin/stats returned', res.status);
+        return;
+      }
       const data = await res.json();
       document.getElementById('stat-pharmacies').textContent = data.totalPharmacies ?? '—';
       document.getElementById('stat-medicines').textContent  = data.totalMedicines  ?? '—';
       document.getElementById('stat-bills').textContent      = data.totalBills      ?? '—';
       document.getElementById('stat-restocks').textContent   = data.totalRestocks   ?? '—';
-    } catch (_) {}
+    } catch (e) {
+      console.error('[ADMIN] loadStats failed:', e && e.message);
+    }
   }
 
   async function loadPharmacies() {
     const grid = document.getElementById('pharmacy-grid');
     grid.innerHTML = '<div class="loading-row">⏳ Loading pharmacies…</div>';
     try {
-      const res  = await fetch('/admin/pharmacies');
-      if (res.status === 401) return;
+      const res = await fetchWithTimeout('/admin/pharmacies');
+      if (res.status === 401) {
+        // Session expired — bounce to login silently (admin.html will
+        // handle it; the login screen is the only public path).
+        return;
+      }
+      if (!res.ok) {
+        const text = await res.text().catch(() => '');
+        console.error('[ADMIN] /admin/pharmacies HTTP', res.status, text.slice(0, 200));
+        grid.innerHTML = `<div class="loading-row">❌ Could not load pharmacies (HTTP ${res.status}). <button class="refresh-btn" style="margin-left:.5rem" onclick="loadPharmacies()">↻ Retry</button></div>`;
+        return;
+      }
+      // Defensive: if the server ever returns non-JSON, don't crash.
+      const ct = res.headers.get('content-type') || '';
+      if (!ct.includes('application/json')) {
+        const text = await res.text();
+        console.error('[ADMIN] /admin/pharmacies non-JSON response:', text.slice(0, 200));
+        grid.innerHTML = `<div class="loading-row">❌ Server returned an unexpected response. <button class="refresh-btn" style="margin-left:.5rem" onclick="loadPharmacies()">↻ Retry</button></div>`;
+        return;
+      }
       _allPharmacies = await res.json();
+      if (!Array.isArray(_allPharmacies)) {
+        console.error('[ADMIN] /admin/pharmacies did not return an array');
+        grid.innerHTML = `<div class="loading-row">❌ Unexpected server response. <button class="refresh-btn" style="margin-left:.5rem" onclick="loadPharmacies()">↻ Retry</button></div>`;
+        return;
+      }
       sortAndRender();
-    } catch (_) {
-      grid.innerHTML = '<div class="loading-row">❌ Could not load pharmacies.</div>';
+    } catch (e) {
+      const isAbort = e && (e.name === 'AbortError' || /abort/i.test(e.message || ''));
+      console.error('[ADMIN] loadPharmacies failed:', e && e.message);
+      grid.innerHTML = `<div class="loading-row">❌ ${isAbort ? 'Server is taking too long to respond.' : 'Could not load pharmacies.'} <button class="refresh-btn" style="margin-left:.5rem" onclick="loadPharmacies()">↻ Retry</button></div>`;
     }
   }
 

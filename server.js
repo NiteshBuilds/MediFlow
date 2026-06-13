@@ -102,6 +102,26 @@ app.set('trust proxy', 1);
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
+// ── Defensive global error logging ─────────────────────────
+// connect-mongo occasionally throws asynchronous "Unable to find
+// the session to touch" errors from its store worker. They are
+// NOT fatal — they don't affect request handling — but if they
+// bubble up as unhandled rejections they can crash the Node
+// process and hang the Admin dashboard. We log them clearly so
+// Railway shows a readable line, but the server keeps running.
+process.on('unhandledRejection', (reason) => {
+  const msg = reason && reason.message ? reason.message : String(reason);
+  // Session-store retries are noisy but harmless — log concisely.
+  if (/session to touch|connect-mongo/i.test(msg)) {
+    console.warn(`[SESSION_STORE] Non-fatal session-store issue: ${msg}`);
+  } else {
+    console.error(`[UNHANDLED_REJECTION] ${msg}`);
+  }
+});
+process.on('uncaughtException', (err) => {
+  console.error(`[UNCAUGHT_EXCEPTION] ${err && err.message ? err.message : err}`);
+});
+
 const server = http.createServer(app);
 const io = new Server(server);
 
@@ -1373,6 +1393,7 @@ app.post('/admin/logout', (req, res) => {
 
 // GET /admin/stats — overview numbers
 app.get('/admin/stats', requireAdmin, async (req, res) => {
+  const startedAt = Date.now();
   try {
     const [totalPharmacies, totalMedicines, totalBills, totalRestocks] = await Promise.all([
       User.countDocuments({ role: 'owner' }),
@@ -1380,60 +1401,109 @@ app.get('/admin/stats', requireAdmin, async (req, res) => {
       StockHistory.countDocuments({ type: 'sold' }),
       StockHistory.countDocuments({ type: 'restocked' }),
     ]);
+    console.log(`[ADMIN_STATS] pharmacies=${totalPharmacies} medicines=${totalMedicines} bills=${totalBills} restocks=${totalRestocks} in ${Date.now() - startedAt}ms`);
     res.json({ totalPharmacies, totalMedicines, totalBills, totalRestocks });
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error(`[ADMIN_STATS] Failed: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /admin/pharmacies — full list of all registered pharmacies
+// Robustness: each owner is enriched in an isolated try/catch. If
+// ONE pharmacy record is malformed (or its related queries throw),
+// that single record is skipped with a console warning and the
+// Admin dashboard still loads the remaining pharmacies. The
+// endpoint never hangs the front-end spinner on a single bad row.
 app.get('/admin/pharmacies', requireAdmin, async (req, res) => {
+  const startedAt = Date.now();
   try {
     const owners = await User.find({ role: 'owner' })
       .select('name email pharmacyName pharmacyPhone pharmacyAddress pharmacyEmail pharmacyLicense subscriptionEnd isSuspended suspensionReason suspendedAt suspendedBy createdAt')
       .sort({ createdAt: -1 })
       .lean();
 
-    // For each owner, attach activity stats
-    const enriched = await Promise.all(owners.map(async (owner) => {
-      const ownerId = owner._id;
-      const [medicineCount, billCount, restockCount, lastBill, lastRestock, staffCount] = await Promise.all([
-        Medicine.countDocuments({ ownerId }),
-        StockHistory.countDocuments({ ownerId, type: 'sold' }),
-        StockHistory.countDocuments({ ownerId, type: 'restocked' }),
-        StockHistory.findOne({ ownerId, type: 'sold' }).sort({ createdAt: -1 }).select('createdAt').lean(),
-        StockHistory.findOne({ ownerId, type: 'restocked' }).sort({ createdAt: -1 }).select('createdAt').lean(),
-        User.countDocuments({ role: 'staff', pharmacyId: ownerId }),
-      ]);
-      return {
-        _id:             ownerId,
-        name:            owner.name,
-        email:           owner.email,
-        pharmacyName:    owner.pharmacyName    || '—',
-        pharmacyPhone:   owner.pharmacyPhone   || '—',
-        pharmacyAddress: owner.pharmacyAddress || '—',
-        pharmacyEmail:   owner.pharmacyEmail   || '—',
-        pharmacyLicense: owner.pharmacyLicense || '—',
-        subscriptionEnd: owner.subscriptionEnd || null,
-        registeredAt:    owner.createdAt,
-        medicineCount,
-        billCount,
-        restockCount,
-        staffCount,
-        lastBillAt:      lastBill    ? lastBill.createdAt    : null,
-        lastRestockAt:   lastRestock ? lastRestock.createdAt : null,
-        lastActiveAt:    lastBill && lastRestock
-          ? (new Date(lastBill.createdAt) > new Date(lastRestock.createdAt) ? lastBill.createdAt : lastRestock.createdAt)
-          : (lastBill?.createdAt || lastRestock?.createdAt || null),
-        // Suspension fields (so Admin dashboard can show the badge
-        // + reason + date without an extra round trip)
-        isSuspended:     !!owner.isSuspended,
-        suspensionReason:owner.suspensionReason || '',
-        suspendedAt:     owner.suspendedAt      || null,
-        suspendedBy:     owner.suspendedBy      || '',
-      };
-    }));
+    // For each owner, attach activity stats. Per-owner isolation
+    // means a single broken record can't take down the whole list.
+    const enriched = [];
+    for (const owner of owners) {
+      try {
+        const ownerId = owner._id;
+        const [medicineCount, billCount, restockCount, lastBill, lastRestock, staffCount] = await Promise.all([
+          Medicine.countDocuments({ ownerId }),
+          StockHistory.countDocuments({ ownerId, type: 'sold' }),
+          StockHistory.countDocuments({ ownerId, type: 'restocked' }),
+          StockHistory.findOne({ ownerId, type: 'sold' }).sort({ createdAt: -1 }).select('createdAt').lean(),
+          StockHistory.findOne({ ownerId, type: 'restocked' }).sort({ createdAt: -1 }).select('createdAt').lean(),
+          User.countDocuments({ role: 'staff', pharmacyId: ownerId }),
+        ]);
+        enriched.push({
+          _id:             ownerId,
+          name:            owner.name,
+          email:           owner.email,
+          pharmacyName:    owner.pharmacyName    || '—',
+          pharmacyPhone:   owner.pharmacyPhone   || '—',
+          pharmacyAddress: owner.pharmacyAddress || '—',
+          pharmacyEmail:   owner.pharmacyEmail   || '—',
+          pharmacyLicense: owner.pharmacyLicense || '—',
+          subscriptionEnd: owner.subscriptionEnd || null,
+          registeredAt:    owner.createdAt,
+          medicineCount,
+          billCount,
+          restockCount,
+          staffCount,
+          lastBillAt:      lastBill    ? lastBill.createdAt    : null,
+          lastRestockAt:   lastRestock ? lastRestock.createdAt : null,
+          lastActiveAt:    lastBill && lastRestock
+            ? (new Date(lastBill.createdAt) > new Date(lastRestock.createdAt) ? lastBill.createdAt : lastRestock.createdAt)
+            : (lastBill?.createdAt || lastRestock?.createdAt || null),
+          // Suspension fields (so Admin dashboard can show the badge
+          // + reason + date without an extra round trip)
+          isSuspended:     !!owner.isSuspended,
+          suspensionReason:owner.suspensionReason || '',
+          suspendedAt:     owner.suspendedAt      || null,
+          suspendedBy:     owner.suspendedBy      || '',
+        });
+      } catch (perPharmacyErr) {
+        // One bad record must not poison the whole response. Log
+        // clearly and skip it — the Admin still sees every other
+        // pharmacy. (suspended + active are both handled the same way)
+        console.error(`[ADMIN_PHARMACIES] Skipped pharmacy ${owner._id} (${owner.pharmacyName || owner.name || owner.email}) during enrichment: ${perPharmacyErr.message}`);
+        // Still push a minimal record so the admin can see it exists
+        // and can debug / delete it from the dashboard if needed.
+        enriched.push({
+          _id:             owner._id,
+          name:            owner.name    || '—',
+          email:           owner.email   || '—',
+          pharmacyName:    owner.pharmacyName    || '—',
+          pharmacyPhone:   owner.pharmacyPhone   || '—',
+          pharmacyAddress: owner.pharmacyAddress || '—',
+          pharmacyEmail:   owner.pharmacyEmail   || '—',
+          pharmacyLicense: owner.pharmacyLicense || '—',
+          subscriptionEnd: owner.subscriptionEnd || null,
+          registeredAt:    owner.createdAt,
+          medicineCount:   0,
+          billCount:       0,
+          restockCount:    0,
+          staffCount:      0,
+          lastBillAt:      null,
+          lastRestockAt:   null,
+          lastActiveAt:    null,
+          isSuspended:     !!owner.isSuspended,
+          suspensionReason:owner.suspensionReason || '',
+          suspendedAt:     owner.suspendedAt      || null,
+          suspendedBy:     owner.suspendedBy      || '',
+          _loadWarning:    'Stats unavailable for this pharmacy. Other pharmacies loaded normally.',
+        });
+      }
+    }
 
+    console.log(`[ADMIN_PHARMACIES] Served ${enriched.length}/${owners.length} pharmacies in ${Date.now() - startedAt}ms`);
     res.json(enriched);
-  } catch (err) { res.status(500).json({ error: err.message }); }
+  } catch (err) {
+    console.error(`[ADMIN_PHARMACIES] Fatal error: ${err.message}`);
+    res.status(500).json({ error: err.message });
+  }
 });
 
 // GET /admin/pharmacy/:id/bills — recent bills for one pharmacy
