@@ -1557,7 +1557,7 @@ app.post('/admin/pharmacy/:id/suspend', requireAdmin, async (req, res) => {
         ownerEmail:       owner.email,
         pharmacyName:     owner.pharmacyName || owner.name,
         suspensionReason: reason,
-        date:             now.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+        date:             now.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' }),
       });
     } catch (emailErr) {
       // Log but don't roll back the suspension.
