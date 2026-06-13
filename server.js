@@ -154,7 +154,13 @@ const PUBLIC_PATHS = ['/login.html', '/register.html', '/login', '/register',
 app.use((req, res, next) => {
   const isPublic   = PUBLIC_PATHS.some(p => req.path === p || req.path.startsWith(p));
   const isAsset    = req.path.match(/\.(css|js|png|jpg|ico|woff|woff2)$/);
-  const isLoggedIn = !!req.session.userId;
+  // A request is considered "authorized" if EITHER a pharmacy
+  // owner session exists (userId) OR the admin is logged in
+  // (adminLoggedIn). Without this fix the public-path guard
+  // would 401 every /admin/* API call as "Not logged in" even
+  // after a successful /admin/login, because the admin never
+  // gets a userId on the session.
+  const isLoggedIn = !!req.session.userId || !!req.session.adminLoggedIn;
   if (isLoggedIn || isPublic || isAsset) return next();
   if (req.path === '/' || req.path.endsWith('.html')) return res.redirect('/login.html');
   return res.status(401).json({ error: 'Not logged in.' });

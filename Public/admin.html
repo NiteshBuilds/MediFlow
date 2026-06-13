@@ -503,7 +503,11 @@
   async function loadStats() {
     try {
       const res = await fetchWithTimeout('/admin/stats');
-      if (res.status === 401) return;
+      if (res.status === 401) {
+        // Session expired — bounce to the admin login screen.
+        doAdminLogout();
+        return;
+      }
       if (!res.ok) {
         console.error('[ADMIN] /admin/stats returned', res.status);
         return;
@@ -524,8 +528,8 @@
     try {
       const res = await fetchWithTimeout('/admin/pharmacies');
       if (res.status === 401) {
-        // Session expired — bounce to login silently (admin.html will
-        // handle it; the login screen is the only public path).
+        // Session expired — bounce to the admin login screen.
+        doAdminLogout();
         return;
       }
       if (!res.ok) {
