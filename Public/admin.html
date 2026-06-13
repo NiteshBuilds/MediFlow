@@ -175,6 +175,50 @@
 
     @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
     @keyframes spin{to{transform:rotate(360deg)}}
+
+    /* ── SUSPEND / UNSUSPEND ── */
+    .pc-status.suspended{background:var(--red-lt);color:var(--red)}
+    .pc-suspend-banner{background:linear-gradient(135deg,#fdecea 0%,#fff5f5 100%);border:1px solid #f5c6c2;border-radius:var(--radius-sm);padding:.55rem .8rem;margin-bottom:.7rem;display:flex;align-items:flex-start;gap:.5rem}
+    .pc-suspend-banner-icon{font-size:1rem;line-height:1.2;flex-shrink:0}
+    .pc-suspend-banner-body{flex:1;min-width:0}
+    .pc-suspend-banner-title{font-size:.7rem;font-weight:800;color:var(--red);text-transform:uppercase;letter-spacing:.06em;margin-bottom:.15rem}
+    .pc-suspend-banner-reason{font-size:.78rem;color:#7a1a1a;font-weight:600;line-height:1.4;word-break:break-word}
+    .pc-suspend-banner-date{font-size:.68rem;color:#a04848;margin-top:.2rem}
+
+    .btn-suspend-pharmacy{background:#fff5e6;color:#a85f00;border:1px solid #f6d9a8;border-radius:6px;padding:.32rem .75rem;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s}
+    .btn-suspend-pharmacy:hover{background:#fde6c2;border-color:#e8870a}
+    .btn-unsuspend-pharmacy{background:var(--green-lt);color:var(--green);border:1px solid #a7d9be;border-radius:6px;padding:.32rem .75rem;font-size:.75rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s}
+    .btn-unsuspend-pharmacy:hover{background:#cdebd9;border-color:var(--green)}
+
+    /* ── SUSPEND MODAL ── */
+    .suspend-modal{max-width:520px}
+    .suspend-intro{font-size:.84rem;color:var(--text-2);line-height:1.55;margin-bottom:1rem}
+    .suspend-intro strong{color:var(--text)}
+    .suspend-reasons{display:flex;flex-direction:column;gap:.55rem;margin-bottom:1rem}
+    .suspend-reason{display:flex;align-items:flex-start;gap:.65rem;padding:.7rem .85rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .15s;background:var(--surface2)}
+    .suspend-reason:hover{border-color:var(--border-dk);background:#fff}
+    .suspend-reason.selected{border-color:var(--red);background:#fff5f5;box-shadow:0 0 0 3px rgba(192,57,43,.08)}
+    .suspend-reason input{margin-top:.2rem;accent-color:var(--red);cursor:pointer;flex-shrink:0}
+    .suspend-reason-body{flex:1;min-width:0}
+    .suspend-reason-title{font-size:.85rem;font-weight:700;color:var(--text);margin-bottom:.1rem}
+    .suspend-reason-desc{font-size:.72rem;color:var(--muted);line-height:1.4}
+    .suspend-warning{background:#fff8e6;border:1px solid #f6e5a0;border-radius:var(--radius-sm);padding:.6rem .8rem;font-size:.76rem;color:#7a4a00;line-height:1.5;margin-bottom:1rem;display:flex;gap:.5rem;align-items:flex-start}
+    .btn-confirm-suspend{width:100%;padding:.75rem;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:.4rem}
+    .btn-confirm-suspend:disabled{opacity:.35;cursor:not-allowed}
+    .btn-confirm-suspend:not(:disabled):hover{background:#a02020}
+
+    /* ── UNSUSPEND MODAL ── */
+    .unsuspend-modal{max-width:440px}
+    .unsuspend-body{font-size:.85rem;color:var(--text-2);line-height:1.6;margin-bottom:1rem}
+    .unsuspend-body strong{color:var(--text)}
+    .unsuspend-info{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.65rem .85rem;margin-bottom:1rem;font-size:.78rem;color:var(--text-2)}
+    .unsuspend-info-row{display:flex;justify-content:space-between;padding:.15rem 0;gap:.6rem}
+    .unsuspend-info-row .lbl{color:var(--muted);font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;flex-shrink:0}
+    .unsuspend-info-row .val{font-weight:600;text-align:right;word-break:break-word}
+    .btn-confirm-unsuspend{width:100%;padding:.75rem;background:var(--green);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s;display:flex;align-items:center;justify-content:center;gap:.4rem}
+    .btn-confirm-unsuspend:hover{background:#14613a}
+
+    .modal-progress{text-align:center;padding:1.5rem;color:var(--muted);font-size:.85rem}
   </style>
 </head>
 <body>
@@ -318,6 +362,87 @@
   </div>
 </div>
 
+<!-- ── SUSPEND PHARMACY MODAL ── -->
+<div class="modal-backdrop" id="suspend-modal" onclick="closeSuspendIfBackdrop(event)">
+  <div class="modal suspend-modal">
+    <div class="modal-head">
+      <div class="modal-title" style="color:#a85f00">⏸️ Suspend Pharmacy</div>
+      <button class="modal-close" onclick="closeSuspendModal()">✕</button>
+    </div>
+    <div style="padding:1.2rem 1.4rem">
+      <div class="suspend-intro">
+        You are about to suspend <strong id="suspend-pharmacy-name">—</strong>.
+        The pharmacy owner and all staff will be <strong>blocked from logging in</strong> and lose access to every protected page. All data (medicines, batches, bills, history, staff) is preserved and fully restored on unsuspension.
+      </div>
+
+      <div class="suspend-reasons" id="suspend-reasons">
+        <label class="suspend-reason" data-reason="Account Verification Required">
+          <input type="radio" name="suspend-reason" value="Account Verification Required"/>
+          <div class="suspend-reason-body">
+            <div class="suspend-reason-title">Account Verification Required</div>
+            <div class="suspend-reason-desc">Owner has not completed the verification process or submitted required documents.</div>
+          </div>
+        </label>
+        <label class="suspend-reason" data-reason="Policy Violation">
+          <input type="radio" name="suspend-reason" value="Policy Violation"/>
+          <div class="suspend-reason-body">
+            <div class="suspend-reason-title">Policy Violation</div>
+            <div class="suspend-reason-desc">Pharmacy has violated MediFlow terms of service or usage policy.</div>
+          </div>
+        </label>
+        <label class="suspend-reason" data-reason="Subscription / Payment Issue">
+          <input type="radio" name="suspend-reason" value="Subscription / Payment Issue"/>
+          <div class="suspend-reason-body">
+            <div class="suspend-reason-title">Subscription / Payment Issue</div>
+            <div class="suspend-reason-desc">Outstanding subscription fee or failed payment that needs resolution.</div>
+          </div>
+        </label>
+        <label class="suspend-reason" data-reason="Suspicious Activity Detected">
+          <input type="radio" name="suspend-reason" value="Suspicious Activity Detected"/>
+          <div class="suspend-reason-body">
+            <div class="suspend-reason-title">Suspicious Activity Detected</div>
+            <div class="suspend-reason-desc">Unusual access patterns or potential security concerns detected on the account.</div>
+          </div>
+        </label>
+        <label class="suspend-reason" data-reason="Temporary Administrative Review">
+          <input type="radio" name="suspend-reason" value="Temporary Administrative Review"/>
+          <div class="suspend-reason-body">
+            <div class="suspend-reason-title">Temporary Administrative Review</div>
+            <div class="suspend-reason-desc">Account is being reviewed by the MediFlow administration team.</div>
+          </div>
+        </label>
+      </div>
+
+      <div class="suspend-warning">⚠️ <span>The owner will be notified by email. You can unsuspend the pharmacy at any time — full access is restored instantly with no data loss.</span></div>
+
+      <button class="btn-confirm-suspend" id="suspend-confirm-btn" disabled onclick="executeSuspend()">⏸️ Suspend Pharmacy</button>
+      <div class="modal-progress" id="suspend-progress" style="display:none">⏳ Suspending…</div>
+    </div>
+  </div>
+</div>
+
+<!-- ── UNSUSPEND PHARMACY MODAL ── -->
+<div class="modal-backdrop" id="unsuspend-modal" onclick="closeUnsuspendIfBackdrop(event)">
+  <div class="modal unsuspend-modal">
+    <div class="modal-head">
+      <div class="modal-title" style="color:var(--green)">▶️ Unsuspend Pharmacy</div>
+      <button class="modal-close" onclick="closeUnsuspendModal()">✕</button>
+    </div>
+    <div style="padding:1.2rem 1.4rem">
+      <div class="unsuspend-body">
+        You are about to <strong>reactivate <span id="unsuspend-pharmacy-name">—</span></strong>. The pharmacy owner and staff will immediately regain access to MediFlow with all their existing data intact.
+      </div>
+      <div class="unsuspend-info">
+        <div class="unsuspend-info-row"><span class="lbl">Reason</span><span class="val" id="unsuspend-info-reason">—</span></div>
+        <div class="unsuspend-info-row"><span class="lbl">Suspended on</span><span class="val" id="unsuspend-info-date">—</span></div>
+        <div class="unsuspend-info-row"><span class="lbl">Suspended by</span><span class="val" id="unsuspend-info-by">—</span></div>
+      </div>
+      <button class="btn-confirm-unsuspend" id="unsuspend-confirm-btn" onclick="executeUnsuspend()">▶️ Confirm & Reactivate</button>
+      <div class="modal-progress" id="unsuspend-progress" style="display:none">⏳ Reactivating…</div>
+    </div>
+  </div>
+</div>
+
 <script>
   let _allPharmacies = [];
 
@@ -422,23 +547,48 @@
       const regDate    = p.registeredAt ? new Date(p.registeredAt).toLocaleDateString('en-IN', { day:'2-digit', month:'short', year:'numeric' }) : '—';
       const lastActive = p.lastActiveAt  ? timeAgo(p.lastActiveAt) : 'No activity yet';
       const lastBill   = p.lastBillAt    ? timeAgo(p.lastBillAt)   : 'Never';
+      const pharmacyLabel = esc(p.pharmacyName !== '—' ? p.pharmacyName : p.name);
+      const ownerIdSafe   = esc(p._id);
 
-      // Status: active if billed in last 7 days, idle if registered >7 days ago with no bills, new if registered <3 days
-      const daysSinceReg   = p.registeredAt  ? (Date.now() - new Date(p.registeredAt)) / 86400000  : 999;
-      const daysSinceBill  = p.lastBillAt    ? (Date.now() - new Date(p.lastBillAt))   / 86400000  : 999;
-      const status = daysSinceBill <= 7 ? 'active' : daysSinceReg <= 3 ? 'new' : 'idle';
-      const statusLabel = status === 'active' ? '● Active' : status === 'new' ? '★ New' : '○ Idle';
+      // Status logic — suspension always wins over activity-based status
+      let status, statusLabel;
+      if (p.isSuspended) {
+        status      = 'suspended';
+        statusLabel = '⏸ Suspended';
+      } else {
+        const daysSinceReg   = p.registeredAt  ? (Date.now() - new Date(p.registeredAt)) / 86400000  : 999;
+        const daysSinceBill  = p.lastBillAt    ? (Date.now() - new Date(p.lastBillAt))   / 86400000  : 999;
+        status = daysSinceBill <= 7 ? 'active' : daysSinceReg <= 3 ? 'new' : 'idle';
+        statusLabel = status === 'active' ? '● Active' : status === 'new' ? '★ New' : '○ Idle';
+      }
+
+      // Suspension banner (only on suspended cards)
+      const suspensionBanner = p.isSuspended ? `
+        <div class="pc-suspend-banner">
+          <div class="pc-suspend-banner-icon">⏸</div>
+          <div class="pc-suspend-banner-body">
+            <div class="pc-suspend-banner-title">Account Suspended</div>
+            <div class="pc-suspend-banner-reason">Reason: ${esc(p.suspensionReason || '—')}</div>
+            <div class="pc-suspend-banner-date">Suspended on: ${p.suspendedAt ? new Date(p.suspendedAt).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' }) : '—'}${p.suspendedBy ? ' • by ' + esc(p.suspendedBy) : ''}</div>
+          </div>
+        </div>` : '';
+
+      // Suspend vs Unsuspend button
+      const suspendBtn = p.isSuspended
+        ? `<button class="btn-unsuspend-pharmacy" onclick="openUnsuspendModal('${ownerIdSafe}','${pharmacyLabel}','${esc(p.suspensionReason || '')}','${esc(p.suspendedAt || '')}','${esc(p.suspendedBy || '')}')">▶ Unsuspend</button>`
+        : `<button class="btn-suspend-pharmacy" onclick="openSuspendModal('${ownerIdSafe}','${pharmacyLabel}')">⏸ Suspend</button>`;
 
       return `
       <div class="pharmacy-card">
         <div class="pc-head">
           <div>
-            <div class="pc-pharmacy-name">${esc(p.pharmacyName !== '—' ? p.pharmacyName : p.name)}</div>
+            <div class="pc-pharmacy-name">${pharmacyLabel}</div>
             <div class="pc-owner">👤 ${esc(p.name)}</div>
           </div>
           <div class="pc-status ${status}">${statusLabel}</div>
         </div>
         <div class="pc-body">
+          ${suspensionBanner}
           <div class="pc-stats">
             <div class="pc-stat"><div class="pc-stat-val">${p.medicineCount}</div><div class="pc-stat-lbl">Medicines</div></div>
             <div class="pc-stat"><div class="pc-stat-val">${p.billCount}</div><div class="pc-stat-lbl">Bills</div></div>
@@ -460,9 +610,10 @@
             <div class="pc-last-active" style="text-align:left;margin-top:.2rem">🕐 Last active: ${lastActive}</div>
           </div>
           <div style="display:flex;gap:.45rem;align-items:center;flex-wrap:wrap">
-            <button class="btn-view-meds" onclick="viewMedicines('${esc(p._id)}','${esc(p.pharmacyName !== '—' ? p.pharmacyName : p.name)}')">💊 Medicines</button>
-            <button class="btn-view-bills" onclick="viewBills('${esc(p._id)}','${esc(p.pharmacyName !== '—' ? p.pharmacyName : p.name)}')">View Bills →</button>
-            <button class="btn-del-pharmacy" onclick="openDeleteModal('${esc(p._id)}','${esc(p.pharmacyName !== '—' ? p.pharmacyName : p.name)}')">🗑️</button>
+            ${suspendBtn}
+            <button class="btn-view-meds" onclick="viewMedicines('${ownerIdSafe}','${pharmacyLabel}')">💊 Medicines</button>
+            <button class="btn-view-bills" onclick="viewBills('${ownerIdSafe}','${pharmacyLabel}')">View Bills →</button>
+            <button class="btn-del-pharmacy" onclick="openDeleteModal('${ownerIdSafe}','${pharmacyLabel}')">🗑️</button>
           </div>
         </div>
       </div>`;
@@ -677,9 +828,121 @@
   function closeDelModal()         { document.getElementById('del-modal').classList.remove('open'); }
   function closeDelIfBackdrop(e)   { if (e.target === document.getElementById('del-modal')) closeDelModal(); }
 
+  // ── Suspend pharmacy ────────────────────────────────
+  let _suspendOwnerId = '', _suspendPharmacyName = '', _suspendSelectedReason = '';
+
+  function openSuspendModal(ownerId, pharmacyName) {
+    _suspendOwnerId      = ownerId;
+    _suspendPharmacyName = pharmacyName;
+    _suspendSelectedReason = '';
+    document.getElementById('suspend-pharmacy-name').textContent = pharmacyName;
+    // Reset reason selection
+    document.querySelectorAll('input[name="suspend-reason"]').forEach(r => { r.checked = false; });
+    document.querySelectorAll('.suspend-reason').forEach(l => l.classList.remove('selected'));
+    document.getElementById('suspend-confirm-btn').disabled = true;
+    document.getElementById('suspend-progress').style.display = 'none';
+    document.getElementById('suspend-progress').textContent = '⏳ Suspending…';
+    document.getElementById('suspend-modal').classList.add('open');
+  }
+
+  // Listen for reason selection (delegated)
+  document.addEventListener('change', e => {
+    if (e.target && e.target.name === 'suspend-reason') {
+      _suspendSelectedReason = e.target.value;
+      document.querySelectorAll('.suspend-reason').forEach(l => l.classList.remove('selected'));
+      e.target.closest('.suspend-reason').classList.add('selected');
+      document.getElementById('suspend-confirm-btn').disabled = false;
+    }
+  });
+
+  async function executeSuspend() {
+    if (!_suspendOwnerId || !_suspendSelectedReason) return;
+    const btn   = document.getElementById('suspend-confirm-btn');
+    const prog  = document.getElementById('suspend-progress');
+    btn.disabled    = true;
+    prog.style.display = 'block';
+    prog.textContent   = '⏳ Suspending pharmacy & sending notification…';
+    try {
+      const res  = await fetch(`/admin/pharmacy/${_suspendOwnerId}/suspend`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ reason: _suspendSelectedReason }),
+      });
+      const data = await res.json();
+      if (!res.ok) {
+        prog.textContent = `❌ ${data.error || 'Failed to suspend.'}`;
+        btn.disabled     = false;
+        return;
+      }
+      const emailNote = data.email && data.email.skipped
+        ? ' (email skipped — EMAILJS_SUSPEND_TEMPLATE_ID not configured)'
+        : data.email && data.email.sent
+          ? ' • notification sent'
+          : '';
+      prog.textContent = `✅ "${_suspendPharmacyName}" suspended${emailNote}.`;
+      setTimeout(() => {
+        closeSuspendModal();
+        loadPharmacies(); // refresh grid — suspended card will show new banner + Unsuspend button
+      }, 1300);
+    } catch (err) {
+      prog.textContent = '❌ Server error. Please try again.';
+      btn.disabled     = false;
+    }
+  }
+
+  function closeSuspendModal()         { document.getElementById('suspend-modal').classList.remove('open'); }
+  function closeSuspendIfBackdrop(e)   { if (e.target === document.getElementById('suspend-modal')) closeSuspendModal(); }
+
+  // ── Unsuspend pharmacy ──────────────────────────────
+  let _unsuspendOwnerId = '';
+
+  function openUnsuspendModal(ownerId, pharmacyName, reason, suspendedAt, suspendedBy) {
+    _unsuspendOwnerId = ownerId;
+    document.getElementById('unsuspend-pharmacy-name').textContent = pharmacyName;
+    document.getElementById('unsuspend-info-reason').textContent   = reason || '—';
+    document.getElementById('unsuspend-info-date').textContent     = suspendedAt
+      ? new Date(suspendedAt).toLocaleString('en-IN', { day:'2-digit', month:'short', year:'numeric', hour:'2-digit', minute:'2-digit' })
+      : '—';
+    document.getElementById('unsuspend-info-by').textContent       = suspendedBy || '—';
+    document.getElementById('unsuspend-confirm-btn').disabled       = false;
+    document.getElementById('unsuspend-progress').style.display     = 'none';
+    document.getElementById('unsuspend-progress').textContent       = '⏳ Reactivating…';
+    document.getElementById('unsuspend-modal').classList.add('open');
+  }
+
+  async function executeUnsuspend() {
+    if (!_unsuspendOwnerId) return;
+    const btn  = document.getElementById('unsuspend-confirm-btn');
+    const prog = document.getElementById('unsuspend-progress');
+    btn.disabled    = true;
+    prog.style.display = 'block';
+    prog.textContent   = '⏳ Reactivating pharmacy…';
+    try {
+      const res  = await fetch(`/admin/pharmacy/${_unsuspendOwnerId}/unsuspend`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok) {
+        prog.textContent = `❌ ${data.error || 'Failed to unsuspend.'}`;
+        btn.disabled     = false;
+        return;
+      }
+      prog.textContent = '✅ Pharmacy reactivated. Owner can now log in.';
+      setTimeout(() => {
+        closeUnsuspendModal();
+        loadPharmacies();
+        loadStats();
+      }, 1300);
+    } catch (err) {
+      prog.textContent = '❌ Server error. Please try again.';
+      btn.disabled     = false;
+    }
+  }
+
+  function closeUnsuspendModal()         { document.getElementById('unsuspend-modal').classList.remove('open'); }
+  function closeUnsuspendIfBackdrop(e)   { if (e.target === document.getElementById('unsuspend-modal')) closeUnsuspendModal(); }
+
   // Close all modals on Escape
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') { closeBillsModal(); closeMedsModal(); closeDelModal(); }
+    if (e.key === 'Escape') { closeBillsModal(); closeMedsModal(); closeDelModal(); closeSuspendModal(); closeUnsuspendModal(); }
   });
 
   // Auto-refresh stats every 60 seconds

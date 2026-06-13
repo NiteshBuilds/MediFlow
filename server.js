@@ -46,6 +46,52 @@ function sendEmailJS(toEmail, passcode) {
   });
 }
 
+// ── Suspension email (uses EMAILJS_SUSPEND_TEMPLATE_ID) ────
+// Failsafe: if env var missing, log a warning and return without
+// throwing — suspension must still succeed in the database.
+async function sendSuspensionEmailJS({ ownerName, ownerEmail, pharmacyName, suspensionReason, date }) {
+  const templateId = process.env.EMAILJS_SUSPEND_TEMPLATE_ID;
+  if (!templateId) {
+    console.warn('[SUSPEND_EMAIL] EMAILJS_SUSPEND_TEMPLATE_ID not set — skipping email. Suspension still recorded.');
+    return { skipped: true };
+  }
+  const payload = JSON.stringify({
+    service_id:  process.env.EMAILJS_SERVICE_ID,
+    template_id: templateId,
+    user_id:     process.env.EMAILJS_PUBLIC_KEY,
+    accessToken: process.env.EMAILJS_PRIVATE_KEY,
+    template_params: {
+      ownerName:        ownerName        || '',
+      ownerEmail:       ownerEmail       || '',
+      pharmacyName:     pharmacyName     || '',
+      suspensionReason: suspensionReason || '',
+      date:             date             || ''
+    }
+  });
+  return new Promise((resolve, reject) => {
+    const options = {
+      hostname: 'api.emailjs.com',
+      path:     '/api/v1.0/email/send',
+      method:   'POST',
+      headers:  {
+        'Content-Type':   'application/json',
+        'Content-Length': Buffer.byteLength(payload)
+      }
+    };
+    const req = https.request(options, res => {
+      let data = '';
+      res.on('data', chunk => data += chunk);
+      res.on('end', () => {
+        if (res.statusCode === 200) resolve({ sent: true });
+        else reject(new Error(`EmailJS suspend error ${res.statusCode}: ${data}`));
+      });
+    });
+    req.on('error', reject);
+    req.write(payload);
+    req.end();
+  });
+}
+
 const app = express();
 
 // Required for Render (and any reverse proxy): tells Express to trust
@@ -149,6 +195,17 @@ const userSchema = new mongoose.Schema({
 
   // ── Subscription ─────────────────────────────────────────
   subscriptionEnd: { type: Date, default: null },
+
+  // ── Suspension (admin-controlled) ────────────────────────
+  // When isSuspended is true, the pharmacy owner and all their
+  // staff are blocked from logging in and from every protected
+  // API endpoint (enforced in requireOwner + /login).
+  // Data is never deleted on suspension — medicines, batches,
+  // bills, history, and staff are fully preserved.
+  isSuspended:     { type: Boolean, default: false, index: true },
+  suspensionReason:{ type: String,  default: '' },
+  suspendedAt:     { type: Date,    default: null },
+  suspendedBy:     { type: String,  default: '' },   // admin email who suspended
 
 }, { timestamps: true });
 
@@ -265,6 +322,31 @@ async function requireOwner(req, res, next) {
       req.ownerId   = user._id;
       req.userRole  = 'owner';
     }
+
+    // ── Suspension guard ───────────────────────────────────
+    // If the OWNER account is suspended, block ALL access for
+    // both the owner and their staff. Suspended data is never
+    // returned; the same 403 + reason is used for every route.
+    if (req.userRole === 'owner' && user.isSuspended) {
+      return res.status(403).json({
+        error:           'Account suspended.',
+        suspended:       true,
+        reason:          user.suspensionReason || 'Access to MediFlow services is currently restricted.',
+        suspendedAt:     user.suspendedAt || null,
+      });
+    }
+    if (req.userRole === 'staff' && user.pharmacyId) {
+      // Look up owner once to check suspension status
+      const owner = await User.findById(user.pharmacyId).select('isSuspended suspensionReason').lean();
+      if (owner && owner.isSuspended) {
+        return res.status(403).json({
+          error:           'Account suspended.',
+          suspended:       true,
+          reason:          owner.suspensionReason || 'Access to MediFlow services is currently restricted.',
+          suspendedAt:     null,
+        });
+      }
+    }
     next();
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -366,6 +448,30 @@ app.post('/login', async (req, res) => {
 
     const match = await bcrypt.compare(password, user.password);
     if (!match) return res.status(401).json({ error: 'Incorrect password. Please try again.' });
+
+    // ── Suspension guard (login) ───────────────────────────
+    // For owners, check the owner's own status. For staff,
+    // check the pharmacy owner's status — a staff member of a
+    // suspended pharmacy must also be blocked.
+    if (user.role === 'owner' && user.isSuspended) {
+      return res.status(403).json({
+        error:           'Account suspended.',
+        suspended:       true,
+        reason:          user.suspensionReason || 'Access to MediFlow services is currently restricted.',
+        suspendedAt:     user.suspendedAt || null,
+      });
+    }
+    if (user.role === 'staff' && user.pharmacyId) {
+      const owner = await User.findById(user.pharmacyId).select('isSuspended suspensionReason').lean();
+      if (owner && owner.isSuspended) {
+        return res.status(403).json({
+          error:           'Account suspended.',
+          suspended:       true,
+          reason:          owner.suspensionReason || 'Access to MediFlow services is currently restricted.',
+          suspendedAt:     null,
+        });
+      }
+    }
 
     req.session.userId   = user._id;
     req.session.userName = user.name;
@@ -1282,7 +1388,7 @@ app.get('/admin/stats', requireAdmin, async (req, res) => {
 app.get('/admin/pharmacies', requireAdmin, async (req, res) => {
   try {
     const owners = await User.find({ role: 'owner' })
-      .select('name email pharmacyName pharmacyPhone pharmacyAddress pharmacyEmail pharmacyLicense subscriptionEnd createdAt')
+      .select('name email pharmacyName pharmacyPhone pharmacyAddress pharmacyEmail pharmacyLicense subscriptionEnd isSuspended suspensionReason suspendedAt suspendedBy createdAt')
       .sort({ createdAt: -1 })
       .lean();
 
@@ -1317,6 +1423,12 @@ app.get('/admin/pharmacies', requireAdmin, async (req, res) => {
         lastActiveAt:    lastBill && lastRestock
           ? (new Date(lastBill.createdAt) > new Date(lastRestock.createdAt) ? lastBill.createdAt : lastRestock.createdAt)
           : (lastBill?.createdAt || lastRestock?.createdAt || null),
+        // Suspension fields (so Admin dashboard can show the badge
+        // + reason + date without an extra round trip)
+        isSuspended:     !!owner.isSuspended,
+        suspensionReason:owner.suspensionReason || '',
+        suspendedAt:     owner.suspendedAt      || null,
+        suspendedBy:     owner.suspendedBy      || '',
       };
     }));
 
@@ -1389,6 +1501,115 @@ app.get('/admin/pharmacy/:id/medicines', requireAdmin, async (req, res) => {
       page,
       pages: Math.ceil(total / limit),
       summary: { totalMeds, lowStock, outOfStock, expiringSoon },
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// ══════════════════════════════════════════════════════════
+// SUSPEND / UNSUSPEND PHARMACY (admin only)
+// Marks an account as suspended; preserves ALL data
+// (medicines, batches, bills, history, staff, inventory).
+// Reactivation clears the flag — no manual DB changes needed.
+// EmailJS is fired with EMAILJS_SUSPEND_TEMPLATE_ID; if that
+// env var is missing the email is skipped (warning logged)
+// but the suspension itself still succeeds.
+// ══════════════════════════════════════════════════════════
+
+const VALID_SUSPENSION_REASONS = [
+  'Account Verification Required',
+  'Policy Violation',
+  'Subscription / Payment Issue',
+  'Suspicious Activity Detected',
+  'Temporary Administrative Review',
+];
+
+// POST /admin/pharmacy/:id/suspend
+// Body: { reason }  — must be one of VALID_SUSPENSION_REASONS
+app.post('/admin/pharmacy/:id/suspend', requireAdmin, async (req, res) => {
+  try {
+    const ownerId = req.params.id;
+    const reason  = String(req.body.reason || '').trim();
+
+    if (!VALID_SUSPENSION_REASONS.includes(reason))
+      return res.status(400).json({ error: 'Invalid suspension reason.' });
+
+    const owner = await User.findOne({ _id: ownerId, role: 'owner' });
+    if (!owner) return res.status(404).json({ error: 'Pharmacy not found.' });
+
+    // Idempotent: re-suspending an already-suspended account just
+    // refreshes the reason + timestamp. Prevents accidental error
+    // on a double-click.
+    const now    = new Date();
+    const wasSuspended = !!owner.isSuspended;
+    owner.isSuspended      = true;
+    owner.suspensionReason = reason;
+    owner.suspendedAt      = now;
+    owner.suspendedBy      = process.env.ADMIN_EMAIL || 'admin';
+    await owner.save();
+
+    // Fire-and-await the suspension email. If EMAILJS_SUSPEND_TEMPLATE_ID
+    // is missing, the helper resolves with { skipped: true } and we
+    // do NOT fail the request — the suspension is already persisted.
+    let emailResult = { skipped: true };
+    try {
+      emailResult = await sendSuspensionEmailJS({
+        ownerName:        owner.name,
+        ownerEmail:       owner.email,
+        pharmacyName:     owner.pharmacyName || owner.name,
+        suspensionReason: reason,
+        date:             now.toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' }),
+      });
+    } catch (emailErr) {
+      // Log but don't roll back the suspension.
+      console.error('[SUSPEND_EMAIL] Failed to send:', emailErr.message);
+    }
+
+    console.log(`⏸️  Admin ${owner.suspendedBy} suspended pharmacy: ${owner.pharmacyName || owner.name} (${ownerId}) — reason: "${reason}" ${wasSuspended ? '[re-suspend]' : ''}`);
+
+    res.json({
+      success:         true,
+      alreadySuspended:wasSuspended,
+      pharmacy: {
+        _id:              owner._id,
+        isSuspended:      true,
+        suspensionReason: owner.suspensionReason,
+        suspendedAt:      owner.suspendedAt,
+        suspendedBy:      owner.suspendedBy,
+      },
+      email: emailResult,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /admin/pharmacy/:id/unsuspend
+// Body: none. Reactivates the account — no data loss.
+app.post('/admin/pharmacy/:id/unsuspend', requireAdmin, async (req, res) => {
+  try {
+    const ownerId = req.params.id;
+    const owner = await User.findOne({ _id: ownerId, role: 'owner' });
+    if (!owner) return res.status(404).json({ error: 'Pharmacy not found.' });
+
+    if (!owner.isSuspended)
+      return res.json({ success: true, alreadyActive: true, message: 'Pharmacy is already active.' });
+
+    const wasReason  = owner.suspensionReason;
+    owner.isSuspended      = false;
+    owner.suspensionReason = '';
+    owner.suspendedAt      = null;
+    owner.suspendedBy      = '';
+    await owner.save();
+
+    console.log(`▶️  Admin unsuspended pharmacy: ${owner.pharmacyName || owner.name} (${ownerId}) — was reason: "${wasReason}"`);
+
+    res.json({
+      success: true,
+      pharmacy: {
+        _id:              owner._id,
+        isSuspended:      false,
+        suspensionReason: '',
+        suspendedAt:      null,
+        suspendedBy:      '',
+      },
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });

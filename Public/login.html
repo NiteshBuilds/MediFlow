@@ -85,6 +85,22 @@
     .form-switch a:hover{text-decoration:underline}
 
     @media(max-width:680px){.brand-panel{display:none}.login-wrap{max-width:440px}}
+
+    /* ── SUSPENDED ACCOUNT VIEW ── */
+    #suspended-view{display:none;width:100%;max-width:520px;background:var(--surface);border:1px solid var(--border);border-radius:20px;box-shadow:var(--shadow-lg);overflow:hidden;position:relative;z-index:1;animation:popIn .35s ease}
+    .suspend-head{background:linear-gradient(160deg,#a02020 0%,#c0392b 60%,#d4503f 100%);padding:1.7rem 2rem 1.4rem;text-align:center;position:relative;overflow:hidden}
+    .suspend-head::before{content:'';position:absolute;inset:0;background-image:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px);background-size:24px 24px;pointer-events:none}
+    .suspend-head-icon{width:64px;height:64px;background:rgba(255,255,255,.15);border:2px solid rgba(255,255,255,.25);border-radius:50%;display:flex;align-items:center;justify-content:center;margin:0 auto .85rem;font-size:1.8rem;position:relative;z-index:1}
+    .suspend-head-title{font-family:'Sora',sans-serif;font-size:1.15rem;font-weight:700;color:#fff;position:relative;z-index:1;line-height:1.3}
+    .suspend-head-sub{font-size:.75rem;color:rgba(255,255,255,.7);margin-top:.3rem;position:relative;z-index:1}
+    .suspend-body{padding:1.6rem 2rem 1.8rem}
+    .suspend-msg{font-size:.85rem;color:var(--text-2);line-height:1.6;margin-bottom:1rem;text-align:center}
+    .suspend-reason-box{background:#fff5f5;border:1.5px solid #f5c6c2;border-radius:var(--radius-sm);padding:.85rem 1rem;margin-bottom:.9rem}
+    .suspend-reason-lbl{font-size:.65rem;font-weight:800;text-transform:uppercase;letter-spacing:.08em;color:var(--red);margin-bottom:.3rem}
+    .suspend-reason-val{font-size:.88rem;color:#7a1a1a;font-weight:700;line-height:1.4}
+    .suspend-detail{font-size:.75rem;color:var(--muted);text-align:center;line-height:1.55;margin-bottom:1.3rem;padding:0 .3rem}
+    .btn-suspend-return{width:100%;padding:.75rem;background:var(--teal);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s;box-shadow:0 2px 8px rgba(13,107,110,.25);display:flex;align-items:center;justify-content:center;gap:.4rem}
+    .btn-suspend-return:hover{background:var(--teal-md);transform:translateY(-1px);box-shadow:0 4px 14px rgba(13,107,110,.3)}
   </style>
 </head>
 <body>
@@ -153,6 +169,29 @@
 
 </div>
 
+<!-- ── SUSPENDED ACCOUNT VIEW (toggled by login response) ── -->
+<div id="suspended-view">
+  <div class="suspend-head">
+    <div class="suspend-head-icon">⏸</div>
+    <div class="suspend-head-title">Account Temporarily Suspended</div>
+    <div class="suspend-head-sub">Access to MediFlow has been restricted</div>
+  </div>
+  <div class="suspend-body">
+    <div class="suspend-msg">
+      Your MediFlow pharmacy account has been temporarily suspended by the system administrator.
+    </div>
+    <div class="suspend-reason-box">
+      <div class="suspend-reason-lbl">Reason</div>
+      <div class="suspend-reason-val" id="suspended-reason-text">Access to MediFlow services is currently restricted.</div>
+    </div>
+    <div class="suspend-detail">
+      If you believe this suspension was applied in error or require further clarification, please contact the MediFlow administration team.<br/><br/>
+      Thank you for your understanding and cooperation.
+    </div>
+    <button class="btn-suspend-return" id="suspended-return-btn" onclick="returnToLogin()">← Return to Login</button>
+  </div>
+</div>
+
 <script>
   fetch('/me').then(r=>r.json()).then(d=>{if(d.loggedIn)window.location.href='/index.html';});
   document.addEventListener('keydown',e=>{if(e.key==='Enter')doLogin();});
@@ -180,6 +219,15 @@
     try{
       const res=await fetch('/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({email,password})});
       const data=await res.json();
+
+      // ── Suspension: 403 + suspended:true → show full suspension view
+      // (active pharmacies fall through to the normal flow below)
+      if(res.status === 403 && data && data.suspended === true){
+        showSuspendedView(data.reason || 'Access to MediFlow services is currently restricted.');
+        btn.disabled=false;btn.innerHTML='Sign In →';
+        return;
+      }
+
       if(!res.ok){
         fails++;
         // Show autofill tip on repeated failures
@@ -210,6 +258,38 @@
   function show(id,msg){const b=document.getElementById(id);b.textContent=msg;b.classList.add('show');}
   function showHtml(id,html){const b=document.getElementById(id);b.innerHTML=html;b.classList.add('show');}
   function hide(id){const b=document.getElementById(id);b.classList.remove('show');}
+
+  // ── Suspended-account view ───────────────────────────────
+  // Hides the regular login form, reveals the full suspension
+  // screen. No technical info is exposed. "Return to Login"
+  // brings the form back so the user can try a different account.
+  function showSuspendedView(reason){
+    const wrap    = document.querySelector('.login-wrap');
+    const susView = document.getElementById('suspended-view');
+    document.getElementById('suspended-reason-text').textContent =
+      reason || 'Access to MediFlow services is currently restricted.';
+    if (wrap)    wrap.style.display    = 'none';
+    if (susView) susView.style.display = 'block';
+  }
+
+  function returnToLogin(){
+    const wrap    = document.querySelector('.login-wrap');
+    const susView = document.getElementById('suspended-view');
+    if (susView) susView.style.display = 'none';
+    if (wrap)    wrap.style.display    = 'flex';
+    // Clear sensitive fields when leaving the suspension view
+    document.getElementById('email').value    = '';
+    document.getElementById('password').value = '';
+    hide('err-box'); hide('ok-box');
+    fails = 0;
+    document.getElementById('tip-box').style.display = 'none';
+    const pw  = document.getElementById('password');
+    const eye = document.getElementById('pw-eye');
+    pw.type  = 'password';
+    eye.textContent = '👁';
+    eye.title = 'Show password';
+    setTimeout(() => document.getElementById('email').focus(), 100);
+  }
 </script>
 <script src="/js/mediflow-brand.js"></script>
 <script src="/js/mediflow-splash.js"></script>
