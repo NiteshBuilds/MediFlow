@@ -82,7 +82,7 @@
     .empty-title{font-family:'Sora',sans-serif;font-size:1rem;font-weight:600;color:var(--text);margin-bottom:.25rem}
     .empty-text{font-size:.82rem;color:var(--muted);line-height:1.5;max-width:380px;margin:0 auto}
 
-    /* ── COMPACT MEDICINE CARDS (horizontal layout) ── */
+    /* ── COMPACT MEDICINE CARDS (horizontal layout — mirrors Total Medicines) ── */
     .batch-list{display:flex;flex-direction:column;gap:.5rem}
     .batch-card{
       background:var(--surface);
@@ -100,7 +100,6 @@
     }
     .batch-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);border-left-color:#c5730a}
 
-    .bc-name-wrap{min-width:0}
     .bc-name{
       font-family:'Sora',sans-serif;
       font-size:.92rem;
@@ -109,12 +108,21 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+      min-width:0;
+    }
+    .bc-name-sub{
+      font-family:monospace;
+      font-size:.66rem;
+      color:var(--muted);
+      margin-top:.05rem;
+      letter-spacing:.02em;
     }
 
     .bc-cell{display:flex;flex-direction:column;gap:.05rem;min-width:0}
     .bc-cell-label{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);line-height:1}
     .bc-cell-value{font-weight:700;color:var(--text);font-size:.88rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
     .bc-stock-low .bc-cell-value{color:var(--amber)}
+    .bc-stock-out .bc-cell-value{color:var(--red)}
 
     .bc-actions{display:flex;gap:.4rem;justify-content:flex-end;align-items:center}
     .bc-btn{
@@ -138,6 +146,7 @@
 
     @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
+    /* Tablet: condense to 2 rows — identical breakpoints to Total Medicines */
     @media(max-width:1100px){
       .batch-card{
         grid-template-columns:1fr 1fr auto;
@@ -154,8 +163,10 @@
       .bc-cell[data-key="batches"]{grid-area:s2}
       .bc-cell[data-key="price"]{grid-area:s3}
       .bc-cell[data-key="barcode"]{grid-area:barcode;flex-direction:row;gap:.4rem}
+      .bc-cell[data-key="barcode"] .bc-cell-label{margin-right:.15rem}
     }
 
+    /* Mobile: stack — identical to Total Medicines */
     @media(max-width:700px){
       .sidebar{transform:translateX(-100%)}
       .main-wrap{margin-left:0}
@@ -277,7 +288,7 @@
       const stockClass = stockNum === 0 ? 'bc-stock-out' : 'bc-stock-low';
       return `
       <div class="batch-card">
-        <div class="bc-name-wrap">
+        <div>
           <div class="bc-name" title="${esc(m.name)}">${esc(m.name)}</div>
         </div>
         <div class="bc-cell ${stockClass}" data-key="stock">

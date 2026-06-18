@@ -82,7 +82,7 @@
     .empty-title{font-family:'Sora',sans-serif;font-size:1rem;font-weight:600;color:var(--text);margin-bottom:.25rem}
     .empty-text{font-size:.82rem;color:var(--muted);line-height:1.5;max-width:380px;margin:0 auto}
 
-    /* ── COMPACT MEDICINE CARDS (horizontal layout) ── */
+    /* ── COMPACT MEDICINE CARDS (horizontal layout — mirrors Total Medicines) ── */
     .batch-list{display:flex;flex-direction:column;gap:.5rem}
     .batch-card{
       background:var(--surface);
@@ -92,7 +92,7 @@
       padding:.55rem .9rem;
       box-shadow:var(--shadow-sm);
       display:grid;
-      grid-template-columns:minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, .9fr) minmax(0, 1fr) auto;
+      grid-template-columns:minmax(0, 1.6fr) repeat(4, minmax(0, 1fr)) auto;
       align-items:center;
       gap:.65rem;
       transition:transform .15s,box-shadow .15s,border-color .15s;
@@ -100,7 +100,6 @@
     }
     .batch-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);border-left-color:#8b2519}
 
-    .bc-name-wrap{min-width:0;display:flex;flex-direction:column;gap:.05rem}
     .bc-name{
       font-family:'Sora',sans-serif;
       font-size:.92rem;
@@ -109,8 +108,15 @@
       white-space:nowrap;
       overflow:hidden;
       text-overflow:ellipsis;
+      min-width:0;
     }
-    .bc-batch{font-family:monospace;font-size:.66rem;color:var(--red);font-weight:600;letter-spacing:.02em}
+    .bc-name-sub{
+      font-family:monospace;
+      font-size:.66rem;
+      color:var(--muted);
+      margin-top:.05rem;
+      letter-spacing:.02em;
+    }
 
     .bc-cell{display:flex;flex-direction:column;gap:.05rem;min-width:0}
     .bc-cell-label{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);line-height:1}
@@ -139,13 +145,15 @@
 
     @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
-    @media(max-width:1200px){
+    /* Tablet: condense to 2 rows — identical breakpoints to Total Medicines */
+    @media(max-width:1100px){
       .batch-card{
         grid-template-columns:1fr 1fr auto;
         grid-template-areas:
           "name name actions"
           "s1 s2 s3"
-          "s4 s5 s5";
+          "s4 s4 s4"
+          "barcode barcode barcode";
         row-gap:.45rem;
         padding:.65rem .9rem;
       }
@@ -154,10 +162,11 @@
       .bc-cell[data-key="batch"]{grid-area:s1}
       .bc-cell[data-key="stock"]{grid-area:s2}
       .bc-cell[data-key="expiry"]{grid-area:s3}
-      .bc-cell[data-key="days"]{grid-area:s4}
-      .bc-cell[data-key="barcode"]{grid-area:s5;flex-direction:row;gap:.4rem}
+      .bc-cell[data-key="days"]{grid-area:s4;flex-direction:row;gap:.4rem}
+      .bc-cell[data-key="barcode"]{grid-area:barcode;flex-direction:row;gap:.4rem}
     }
 
+    /* Mobile: stack — identical to Total Medicines */
     @media(max-width:700px){
       .sidebar{transform:translateX(-100%)}
       .main-wrap{margin-left:0}
@@ -177,6 +186,7 @@
       }
       .bc-actions{justify-content:flex-start;flex-wrap:wrap}
       .bc-cell[data-key="barcode"]{flex-direction:row;gap:.4rem}
+      .bc-cell[data-key="days"]{flex-direction:row;gap:.4rem}
     }
   </style>
 </head>
@@ -281,7 +291,7 @@
       <div class="batch-card">
         <div class="bc-name-wrap">
           <div class="bc-name" title="${esc(m.name)}">${esc(m.name)}</div>
-          <div class="bc-batch">${esc(m.batchLabel)}</div>
+          <div class="bc-name-sub">${esc(m.batchLabel)}</div>
         </div>
         <div class="bc-cell" data-key="batch">
           <span class="bc-cell-label">Batch</span>
