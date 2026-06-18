@@ -55,58 +55,151 @@
     .topbar-pill{display:flex;align-items:center;gap:.4rem;padding:.28rem .7rem;background:var(--teal-lt);border:1px solid var(--border-dk);border-radius:999px;font-size:.72rem;font-weight:600;color:var(--teal-dk)}
     .live-dot{width:6px;height:6px;border-radius:50%;background:var(--teal-md);animation:pulse 2s infinite}
     @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
-    .content{flex:1;padding:1.75rem 2rem 3rem}
+    .content{flex:1;padding:1.5rem 2rem 2rem}
 
     /* ── HEADER STRIP ── */
-    .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
-    .page-title{font-family:'Sora',sans-serif;font-size:1.4rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:.55rem}
-    .page-sub{font-size:.82rem;color:var(--muted);margin-top:.25rem}
-    .summary-strip{display:flex;gap:.6rem;flex-wrap:wrap}
-    .summary-chip{display:flex;align-items:center;gap:.45rem;padding:.42rem .8rem;background:var(--surface);border:1px solid var(--border);border-radius:999px;font-size:.78rem;font-weight:600;color:var(--text-2);box-shadow:var(--shadow-sm)}
+    .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:1rem;flex-wrap:wrap}
+    .page-title{font-family:'Sora',sans-serif;font-size:1.3rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:.55rem}
+    .page-sub{font-size:.8rem;color:var(--muted);margin-top:.2rem}
+    .summary-strip{display:flex;gap:.5rem;flex-wrap:wrap}
+    .summary-chip{display:flex;align-items:center;gap:.4rem;padding:.38rem .7rem;background:var(--surface);border:1px solid var(--border);border-radius:999px;font-size:.76rem;font-weight:600;color:var(--text-2);box-shadow:var(--shadow-sm)}
     .summary-chip.teal{background:var(--teal-lt);border-color:var(--border-dk);color:var(--teal-dk)}
-    .summary-chip .chip-num{font-family:'Sora',sans-serif;font-size:1.02rem;font-weight:700}
+    .summary-chip .chip-num{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700}
 
     /* ── TOOLBAR (search + sort) ── */
-    .toolbar{display:flex;align-items:center;gap:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:.7rem 1rem;margin-bottom:1rem;box-shadow:var(--shadow-sm);flex-wrap:wrap}
+    .toolbar{display:flex;align-items:center;gap:.65rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:.55rem .9rem;margin-bottom:.85rem;box-shadow:var(--shadow-sm);flex-wrap:wrap}
     .search-wrap{flex:1;min-width:240px;position:relative}
-    .search-wrap input{width:100%;padding:.55rem .9rem .55rem 2.2rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.85rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+    .search-wrap input{width:100%;padding:.5rem .85rem .5rem 2.1rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.84rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
     .search-wrap input:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1);background:#fff}
-    .search-icon{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem;pointer-events:none}
-    .toolbar-meta{font-size:.75rem;color:var(--muted);white-space:nowrap}
+    .search-icon{position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.88rem;pointer-events:none}
+    .toolbar-meta{font-size:.74rem;color:var(--muted);white-space:nowrap}
     .toolbar-meta strong{color:var(--text);font-weight:700}
-    .sort-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+    .sort-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
 
     /* ── EMPTY STATE ── */
-    .empty-state{padding:3.5rem 2rem;background:var(--surface);border:1px dashed var(--border-dk);border-radius:var(--radius-lg);text-align:center;animation:fadeUp .3s ease}
-    .empty-icon{font-size:2.5rem;margin-bottom:.75rem;opacity:.55}
-    .empty-title{font-family:'Sora',sans-serif;font-size:1.05rem;font-weight:600;color:var(--text);margin-bottom:.3rem}
-    .empty-text{font-size:.85rem;color:var(--muted);line-height:1.5;max-width:380px;margin:0 auto}
+    .empty-state{padding:3rem 2rem;background:var(--surface);border:1px dashed var(--border-dk);border-radius:var(--radius-lg);text-align:center;animation:fadeUp .3s ease}
+    .empty-icon{font-size:2.2rem;margin-bottom:.6rem;opacity:.55}
+    .empty-title{font-family:'Sora',sans-serif;font-size:1rem;font-weight:600;color:var(--text);margin-bottom:.25rem}
+    .empty-text{font-size:.82rem;color:var(--muted);line-height:1.5;max-width:380px;margin:0 auto}
 
-    /* ── MEDICINE CARDS ── */
-    .batch-list{display:flex;flex-direction:column;gap:.85rem}
-    .batch-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--teal-md);border-radius:var(--radius-lg);padding:1.1rem 1.25rem;box-shadow:var(--shadow-sm);display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:center;transition:transform .18s,box-shadow .18s;animation:fadeUp .25s ease both}
-    .batch-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
-    .batch-card .bc-name{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:var(--text);margin-bottom:.15rem}
-    .bc-meta{display:flex;flex-wrap:wrap;gap:.85rem 1.4rem;font-size:.78rem;color:var(--text-2)}
-    .bc-meta-item{display:flex;flex-direction:column;gap:.15rem}
-    .bc-meta-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
-    .bc-meta-value{font-weight:600;color:var(--text);font-size:.84rem}
-    .bc-right{display:flex;flex-direction:column;align-items:flex-end;gap:.4rem;min-width:130px}
-    .bc-manage-btn{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .9rem;background:var(--surface);color:var(--teal-dk);border:1.5px solid var(--teal-md);border-radius:var(--radius-sm);font-size:.76rem;font-weight:700;font-family:inherit;cursor:pointer;text-decoration:none;transition:all .18s;white-space:nowrap}
+    /* ── COMPACT MEDICINE CARDS (horizontal layout) ── */
+    .batch-list{display:flex;flex-direction:column;gap:.5rem}
+    .batch-card{
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-left:3px solid var(--teal-md);
+      border-radius:var(--radius);
+      padding:.55rem .9rem;
+      box-shadow:var(--shadow-sm);
+      display:grid;
+      grid-template-columns:minmax(0, 1.6fr) repeat(4, minmax(0, 1fr)) auto;
+      align-items:center;
+      gap:.65rem;
+      transition:transform .15s,box-shadow .15s,border-color .15s;
+      animation:fadeUp .22s ease both;
+    }
+    .batch-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);border-left-color:var(--teal-dk)}
+
+    /* Name cell */
+    .bc-name{
+      font-family:'Sora',sans-serif;
+      font-size:.92rem;
+      font-weight:700;
+      color:var(--text);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+      min-width:0;
+    }
+    .bc-name-sub{
+      font-family:monospace;
+      font-size:.66rem;
+      color:var(--muted);
+      margin-top:.05rem;
+      letter-spacing:.02em;
+    }
+
+    /* Metric cells (Stock / Batches / Price / Barcode) */
+    .bc-cell{display:flex;flex-direction:column;gap:.05rem;min-width:0}
+    .bc-cell-label{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);line-height:1}
+    .bc-cell-value{font-weight:700;color:var(--text);font-size:.88rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+    /* Stock value with badge variant for low/out-of-stock */
+    .bc-stock-low .bc-cell-value{color:var(--amber)}
+    .bc-stock-out .bc-cell-value{color:var(--red)}
+
+    /* Actions cluster on the right */
+    .bc-actions{display:flex;gap:.4rem;justify-content:flex-end;align-items:center}
+    .bc-btn{
+      display:inline-flex;align-items:center;gap:.3rem;
+      padding:.38rem .7rem;
+      border-radius:var(--radius-sm);
+      font-size:.74rem;
+      font-weight:700;
+      font-family:inherit;
+      cursor:pointer;
+      text-decoration:none;
+      white-space:nowrap;
+      transition:all .16s;
+      line-height:1;
+    }
+    .bc-manage-btn{
+      background:var(--surface);
+      color:var(--teal-dk);
+      border:1.4px solid var(--teal-md);
+    }
     .bc-manage-btn:hover{background:var(--teal-lt);transform:translateY(-1px)}
-    .bc-manage-btn:active{transform:translateY(0)}
-    .bc-restock-btn{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .9rem;background:var(--teal);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.76rem;font-weight:700;font-family:inherit;cursor:pointer;text-decoration:none;transition:all .18s;box-shadow:0 2px 8px rgba(13,107,110,.25);white-space:nowrap}
-    .bc-restock-btn:hover{background:var(--teal-md);transform:translateY(-1px);box-shadow:0 4px 12px rgba(13,107,110,.3)}
-    .bc-restock-btn:active{transform:translateY(0)}
-    .bc-btn-row{display:flex;gap:.5rem;flex-wrap:wrap;justify-content:flex-end}
-    .stock-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.32rem .7rem;background:var(--teal-lt);color:var(--teal-dk);border:1px solid var(--border-dk);border-radius:999px;font-size:.78rem;font-weight:700}
-    .stock-badge .sb-num{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700}
-    .bc-barcode{font-family:monospace;font-size:.7rem;color:var(--muted);margin-top:.1rem}
+    .bc-restock-btn{
+      background:var(--teal);
+      color:#fff;
+      border:1.4px solid var(--teal);
+      box-shadow:0 2px 6px rgba(13,107,110,.22);
+    }
+    .bc-restock-btn:hover{background:var(--teal-md);border-color:var(--teal-md);transform:translateY(-1px);box-shadow:0 3px 10px rgba(13,107,110,.3)}
+    .bc-btn:active{transform:translateY(0)}
 
-    @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
-    @media(max-width:1100px){.batch-card{grid-template-columns:1fr}.bc-right{flex-direction:row;align-items:center;justify-content:flex-start}}
-    @media(max-width:700px){.sidebar{transform:translateX(-100%)}.main-wrap{margin-left:0}.toolbar{flex-direction:column;align-items:stretch}}
+    /* Tablet: condense to 2 rows */
+    @media(max-width:1100px){
+      .batch-card{
+        grid-template-columns:1fr 1fr auto;
+        grid-template-areas:
+          "name name actions"
+          "s1 s2 s3"
+          "barcode barcode barcode";
+        row-gap:.45rem;
+        padding:.65rem .9rem;
+      }
+      .bc-name-wrap{grid-area:name}
+      .bc-actions{grid-area:actions}
+      .bc-cell[data-key="stock"]{grid-area:s1}
+      .bc-cell[data-key="batches"]{grid-area:s2}
+      .bc-cell[data-key="price"]{grid-area:s3}
+      .bc-cell[data-key="barcode"]{grid-area:barcode;flex-direction:row;gap:.4rem}
+      .bc-cell[data-key="barcode"] .bc-cell-label{margin-right:.15rem}
+    }
+
+    /* Mobile: stack */
+    @media(max-width:700px){
+      .sidebar{transform:translateX(-100%)}
+      .main-wrap{margin-left:0}
+      .toolbar{flex-direction:column;align-items:stretch}
+      .batch-card{
+        grid-template-columns:1fr;
+        grid-template-areas:
+          "name"
+          "s1"
+          "s2"
+          "s3"
+          "barcode"
+          "actions";
+        padding:.7rem .85rem;
+        gap:.4rem;
+      }
+      .bc-actions{justify-content:flex-start;flex-wrap:wrap}
+      .bc-cell[data-key="barcode"]{flex-direction:row;gap:.4rem}
+    }
   </style>
 </head>
 <body>
@@ -213,25 +306,36 @@
       return;
     }
 
-    host.innerHTML = `<div class="batch-list">${items.map(m => `
+    host.innerHTML = `<div class="batch-list">${items.map(m => {
+      const stockNum = Number(m.stock) || 0;
+      const stockClass = stockNum === 0 ? 'bc-stock-out' : (stockNum < 10 ? 'bc-stock-low' : '');
+      return `
       <div class="batch-card">
-        <div>
-          <div class="bc-name">${esc(m.name)}</div>
-          <div class="bc-meta">
-            <div class="bc-meta-item"><span class="bc-meta-label">Stock</span><span class="bc-meta-value">${m.stock} units</span></div>
-            <div class="bc-meta-item"><span class="bc-meta-label">Batches</span><span class="bc-meta-value">${m.batchCount}</span></div>
-            <div class="bc-meta-item"><span class="bc-meta-label">Price</span><span class="bc-meta-value">₹${Number(m.price).toFixed(2)}</span></div>
-          </div>
+        <div class="bc-name-wrap">
+          <div class="bc-name" title="${esc(m.name)}">${esc(m.name)}</div>
         </div>
-        <div class="bc-right">
-          <div class="stock-badge"><span class="sb-num">${m.stock}</span><span>in stock</span></div>
-          <div class="bc-barcode">${esc(m.barcode)}</div>
-          <a class="bc-manage-btn" href="inventory.html?barcode=${encodeURIComponent(m.barcode)}">📦 Manage Inventory</a>
-          <div class="bc-btn-row">
-            <a class="bc-restock-btn" href="restock.html?barcode=${encodeURIComponent(m.barcode)}">♻️ Restock</a>
-          </div>
+        <div class="bc-cell ${stockClass}" data-key="stock">
+          <span class="bc-cell-label">Stock</span>
+          <span class="bc-cell-value">${m.stock} units</span>
         </div>
-      </div>`).join('')}</div>`;
+        <div class="bc-cell" data-key="batches">
+          <span class="bc-cell-label">Batches</span>
+          <span class="bc-cell-value">${m.batchCount}</span>
+        </div>
+        <div class="bc-cell" data-key="price">
+          <span class="bc-cell-label">Price</span>
+          <span class="bc-cell-value">₹${Number(m.price).toFixed(2)}</span>
+        </div>
+        <div class="bc-cell" data-key="barcode">
+          <span class="bc-cell-label">Barcode</span>
+          <span class="bc-cell-value">${esc(m.barcode)}</span>
+        </div>
+        <div class="bc-actions">
+          <a class="bc-btn bc-manage-btn" href="inventory.html?barcode=${encodeURIComponent(m.barcode)}">📦 Manage</a>
+          <a class="bc-btn bc-restock-btn" href="restock.html?barcode=${encodeURIComponent(m.barcode)}">♻️ Restock</a>
+        </div>
+      </div>`;
+    }).join('')}</div>`;
   }
 
   document.getElementById('search-input').addEventListener('input', e=>{
