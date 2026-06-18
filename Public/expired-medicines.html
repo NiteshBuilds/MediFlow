@@ -55,65 +55,138 @@
     .topbar-pill{display:flex;align-items:center;gap:.4rem;padding:.28rem .7rem;background:var(--teal-lt);border:1px solid var(--border-dk);border-radius:999px;font-size:.72rem;font-weight:600;color:var(--teal-dk)}
     .live-dot{width:6px;height:6px;border-radius:50%;background:var(--teal-md);animation:pulse 2s infinite}
     @keyframes pulse{0%,100%{opacity:1;transform:scale(1)}50%{opacity:.5;transform:scale(.85)}}
-    .content{flex:1;padding:1.75rem 2rem 3rem}
+    .content{flex:1;padding:1.5rem 2rem 2rem}
 
     /* ── HEADER STRIP ── */
-    .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:1.25rem;flex-wrap:wrap}
-    .page-title{font-family:'Sora',sans-serif;font-size:1.4rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:.55rem}
-    .page-sub{font-size:.82rem;color:var(--muted);margin-top:.25rem}
-    .summary-strip{display:flex;gap:.6rem;flex-wrap:wrap}
-    .summary-chip{display:flex;align-items:center;gap:.45rem;padding:.42rem .8rem;background:var(--surface);border:1px solid var(--border);border-radius:999px;font-size:.78rem;font-weight:600;color:var(--text-2);box-shadow:var(--shadow-sm)}
+    .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:1rem;margin-bottom:1rem;flex-wrap:wrap}
+    .page-title{font-family:'Sora',sans-serif;font-size:1.3rem;font-weight:700;color:var(--text);display:flex;align-items:center;gap:.55rem}
+    .page-sub{font-size:.8rem;color:var(--muted);margin-top:.2rem}
+    .summary-strip{display:flex;gap:.5rem;flex-wrap:wrap}
+    .summary-chip{display:flex;align-items:center;gap:.4rem;padding:.38rem .7rem;background:var(--surface);border:1px solid var(--border);border-radius:999px;font-size:.76rem;font-weight:600;color:var(--text-2);box-shadow:var(--shadow-sm)}
     .summary-chip.danger{background:var(--red-lt);border-color:#f5c6c2;color:#7a1a1a}
-    .summary-chip .chip-num{font-family:'Sora',sans-serif;font-size:1.02rem;font-weight:700}
+    .summary-chip .chip-num{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700}
 
     /* ── TOOLBAR (search + sort) ── */
-    .toolbar{display:flex;align-items:center;gap:.75rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:.7rem 1rem;margin-bottom:1rem;box-shadow:var(--shadow-sm);flex-wrap:wrap}
+    .toolbar{display:flex;align-items:center;gap:.65rem;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:.55rem .9rem;margin-bottom:.85rem;box-shadow:var(--shadow-sm);flex-wrap:wrap}
     .search-wrap{flex:1;min-width:240px;position:relative}
-    .search-wrap input{width:100%;padding:.55rem .9rem .55rem 2.2rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.85rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+    .search-wrap input{width:100%;padding:.5rem .85rem .5rem 2.1rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.84rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
     .search-wrap input:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1);background:#fff}
-    .search-icon{position:absolute;left:.75rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.9rem;pointer-events:none}
-    .toolbar-meta{font-size:.75rem;color:var(--muted);white-space:nowrap}
+    .search-icon{position:absolute;left:.7rem;top:50%;transform:translateY(-50%);color:var(--muted);font-size:.88rem;pointer-events:none}
+    .toolbar-meta{font-size:.74rem;color:var(--muted);white-space:nowrap}
     .toolbar-meta strong{color:var(--text);font-weight:700}
-    .sort-label{font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
+    .sort-label{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
 
     /* ── BANNER (when expired batches exist) ── */
-    .danger-banner{display:flex;align-items:flex-start;gap:.8rem;padding:1rem 1.2rem;background:var(--red-lt);border:1.5px solid #f5c6c2;border-radius:var(--radius-lg);margin-bottom:1rem;animation:fadeUp .3s ease}
-    .danger-banner .db-icon{font-size:1.4rem;line-height:1;flex-shrink:0;margin-top:.05rem}
+    .danger-banner{display:flex;align-items:flex-start;gap:.8rem;padding:.85rem 1.1rem;background:var(--red-lt);border:1.5px solid #f5c6c2;border-radius:var(--radius-lg);margin-bottom:.85rem;animation:fadeUp .3s ease}
+    .danger-banner .db-icon{font-size:1.3rem;line-height:1;flex-shrink:0;margin-top:.05rem}
     .danger-banner .db-body{flex:1;min-width:0}
-    .danger-banner .db-title{font-family:'Sora',sans-serif;font-size:.92rem;font-weight:700;color:#7a1a1a;margin-bottom:.18rem}
-    .danger-banner .db-text{font-size:.81rem;color:#7a1a1a;line-height:1.5}
+    .danger-banner .db-title{font-family:'Sora',sans-serif;font-size:.88rem;font-weight:700;color:#7a1a1a;margin-bottom:.15rem}
+    .danger-banner .db-text{font-size:.8rem;color:#7a1a1a;line-height:1.5}
     .danger-banner .db-text strong{font-weight:700}
 
     /* ── EMPTY STATE ── */
-    .empty-state{padding:3.5rem 2rem;background:var(--surface);border:1px dashed var(--border-dk);border-radius:var(--radius-lg);text-align:center;animation:fadeUp .3s ease}
-    .empty-icon{font-size:2.5rem;margin-bottom:.75rem;opacity:.55}
-    .empty-title{font-family:'Sora',sans-serif;font-size:1.05rem;font-weight:600;color:var(--text);margin-bottom:.3rem}
-    .empty-text{font-size:.85rem;color:var(--muted);line-height:1.5;max-width:380px;margin:0 auto}
+    .empty-state{padding:3rem 2rem;background:var(--surface);border:1px dashed var(--border-dk);border-radius:var(--radius-lg);text-align:center;animation:fadeUp .3s ease}
+    .empty-icon{font-size:2.2rem;margin-bottom:.6rem;opacity:.55}
+    .empty-title{font-family:'Sora',sans-serif;font-size:1rem;font-weight:600;color:var(--text);margin-bottom:.25rem}
+    .empty-text{font-size:.82rem;color:var(--muted);line-height:1.5;max-width:380px;margin:0 auto}
     .empty-state.ok{background:var(--green-lt);border-color:#a7d9be;border-style:solid}
     .empty-state.ok .empty-title{color:#1a4a2e}
     .empty-state.ok .empty-text{color:#1a4a2e}
 
-    /* ── EXPIRED CARDS ── */
-    .batch-list{display:flex;flex-direction:column;gap:.85rem}
-    .batch-card{background:var(--surface);border:1px solid var(--border);border-left:4px solid var(--red);border-radius:var(--radius-lg);padding:1.1rem 1.25rem;box-shadow:var(--shadow-sm);display:grid;grid-template-columns:1fr auto;gap:1rem;align-items:center;transition:transform .18s,box-shadow .18s;animation:fadeUp .25s ease both}
-    .batch-card:hover{transform:translateY(-2px);box-shadow:var(--shadow-md)}
-    .batch-card .bc-name{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:var(--text);margin-bottom:.15rem}
-    .batch-card .bc-batch{font-size:.78rem;font-weight:600;color:var(--red);margin-bottom:.6rem}
-    .bc-meta{display:flex;flex-wrap:wrap;gap:.85rem 1.4rem;font-size:.78rem;color:var(--text-2)}
-    .bc-meta-item{display:flex;flex-direction:column;gap:.15rem}
-    .bc-meta-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
-    .bc-meta-value{font-weight:600;color:var(--text);font-size:.84rem}
-    .bc-meta-value.danger{color:var(--red)}
-    .bc-right{display:flex;flex-direction:column;align-items:flex-end;gap:.4rem;min-width:130px}
-    .stock-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.32rem .7rem;background:var(--red-lt);color:#7a1a1a;border:1px solid #f5c6c2;border-radius:999px;font-size:.78rem;font-weight:700}
-    .stock-badge .sb-num{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700}
-    .days-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .6rem;background:var(--surface2);color:var(--text-2);border:1px solid var(--border);border-radius:999px;font-size:.72rem;font-weight:600}
-    .bc-barcode{font-family:monospace;font-size:.7rem;color:var(--muted);margin-top:.1rem}
+    /* ── COMPACT MEDICINE CARDS (horizontal layout) ── */
+    .batch-list{display:flex;flex-direction:column;gap:.5rem}
+    .batch-card{
+      background:var(--surface);
+      border:1px solid var(--border);
+      border-left:3px solid var(--red);
+      border-radius:var(--radius);
+      padding:.55rem .9rem;
+      box-shadow:var(--shadow-sm);
+      display:grid;
+      grid-template-columns:minmax(0, 1.5fr) minmax(0, 1fr) minmax(0, 1fr) minmax(0, .9fr) minmax(0, .9fr) minmax(0, 1fr) auto;
+      align-items:center;
+      gap:.65rem;
+      transition:transform .15s,box-shadow .15s,border-color .15s;
+      animation:fadeUp .22s ease both;
+    }
+    .batch-card:hover{transform:translateY(-1px);box-shadow:var(--shadow-md);border-left-color:#8b2519}
 
-    @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+    .bc-name-wrap{min-width:0;display:flex;flex-direction:column;gap:.05rem}
+    .bc-name{
+      font-family:'Sora',sans-serif;
+      font-size:.92rem;
+      font-weight:700;
+      color:var(--text);
+      white-space:nowrap;
+      overflow:hidden;
+      text-overflow:ellipsis;
+    }
+    .bc-batch{font-family:monospace;font-size:.66rem;color:var(--red);font-weight:600;letter-spacing:.02em}
 
-    @media(max-width:1100px){.batch-card{grid-template-columns:1fr}.bc-right{flex-direction:row;align-items:center;justify-content:flex-start}}
-    @media(max-width:700px){.sidebar{transform:translateX(-100%)}.main-wrap{margin-left:0}.toolbar{flex-direction:column;align-items:stretch}}
+    .bc-cell{display:flex;flex-direction:column;gap:.05rem;min-width:0}
+    .bc-cell-label{font-size:.6rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);line-height:1}
+    .bc-cell-value{font-weight:700;color:var(--text);font-size:.88rem;line-height:1.25;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .bc-cell.danger .bc-cell-value{color:var(--red)}
+
+    .bc-actions{display:flex;gap:.4rem;justify-content:flex-end;align-items:center}
+    .bc-btn{
+      display:inline-flex;align-items:center;gap:.3rem;
+      padding:.38rem .7rem;
+      border-radius:var(--radius-sm);
+      font-size:.74rem;
+      font-weight:700;
+      font-family:inherit;
+      cursor:pointer;
+      text-decoration:none;
+      white-space:nowrap;
+      transition:all .16s;
+      line-height:1;
+    }
+    .bc-manage-btn{background:var(--surface);color:var(--teal-dk);border:1.4px solid var(--teal-md)}
+    .bc-manage-btn:hover{background:var(--teal-lt);transform:translateY(-1px)}
+    .bc-btn:active{transform:translateY(0)}
+
+    @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+
+    @media(max-width:1300px){
+      .batch-card{
+        grid-template-columns:1fr 1fr 1fr auto;
+        grid-template-areas:
+          "name name name actions"
+          "s1 s2 s3 s4"
+          "s5 s5 s5 s5";
+        row-gap:.45rem;
+        padding:.65rem .9rem;
+      }
+      .bc-name-wrap{grid-area:name}
+      .bc-actions{grid-area:actions}
+      .bc-cell[data-key="batch"]{grid-area:s1}
+      .bc-cell[data-key="expiry"]{grid-area:s2}
+      .bc-cell[data-key="expired"]{grid-area:s3}
+      .bc-cell[data-key="units"]{grid-area:s4}
+      .bc-cell[data-key="barcode"]{grid-area:s5;flex-direction:row;gap:.4rem}
+    }
+
+    @media(max-width:700px){
+      .sidebar{transform:translateX(-100%)}
+      .main-wrap{margin-left:0}
+      .toolbar{flex-direction:column;align-items:stretch}
+      .batch-card{
+        grid-template-columns:1fr;
+        grid-template-areas:
+          "name"
+          "s1"
+          "s2"
+          "s3"
+          "s4"
+          "barcode"
+          "actions";
+        padding:.7rem .85rem;
+        gap:.4rem;
+      }
+      .bc-actions{justify-content:flex-start;flex-wrap:wrap}
+      .bc-cell[data-key="barcode"]{flex-direction:row;gap:.4rem}
+    }
   </style>
 </head>
 <body>
@@ -180,6 +253,100 @@
   </div>
 </div>
 
+<script>
+  /* ──────────────────────────────────────────────────────────────────
+     NOTE FOR THE EXTERNAL expired-medicines.js CONTRACT:
+     The shared script is expected to populate:
+       - document.getElementById('chip-count')     → total expired batches
+       - document.getElementById('chip-units')     → total units affected
+       - document.getElementById('banner-host')    → optional warning banner
+       - document.getElementById('list-host')      → cards container
+     Each item rendered here is expected to expose:
+       { name, batchLabel, expiryDate, daysSinceExpiry, units, barcode }
+     Card markup (per item) is generated by renderItem() below.
+     ────────────────────────────────────────────────────────────────── */
+
+  let _allItems = [];
+
+  fetch('/me').then(r=>r.json()).then(d=>{
+    if(!d.loggedIn){window.location.href='/login.html';return;}
+    document.getElementById('user-name-label').textContent=d.name;
+    document.getElementById('user-avatar').textContent=d.name.charAt(0).toUpperCase();
+  });
+  function doLogout(){fetch('/logout',{method:'POST'}).then(()=>window.location.href='/login.html');}
+
+  function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;');}
+
+  function formatExpiry(d){
+    const dt = new Date(d);
+    if (isNaN(dt)) return String(d??'');
+    return dt.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+  }
+
+  function renderItem(m){
+    const expStr = formatExpiry(m.expiryDate);
+    return `
+      <div class="batch-card">
+        <div class="bc-name-wrap">
+          <div class="bc-name" title="${esc(m.name)}">${esc(m.name)}</div>
+          <div class="bc-batch">${esc(m.batchLabel)}</div>
+        </div>
+        <div class="bc-cell" data-key="batch">
+          <span class="bc-cell-label">Batch</span>
+          <span class="bc-cell-value">${esc(m.batchLabel)}</span>
+        </div>
+        <div class="bc-cell" data-key="expiry">
+          <span class="bc-cell-label">Expiry</span>
+          <span class="bc-cell-value">${expStr}</span>
+        </div>
+        <div class="bc-cell danger" data-key="expired">
+          <span class="bc-cell-label">Expired Since</span>
+          <span class="bc-cell-value">${m.daysSinceExpiry}d</span>
+        </div>
+        <div class="bc-cell" data-key="units">
+          <span class="bc-cell-label">Units Left</span>
+          <span class="bc-cell-value">${m.units}</span>
+        </div>
+        <div class="bc-cell" data-key="barcode">
+          <span class="bc-cell-label">Barcode</span>
+          <span class="bc-cell-value">${esc(m.barcode)}</span>
+        </div>
+        <div class="bc-actions">
+          <a class="bc-btn bc-manage-btn" href="inventory.html?barcode=${encodeURIComponent(m.barcode)}">📦 Manage Inventory</a>
+        </div>
+      </div>`;
+  }
+
+  function render(items){
+    const host = document.getElementById('list-host');
+    const meta = document.getElementById('result-meta');
+    meta.innerHTML = `<strong>${items.length}</strong> batch${items.length!==1?'es':''}`;
+
+    if(!items.length){
+      host.innerHTML = '<div class="empty-state ok"><div class="empty-icon">✅</div><div class="empty-title">Nothing expired.</div><div class="empty-text">No expired batches with remaining stock.</div></div>';
+      return;
+    }
+
+    host.innerHTML = `<div class="batch-list">${items.map(renderItem).join('')}</div>`;
+  }
+
+  document.getElementById('search-input').addEventListener('input', e=>{
+    const q = e.target.value.trim().toLowerCase();
+    const filtered = q ? _allItems.filter(m => m.name.toLowerCase().includes(q) || m.barcode.toLowerCase().includes(q)) : _allItems;
+    render(filtered);
+  });
+
+  /* Public hook — the external expired-medicines.js calls this when
+     its data is ready so we can re-render with our compact template
+     without changing the backend logic. */
+  window.__expiredSetItems = function(items){
+    _allItems = items || [];
+    if(typeof _allItems.sort === 'function'){
+      _allItems.sort((a,b) => (b.daysSinceExpiry||0) - (a.daysSinceExpiry||0));
+    }
+    render(_allItems);
+  };
+</script>
 <script src="/js/expired-medicines.js"></script>
 <script src="/js/mediflow-brand.js"></script>
 </body>
