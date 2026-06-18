@@ -92,6 +92,9 @@
     .bc-meta-label{font-size:.62rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted)}
     .bc-meta-value{font-weight:600;color:var(--text);font-size:.84rem}
     .bc-right{display:flex;flex-direction:column;align-items:flex-end;gap:.4rem;min-width:130px}
+    .bc-manage-btn{display:inline-flex;align-items:center;gap:.35rem;padding:.45rem .9rem;background:var(--surface);color:var(--teal-dk);border:1.5px solid var(--teal-md);border-radius:var(--radius-sm);font-size:.76rem;font-weight:700;font-family:inherit;cursor:pointer;text-decoration:none;transition:all .18s;white-space:nowrap}
+    .bc-manage-btn:hover{background:var(--teal-lt);transform:translateY(-1px)}
+    .bc-manage-btn:active{transform:translateY(0)}
     .stock-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.32rem .7rem;background:var(--teal-lt);color:var(--teal-dk);border:1px solid var(--border-dk);border-radius:999px;font-size:.78rem;font-weight:700}
     .stock-badge .sb-num{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700}
     .bc-barcode{font-family:monospace;font-size:.7rem;color:var(--muted);margin-top:.1rem}
@@ -219,6 +222,7 @@
         <div class="bc-right">
           <div class="stock-badge"><span class="sb-num">${m.stock}</span><span>in stock</span></div>
           <div class="bc-barcode">${esc(m.barcode)}</div>
+          <a class="bc-manage-btn" href="inventory.html?barcode=${encodeURIComponent(m.barcode)}">📦 Manage Inventory</a>
         </div>
       </div>`).join('')}</div>`;
   }

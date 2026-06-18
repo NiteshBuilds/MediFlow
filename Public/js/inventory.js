@@ -292,7 +292,30 @@ function toast(kind, text) {
 /* ── Wire up: search, escape-to-close, click-outside-modal ── */
 document.addEventListener('DOMContentLoaded', () => {
   checkAuth();
-  loadInventory();
+  loadInventory().then(() => {
+    // ── Deep-link support: inventory.html?barcode=XXXX ──
+    // Auto-searches and expands the medicine if opened from
+    // Total Medicines (or any other) page. Does not affect
+    // normal manual search/browse flow.
+    try {
+      const params = new URLSearchParams(window.location.search);
+      const deepBarcode = params.get('barcode');
+      if (deepBarcode) {
+        const med = _allMeds.find(m => m.barcode === deepBarcode);
+        if (med) {
+          const search = document.getElementById('search-input');
+          if (search) search.value = med.name;
+          applyFilter();
+          _expanded.add(med.barcode);
+          renderList();
+          setTimeout(() => {
+            const card = document.querySelector(`.med-card[data-barcode="${cssEscape(med.barcode)}"]`);
+            if (card) card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+          }, 100);
+        }
+      }
+    } catch (_) {}
+  });
 
   const search = document.getElementById('search-input');
   if (search) search.addEventListener('input', applyFilter);
