@@ -1350,7 +1350,101 @@ app.get('/api/expired-medicines', requireOwner, async (req, res) => {
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 
-// ── DELETE /medicine/:barcode ──────────────────────────────
+// ══════════════════════════════════════════════════════════
+// DASHBOARD DETAIL VIEWS — Low Stock / Expiring Soon / Out of Stock
+// Same aggregation style as /api/expired-medicines above.
+// Total Medicines uses the existing GET /medicines route directly
+// (no new route needed — it already returns everything required).
+// ══════════════════════════════════════════════════════════
+
+// GET /api/low-stock-medicines
+// Medicines with total stock > 0 and < 5 units (matches the
+// dashboard stat-card definition exactly: stock>0 && stock<5
+// && stockAlertsEnabled!==false). Sorted lowest stock first.
+app.get('/api/low-stock-medicines', requireOwner, async (req, res) => {
+  try {
+    const meds = await Medicine.find({ ownerId: req.ownerId }).select('-__v');
+    const items = meds
+      .map(m => m.toJSON())
+      .filter(m => m.stock > 0 && m.stock < 5 && m.stockAlertsEnabled !== false)
+      .map(m => ({
+        name:          m.name,
+        barcode:       m.barcode,
+        stock:         m.stock,
+        batchCount:    (m.batches || []).filter(b => b.stock > 0).length,
+        price:         m.price,
+      }))
+      .sort((a, b) => a.stock - b.stock);
+    res.json({ count: items.length, items });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/expiring-soon-medicines
+// Batches (not whole medicines) expiring within 90 days, still
+// holding stock. Mirrors the dashboard's per-medicine "Expiring
+// Soon" definition but expanded to batch level for the detail view.
+// Sorted nearest expiry first.
+app.get('/api/expiring-soon-medicines', requireOwner, async (req, res) => {
+  try {
+    const now = new Date();
+    const horizon = new Date(now.getTime() + 90 * 86400000);
+    const rows = await Medicine.aggregate([
+      { $match: { ownerId: req.ownerId } },                  // 🔑 tenant fence
+      { $unwind: '$batches' },
+      { $match: {
+          'batches.stock':      { $gt: 0 },
+          'batches.expiryDate': { $gte: now, $lte: horizon },
+      }},
+      {
+        $project: {
+          _id:        0,
+          name:       1,
+          barcode:    1,
+          batchLabel: '$batches.batchLabel',
+          stock:      '$batches.stock',
+          expiryDate: '$batches.expiryDate',
+        },
+      },
+      { $sort: { expiryDate: 1 } },   // nearest expiry first
+    ]);
+
+    const items = rows.map(r => {
+      const exp = new Date(r.expiryDate);
+      const daysRemaining = Math.ceil((exp - now) / 86400000);
+      return {
+        name:           r.name,
+        barcode:        r.barcode,
+        batchLabel:     r.batchLabel || 'Unlabelled',
+        stock:          r.stock,
+        expiryDate:     r.expiryDate,
+        daysRemaining,
+      };
+    });
+
+    res.json({ count: items.length, items });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /api/out-of-stock-medicines
+// Medicines with total stock === 0 (no active batches remaining).
+// Sorted alphabetically.
+app.get('/api/out-of-stock-medicines', requireOwner, async (req, res) => {
+  try {
+    const meds = await Medicine.find({ ownerId: req.ownerId }).select('-__v');
+    const items = meds
+      .map(m => m.toJSON())
+      .filter(m => m.stock === 0)
+      .map(m => ({
+        name:    m.name,
+        barcode: m.barcode,
+        status:  'Out of Stock',
+      }))
+      .sort((a, b) => a.name.localeCompare(b.name));
+    res.json({ count: items.length, items });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+
 // Permanently delete a medicine from this pharmacy's inventory
 app.delete('/medicine/:barcode', requireOwner, async (req, res) => {
   try {
