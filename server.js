@@ -1243,15 +1243,26 @@ app.delete('/medicine-batch/:barcode/:batchId', requireOwner, async (req, res) =
     // Remove the specific batch by _id
     med.batches = med.batches.filter(b => b._id.toString() !== batchId);
 
-    // Auto-cleanup: if no batches remain, drop the parent medicine
+    // If no batches remain, KEEP the medicine record (stock virtual
+    // naturally becomes 0 since it sums over an empty batches array).
+    // This lets the medicine still show up in Out of Stock counts/alerts
+    // and remain searchable/restockable without recreating it.
     if (med.batches.length === 0) {
-      await Medicine.deleteOne({ _id: med._id, ownerId: req.ownerId });
-      console.log(`🗑️  Batch ${removedLabel} deleted from [${req.ownerId}] ${med.name}; parent medicine also removed (no batches left).`);
+      await med.save();
+      await Log.create({
+        ownerId:      req.ownerId,
+        medicineName: med.name,
+        barcode:      med.barcode,
+        action:       `Batch ${removedLabel} deleted — no batches remaining, medicine is now Out of Stock.`,
+      });
+      console.log(`🗑️  Batch ${removedLabel} deleted from [${req.ownerId}] ${med.name}; medicine kept with stock=0 (Out of Stock).`);
       return res.json({
         success: true,
-        medicineRemoved: true,
+        medicineRemoved: false,
+        outOfStock: true,
         removedBatch: { label: removedLabel, stock: removedStock },
-        message: `Batch ${removedLabel} deleted. Medicine "${med.name}" had no remaining batches and was also removed.`,
+        remainingBatches: 0,
+        message: `Batch ${removedLabel} deleted. "${med.name}" has no remaining batches and is now Out of Stock.`,
       });
     }
 
