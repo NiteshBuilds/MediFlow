@@ -96,6 +96,9 @@
     .days-badge{display:inline-flex;align-items:center;gap:.3rem;padding:.25rem .6rem;background:var(--surface2);color:var(--text-2);border:1px solid var(--border);border-radius:999px;font-size:.72rem;font-weight:600}
     .stock-badge .sb-num{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700}
     .bc-barcode{font-family:monospace;font-size:.7rem;color:var(--muted);margin-top:.1rem}
+    .bc-restock-btn{display:inline-flex;align-items:center;gap:.35rem;padding:.5rem 1rem;background:var(--teal);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.78rem;font-weight:700;font-family:inherit;cursor:pointer;text-decoration:none;transition:all .18s;box-shadow:0 2px 8px rgba(13,107,110,.25);white-space:nowrap}
+    .bc-restock-btn:hover{background:var(--teal-md);transform:translateY(-1px);box-shadow:0 4px 12px rgba(13,107,110,.3)}
+    .bc-restock-btn:active{transform:translateY(0)}
 
     @keyframes fadeUp{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
@@ -215,6 +218,7 @@
           <div class="stock-badge"><span class="sb-num">${m.stock}</span><span>units</span></div>
           <div class="days-badge">⏳ ${m.daysRemaining} days left</div>
           <div class="bc-barcode">${esc(m.barcode)}</div>
+          <a class="bc-restock-btn" href="restock.html?barcode=${encodeURIComponent(m.barcode)}">♻️ Restock</a>
         </div>
       </div>`;}).join('')}</div>`;
   }
