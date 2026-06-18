@@ -471,7 +471,26 @@
   }
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 
-  loadMedicines();
+  loadMedicines().then(()=>{
+    // ── Deep-link support: restock.html?barcode=XXXX ──
+    // Auto-selects the medicine if it was opened from the Out of Stock page.
+    // Does not affect normal manual search/restock flow.
+    try{
+      const params = new URLSearchParams(window.location.search);
+      const deepBarcode = params.get('barcode');
+      if(deepBarcode){
+        const m = allMedicines.find(x=>x.barcode===deepBarcode);
+        if(m){
+          selectedMed = m;
+          nameInput.value = m.name;
+          document.getElementById('barcode-input').value = m.barcode;
+          showPreview(m);
+          updateBatchPreview();
+          document.getElementById('qty-input').focus();
+        }
+      }
+    }catch(_){}
+  });
 </script>
 <script src="/js/mediflow-brand.js"></script>
 </body>
