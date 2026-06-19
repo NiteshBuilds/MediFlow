@@ -92,7 +92,7 @@
       padding:.55rem .9rem;
       box-shadow:var(--shadow-sm);
       display:grid;
-      grid-template-columns:minmax(0, 1.6fr) repeat(4, minmax(0, 1fr)) auto;
+      grid-template-columns:minmax(0, 1.8fr) minmax(0, 1fr) auto;
       align-items:center;
       gap:.65rem;
       transition:transform .15s,box-shadow .15s,border-color .15s;
@@ -149,19 +149,14 @@
     /* Tablet: condense to 2 rows — identical breakpoints to Total Medicines */
     @media(max-width:1100px){
       .batch-card{
-        grid-template-columns:1fr 1fr auto;
+        grid-template-columns:1fr auto;
         grid-template-areas:
-          "name name actions"
-          "s1 s2 s3"
-          "barcode barcode barcode";
+          "name actions"
+          "barcode barcode";
         row-gap:.45rem;
         padding:.65rem .9rem;
       }
-      .bc-name-wrap{grid-area:name}
       .bc-actions{grid-area:actions}
-      .bc-cell[data-key="stock"]{grid-area:s1}
-      .bc-cell[data-key="batches"]{grid-area:s2}
-      .bc-cell[data-key="status"]{grid-area:s3}
       .bc-cell[data-key="barcode"]{grid-area:barcode;flex-direction:row;gap:.4rem}
       .bc-cell[data-key="barcode"] .bc-cell-label{margin-right:.15rem}
     }
@@ -175,9 +170,6 @@
         grid-template-columns:1fr;
         grid-template-areas:
           "name"
-          "s1"
-          "s2"
-          "s3"
           "barcode"
           "actions";
         padding:.7rem .85rem;
@@ -288,24 +280,11 @@
         <div>
           <div class="bc-name" title="${esc(m.name)}">${esc(m.name)}</div>
         </div>
-        <div class="bc-cell bc-stock-out" data-key="stock">
-          <span class="bc-cell-label">Stock</span>
-          <span class="bc-cell-value">${m.stock} units</span>
-        </div>
-        <div class="bc-cell" data-key="batches">
-          <span class="bc-cell-label">Batches</span>
-          <span class="bc-cell-value">${m.batchCount}</span>
-        </div>
-        <div class="bc-cell" data-key="status">
-          <span class="bc-cell-label">Status</span>
-          <span class="bc-cell-value">${esc(m.status)}</span>
-        </div>
         <div class="bc-cell" data-key="barcode">
           <span class="bc-cell-label">Barcode</span>
           <span class="bc-cell-value">${esc(m.barcode)}</span>
         </div>
         <div class="bc-actions">
-          <a class="bc-btn bc-manage-btn" href="inventory.html?barcode=${encodeURIComponent(m.barcode)}">📦 Manage</a>
           <a class="bc-btn bc-restock-btn" href="restock.html?barcode=${encodeURIComponent(m.barcode)}">♻️ Restock</a>
         </div>
       </div>`).join('')}</div>`;
