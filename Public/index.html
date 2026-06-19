@@ -348,18 +348,13 @@
   function buildAlerts(data, expiredItems){
     const today=new Date(),alerts=[];
 
-    // ── EXPIRED batches — from server-side route ──────────────
-    // Shown ABOVE all other alerts because expired stock is the
-    // most urgent safety concern. Click → Expired Medicines page.
-    if (Array.isArray(expiredItems) && expiredItems.length){
-      // Pick the most-urgent: longest-expired, ties broken by stock
-      const worst = expiredItems.slice().sort((a,b)=>{
-        if (a.daysSinceExpiry !== b.daysSinceExpiry) return b.daysSinceExpiry - a.daysSinceExpiry;
-        return b.stock - a.stock;
-      })[0];
-      const expStr = new Date(worst.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-      alerts.push(`<a class="alert-item danger" href="expired-medicines.html" style="text-decoration:none;cursor:pointer"><span class="alert-icon">❌</span><div class="alert-body"><strong>Expired: ${esc(worst.name)} — ${esc(worst.batchLabel)}</strong>${worst.stock} unit${worst.stock!==1?'s':''} expired on ${esc(expStr)}. View all →</div></a>`);
-    }
+    // NOTE: expiredItems (from /api/expired-medicines) is still fetched
+    // and used to drive the "Expired" stat card count — it is
+    // intentionally NOT turned into its own alert here anymore.
+    // The per-batch loop below (using the same underlying expired
+    // batches, sourced from `data`) already produces one alert per
+    // expired batch in the more detailed "EXPIRED: Name — Batch" format,
+    // so adding a second summary alert here would duplicate it.
 
     // ── Out of stock ────────────────────────────────────────
     data.filter(m=>m.stock===0).slice(0,3).forEach(m=>
@@ -389,8 +384,10 @@
         const name    = esc(m.name);
 
         if(days < 0){
-          // Always show expired regardless
-          alerts.push(`<div class="alert-item danger"><span class="alert-icon">⛔</span><div class="alert-body"><strong>EXPIRED: ${name} — ${label}</strong>${units} unit${units!==1?'s':''} of ${name} from ${label} expired on ${expStr}. Remove from shelf immediately.</div></div>`);
+          // Always show expired regardless — clickable, links to the
+          // Expired Medicines page (this replaces the old summary alert's
+          // navigation behaviour, now folded into this single alert).
+          alerts.push(`<a class="alert-item danger" href="expired-medicines.html" style="text-decoration:none;cursor:pointer"><span class="alert-icon">⛔</span><div class="alert-body"><strong>EXPIRED: ${name} — ${label}</strong>${units} unit${units!==1?'s':''} of ${name} from ${label} expired on ${expStr}. Remove from shelf immediately.</div></a>`);
         } else if(days<=30){
           alerts.push(`<div class="alert-item danger"><span class="alert-icon">📅</span><div class="alert-body"><strong>Expiring Soon: ${name} — ${label}</strong>${units} unit${units!==1?'s':''} from ${label} will expire on ${expStr} (${days} day${days!==1?'s':''} left). Sell first!</div></div>`);
         } else if(days<=90){
