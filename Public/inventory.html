@@ -128,6 +128,35 @@
     @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
 
     @media(max-width:700px){.sidebar{transform:translateX(-100%)}.main-wrap{margin-left:0}.toolbar{flex-direction:column;align-items:stretch}.med-head{flex-wrap:wrap}.med-right{width:100%;justify-content:space-between}}
+
+    /* ── DELETE MEDICINE BUTTON (right side of expanded batch area) ── */
+    .batch-area-wrap{display:flex;align-items:flex-start;gap:1rem}
+    .batch-grid-col{flex:1;min-width:0}
+    .delete-medicine-col{display:flex;align-items:flex-start;padding-top:.1rem;flex-shrink:0}
+    .btn-delete-medicine{display:inline-flex;flex-direction:column;align-items:center;gap:.35rem;padding:.65rem .9rem;background:#fff;border:1.5px solid #f5c6c2;border-radius:var(--radius-sm);font-size:.72rem;font-weight:700;color:var(--red);cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap;line-height:1.2}
+    .btn-delete-medicine:hover{background:var(--red-lt);border-color:var(--red);box-shadow:0 2px 8px rgba(192,57,43,.15)}
+    .btn-delete-medicine .del-icon{font-size:1.1rem}
+
+    /* ── DELETE MEDICINE MODAL ── */
+    #del-med-modal{display:none;position:fixed;inset:0;background:rgba(5,20,22,.55);z-index:1001;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px)}
+    #del-med-modal.open{display:flex}
+    .del-med-box{background:#fff;border-radius:18px;width:100%;max-width:460px;box-shadow:0 24px 64px rgba(13,107,110,.22);overflow:hidden;animation:popIn .22s ease}
+    .del-med-header{padding:1.2rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .del-med-title{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:var(--text)}
+    .del-med-close{background:none;border:none;font-size:1.3rem;color:var(--muted);cursor:pointer;padding:.2rem .4rem;border-radius:6px;line-height:1}
+    .del-med-body{padding:1.4rem}
+    .del-med-name{font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:1rem}
+    .del-med-name span{color:var(--red)}
+    .del-med-info{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.9rem 1rem;margin-bottom:1rem}
+    .del-med-row{display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:.4rem}
+    .del-med-row:last-child{margin-bottom:0}
+    .del-med-row .k{color:var(--muted);font-weight:600}
+    .del-med-row .v{font-weight:700;color:var(--text)}
+    .del-med-warn{font-size:.78rem;color:var(--red);background:var(--red-lt);border:1px solid #f5c6c2;border-radius:var(--radius-sm);padding:.7rem .9rem;margin-bottom:1.2rem;line-height:1.6}
+    .del-med-actions{display:flex;gap:.6rem;justify-content:flex-end}
+    .del-med-cancel{padding:.6rem 1.1rem;background:var(--surface2);border:1.5px solid var(--border-dk);border-radius:var(--radius-sm);font-size:.85rem;font-weight:600;color:var(--text-2);cursor:pointer;font-family:inherit}
+    .del-med-confirm{padding:.6rem 1.2rem;background:var(--red);border:none;border-radius:var(--radius-sm);font-size:.85rem;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.25);transition:opacity .15s}
+    .del-med-confirm:disabled{opacity:.55;cursor:not-allowed}
   </style>
 </head>
 <body>
@@ -234,5 +263,154 @@
 
 <script src="/js/inventory.js"></script>
 <script src="/js/mediflow-brand.js"></script>
+
+<!-- ═══════════ DELETE MEDICINE MODAL ═══════════ -->
+<div id="del-med-modal">
+  <div class="del-med-box">
+    <div class="del-med-header">
+      <div class="del-med-title">🗑️ Delete Medicine Permanently</div>
+      <button class="del-med-close" onclick="closeDelMedModal()">✕</button>
+    </div>
+    <div class="del-med-body">
+      <div class="del-med-name">Delete Medicine Permanently? <span id="dmm-name"></span></div>
+      <div class="del-med-info">
+        <div class="del-med-row"><span class="k">Medicine</span><span class="v" id="dmm-medicine"></span></div>
+        <div class="del-med-row"><span class="k">Barcode</span><span class="v" id="dmm-barcode"></span></div>
+        <div class="del-med-row"><span class="k">Batches</span><span class="v" id="dmm-batches"></span></div>
+        <div class="del-med-row"><span class="k">Total Stock</span><span class="v" id="dmm-stock"></span></div>
+      </div>
+      <div class="del-med-warn">
+        ⛔ This action will permanently delete this medicine and <strong>all of its associated batches</strong> from the database.<br>
+        This action <strong>cannot be undone.</strong>
+      </div>
+      <div class="del-med-actions">
+        <button class="del-med-cancel" onclick="closeDelMedModal()">Cancel</button>
+        <button class="del-med-confirm" id="dmm-confirm-btn" onclick="confirmDeleteMedicine()">🗑️ Delete Permanently</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Delete Medicine State ──────────────────────────────────
+let _delMedBarcode = null;
+
+function openDelMedModal(barcode, name, batchCount, totalStock) {
+  _delMedBarcode = barcode;
+  document.getElementById('dmm-name').textContent    = name;
+  document.getElementById('dmm-medicine').textContent = name;
+  document.getElementById('dmm-barcode').textContent  = barcode;
+  document.getElementById('dmm-batches').textContent  = batchCount + ' batch' + (batchCount !== 1 ? 'es' : '');
+  document.getElementById('dmm-stock').textContent    = totalStock + ' unit' + (totalStock !== 1 ? 's' : '');
+  const btn = document.getElementById('dmm-confirm-btn');
+  btn.disabled = false;
+  btn.textContent = '🗑️ Delete Permanently';
+  document.getElementById('del-med-modal').classList.add('open');
+}
+
+function closeDelMedModal() {
+  document.getElementById('del-med-modal').classList.remove('open');
+  _delMedBarcode = null;
+}
+
+// Close on backdrop click
+document.getElementById('del-med-modal').addEventListener('click', function(e) {
+  if (e.target === this) closeDelMedModal();
+});
+
+async function confirmDeleteMedicine() {
+  if (!_delMedBarcode) return;
+  const btn = document.getElementById('dmm-confirm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting…';
+  try {
+    const res = await fetch('/medicine/' + encodeURIComponent(_delMedBarcode), { method: 'DELETE' });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Deletion failed.');
+    closeDelMedModal();
+    showToast('✅ Medicine deleted successfully.', 'ok');
+    // Refresh inventory list
+    if (typeof loadInventory === 'function') loadInventory(true);
+  } catch (err) {
+    btn.disabled = false;
+    btn.textContent = '🗑️ Delete Permanently';
+    showToast('❌ ' + err.message, 'err');
+  }
+}
+
+// ── Patch renderMedicine to inject Delete Medicine button ──
+// We hook into inventory.js by wrapping the card render after DOM update.
+// Use a MutationObserver to inject the button whenever a card is expanded.
+const _observer = new MutationObserver(() => {
+  document.querySelectorAll('.med-card.expanded').forEach(card => {
+    const batchesSection = card.querySelector('.med-batches');
+    if (!batchesSection) return;
+    // Already injected?
+    if (batchesSection.querySelector('.batch-area-wrap')) return;
+
+    const batchGrid = batchesSection.querySelector('.batch-grid');
+    if (!batchGrid) return;
+
+    // Read medicine data from the card
+    const nameEl  = card.querySelector('.med-name');
+    const metaEl  = card.querySelector('.med-meta');
+    const name     = nameEl ? nameEl.textContent.trim() : '';
+    // barcode is first text node / span in meta
+    let barcode = '';
+    if (metaEl) {
+      const spans = metaEl.querySelectorAll('span');
+      // First span that looks like a barcode (non-separator)
+      for (const s of spans) {
+        const t = s.textContent.trim();
+        if (t && t !== '·') { barcode = t; break; }
+      }
+    }
+    const batchCount  = card.querySelectorAll('.batch-card').length;
+    const stockEls    = card.querySelectorAll('.bc-stock');
+    let totalStock = 0;
+    stockEls.forEach(el => {
+      const n = parseInt(el.textContent.trim());
+      if (!isNaN(n)) totalStock += n;
+    });
+
+    // Wrap batch grid in flex container with delete column
+    const wrap = document.createElement('div');
+    wrap.className = 'batch-area-wrap';
+
+    const gridCol = document.createElement('div');
+    gridCol.className = 'batch-grid-col';
+    batchGrid.parentNode.insertBefore(wrap, batchGrid);
+    wrap.appendChild(gridCol);
+    gridCol.appendChild(batchGrid);
+
+    const delCol = document.createElement('div');
+    delCol.className = 'delete-medicine-col';
+    const delBtn = document.createElement('button');
+    delBtn.className = 'btn-delete-medicine';
+    delBtn.innerHTML = '<span class="del-icon">🗑️</span><span>Delete<br>Medicine</span>';
+    delBtn.onclick = (e) => {
+      e.stopPropagation();
+      openDelMedModal(barcode, name, batchCount, totalStock);
+    };
+    delCol.appendChild(delBtn);
+    wrap.appendChild(delCol);
+  });
+});
+
+_observer.observe(document.getElementById('list-host'), { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+
+// ── Toast helper (fallback if inventory.js doesn't expose one globally) ──
+function showToast(msg, type = 'info') {
+  // If inventory.js already defines showToast, it will override this on load.
+  // This is a safety fallback.
+  const host = document.getElementById('toast-host');
+  if (!host) return;
+  const t = document.createElement('div');
+  t.className = 'toast ' + type;
+  t.textContent = msg;
+  host.appendChild(t);
+  setTimeout(() => t.remove(), 3500);
+}
+</script>
 </body>
 </html>
