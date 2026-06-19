@@ -150,6 +150,8 @@
     }
     .bc-manage-btn{background:var(--surface);color:var(--teal-dk);border:1.4px solid var(--teal-md)}
     .bc-manage-btn:hover{background:var(--teal-lt);transform:translateY(-1px)}
+    .bc-restock-btn{background:var(--teal);color:#fff;border:none;box-shadow:0 2px 8px rgba(13,107,110,.25)}
+    .bc-restock-btn:hover{background:var(--teal-md);transform:translateY(-1px);box-shadow:0 4px 12px rgba(13,107,110,.3)}
     .bc-btn:active{transform:translateY(0)}
 
     @keyframes fadeUp{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
@@ -321,6 +323,7 @@
         </div>
         <div class="bc-actions">
           <a class="bc-btn bc-manage-btn" href="inventory.html?barcode=${encodeURIComponent(m.barcode)}">📦 Manage Inventory</a>
+          <a class="bc-btn bc-restock-btn" href="restock.html?barcode=${encodeURIComponent(m.barcode)}">♻️ Restock</a>
         </div>
       </div>`;
   }
