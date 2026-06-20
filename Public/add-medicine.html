@@ -201,9 +201,17 @@
           <div class="field-hint">Must be unique — used for scanning at billing counter.</div>
         </div>
 
-        <div class="form-group">
-          <label>Price per unit (₹)</label>
-          <input type="number" id="med-price" placeholder="45.00" min="0" step="0.01"/>
+        <div class="form-row">
+          <div class="form-group">
+            <label>Cost Price per Unit (₹)</label>
+            <input type="number" id="med-cost-price" placeholder="30.00" min="0" step="0.01"/>
+            <div class="field-hint">Purchase price paid by you to the supplier.</div>
+          </div>
+          <div class="form-group">
+            <label>Selling Price per Unit (₹)</label>
+            <input type="number" id="med-price" placeholder="45.00" min="0" step="0.01"/>
+            <div class="field-hint">Price charged to the customer at billing.</div>
+          </div>
         </div>
 
         <div class="form-divider"></div>
@@ -279,6 +287,7 @@
     const name=document.getElementById('med-name').value.trim();
     const barcode=document.getElementById('med-barcode').value.trim();
     const price=Number(document.getElementById('med-price').value);
+    const costPrice=Number(document.getElementById('med-cost-price').value);
     const stock=Number(document.getElementById('med-stock').value);
     const expiryDate=document.getElementById('med-expiry').value;
     const alertsEnabled=document.getElementById('alerts-enabled').checked;
@@ -286,11 +295,11 @@
     const msg=document.getElementById('msg');
     if(!name||!barcode||!expiryDate){show('err','⚠️ Please fill in all fields.');return;}
     try{
-      const res=await fetch('/add-medicine',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,barcode,price,stock,expiryDate,alertsEnabled,stockAlertsEnabled})});
+      const res=await fetch('/add-medicine',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({name,barcode,price,costPrice,stock,expiryDate,alertsEnabled,stockAlertsEnabled})});
       const data=await res.json();
       if(!res.ok){show('err',`❌ ${data.error}`);return;}
       show('ok',`✅ "${data.name}" added with Batch A (${stock} units)`);
-      ['med-name','med-barcode','med-price','med-stock','med-expiry'].forEach(id=>document.getElementById(id).value='');
+      ['med-name','med-barcode','med-cost-price','med-price','med-stock','med-expiry'].forEach(id=>document.getElementById(id).value='');
       document.getElementById('alerts-enabled').checked=true;
       document.getElementById('stock-alerts-enabled').checked=true;
       document.getElementById('batch-preview').style.display='none';

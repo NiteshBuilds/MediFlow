@@ -257,9 +257,10 @@ const medicineSchema = new mongoose.Schema({
   // 🔑 Tenant fence — always filter by this
   ownerId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
 
-  name:    { type: String, required: true },
-  barcode: { type: String, required: true },
-  price:   { type: Number, required: true },
+  name:      { type: String, required: true },
+  barcode:   { type: String, required: true },
+  price:     { type: Number, required: true },
+  costPrice: { type: Number, default: 0 },
   alertsEnabled: { type: Boolean, default: true },
   stockAlertsEnabled: { type: Boolean, default: true },
   batches: { type: [batchSchema], default: [] },
@@ -942,7 +943,7 @@ app.get('/subscription/status', requireOwner, async (req, res) => {
 // Body: { name, barcode, price, stock, expiryDate, alertsEnabled }
 app.post('/add-medicine', requireOwner, async (req, res) => {
   try {
-    const { name, barcode, price, stock, expiryDate, alertsEnabled, stockAlertsEnabled } = req.body;
+    const { name, barcode, price, costPrice, stock, expiryDate, alertsEnabled, stockAlertsEnabled } = req.body;
     if (!name || !barcode || !expiryDate)
       return res.status(400).json({ error: 'Name, barcode and expiry date are required.' });
 
@@ -955,7 +956,8 @@ app.post('/add-medicine', requireOwner, async (req, res) => {
     const med   = new Medicine({
       ownerId: req.ownerId,   // 🔑 set tenant
       name, barcode,
-      price:   Number(price),
+      price:     Number(price),
+      costPrice: Number(costPrice) || 0,
       alertsEnabled: alertsEnabled !== false,
       stockAlertsEnabled: stockAlertsEnabled !== false,
       batches: [initialBatch],
