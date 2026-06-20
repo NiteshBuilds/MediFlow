@@ -230,6 +230,32 @@
   </div>
 </div>
 
+<!-- ═══════════ DELETE MEDICINE CONFIRMATION MODAL ═══════════ -->
+<div class="modal-backdrop" id="delete-medicine-modal" style="display:none;position:fixed;inset:0;background:rgba(5,20,22,.55);z-index:1000;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(3px)">
+  <div style="background:#fff;border-radius:18px;width:100%;max-width:480px;box-shadow:0 24px 64px rgba(13,107,110,.22);overflow:hidden;animation:popIn .22s ease">
+    <div style="padding:1.2rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between">
+      <div style="font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:var(--text)">⚠️ Delete Medicine Permanently?</div>
+      <button onclick="closeDeleteMedicineModal()" style="background:none;border:none;font-size:1.3rem;color:var(--muted);cursor:pointer;padding:.2rem .4rem;border-radius:6px;line-height:1">✕</button>
+    </div>
+    <div style="padding:1.4rem">
+      <div style="font-size:.95rem;font-weight:700;color:var(--text);margin-bottom:1rem">Delete <span id="dmm-name" style="color:var(--red)"></span>?</div>
+      <div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.9rem 1rem;margin-bottom:1.1rem">
+        <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:.4rem"><span style="color:var(--muted);font-weight:600">Medicine</span><span id="dmm-medicine" style="font-weight:700;color:var(--text)"></span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:.4rem"><span style="color:var(--muted);font-weight:600">Barcode</span><span id="dmm-barcode" style="font-weight:700;color:var(--text);font-family:monospace"></span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.82rem;margin-bottom:.4rem"><span style="color:var(--muted);font-weight:600">Batches</span><span id="dmm-batches" style="font-weight:700;color:var(--text)"></span></div>
+        <div style="display:flex;justify-content:space-between;font-size:.82rem"><span style="color:var(--muted);font-weight:600">Total Stock</span><span id="dmm-stock" style="font-weight:700;color:var(--text)"></span></div>
+      </div>
+      <div style="font-size:.78rem;color:var(--red);background:var(--red-lt);border:1px solid #f5c6c2;border-radius:var(--radius-sm);padding:.6rem .8rem;margin-bottom:1.2rem;line-height:1.5">
+        ⛔ This action will permanently delete this medicine and <strong>all of its associated batches</strong> from the database. <strong>This action cannot be undone.</strong>
+      </div>
+      <div style="display:flex;gap:.6rem;justify-content:flex-end">
+        <button onclick="closeDeleteMedicineModal()" style="padding:.6rem 1.1rem;background:var(--surface2);border:1.5px solid var(--border-dk);border-radius:var(--radius-sm);font-size:.85rem;font-weight:600;color:var(--text-2);cursor:pointer;font-family:inherit">Cancel</button>
+        <button id="dmm-confirm-btn" onclick="confirmDeleteMedicineModal()" style="padding:.6rem 1.1rem;background:var(--red);border:none;border-radius:var(--radius-sm);font-size:.85rem;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.25)">🗑️ Delete Permanently</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 <div id="toast-host" style="position:fixed;top:1.25rem;right:1.25rem;z-index:2000;display:flex;flex-direction:column;gap:.5rem;pointer-events:none"></div>
 
 <style>
@@ -243,28 +269,5 @@
 
 <script src="/js/inventory.js"></script>
 <script src="/js/mediflow-brand.js"></script>
-      <button class="del-med-close" onclick="closeDelMedModal()">✕</button>
-    </div>
-    <div class="del-med-body">
-      <div class="del-med-name">Delete Medicine Permanently? <span id="dmm-name"></span></div>
-      <div class="del-med-info">
-        <div class="del-med-row"><span class="k">Medicine</span><span class="v" id="dmm-medicine"></span></div>
-        <div class="del-med-row"><span class="k">Barcode</span><span class="v" id="dmm-barcode"></span></div>
-        <div class="del-med-row"><span class="k">Batches</span><span class="v" id="dmm-batches"></span></div>
-        <div class="del-med-row"><span class="k">Total Stock</span><span class="v" id="dmm-stock"></span></div>
-      </div>
-      <div class="del-med-warn">
-        ⛔ This action will permanently delete this medicine and <strong>all of its associated batches</strong> from the database.<br>
-        This action <strong>cannot be undone.</strong>
-      </div>
-      <div class="del-med-actions">
-        <button class="del-med-cancel" onclick="closeDelMedModal()">Cancel</button>
-        <button class="del-med-confirm" id="dmm-confirm-btn" onclick="confirmDeleteMedicine()">🗑️ Delete Permanently</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-
 </body>
 </html>

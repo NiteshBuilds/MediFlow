@@ -246,6 +246,7 @@ function askDeleteBatch(barcode, batchId, medName, batchLabel, stock) {
   document.getElementById('dm-stock').textContent       = `${stock} unit${stock !== 1 ? 's' : ''}`;
   const modal = document.getElementById('delete-modal');
   modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
   // Wire the confirm button (replace any prior handler)
   const btn = document.getElementById('dm-confirm-btn');
   btn.onclick = confirmDeleteBatch;
@@ -255,6 +256,7 @@ function askDeleteBatch(barcode, batchId, medName, batchLabel, stock) {
 
 function closeDeleteModal() {
   document.getElementById('delete-modal').style.display = 'none';
+  document.body.style.overflow = '';
   _pendingDelete = null;
 }
 
@@ -293,14 +295,40 @@ async function confirmDeleteBatch() {
 }
 
 /* ── Delete Medicine flow ── */
+let _pendingDeleteMedicine = null;   // { barcode, name }
+
 function askDeleteMedicine(barcode, name, batchCount, totalStock) {
-  const confirmed = window.confirm(
-    `Are you sure you want to delete "${name}"?\n\nThis will permanently remove the medicine and all its batches from inventory.\n\nThis action cannot be undone.`
-  );
-  if (confirmed) confirmDeleteMedicine(barcode, name);
+  _pendingDeleteMedicine = { barcode, name };
+  document.getElementById('dmm-name').textContent     = name;
+  document.getElementById('dmm-medicine').textContent = name;
+  document.getElementById('dmm-barcode').textContent  = barcode;
+  document.getElementById('dmm-batches').textContent  = `${batchCount} batch${batchCount !== 1 ? 'es' : ''}`;
+  document.getElementById('dmm-stock').textContent    = `${totalStock} unit${totalStock !== 1 ? 's' : ''}`;
+  const modal = document.getElementById('delete-medicine-modal');
+  modal.style.display = 'flex';
+  document.body.style.overflow = 'hidden';
+  const btn = document.getElementById('dmm-confirm-btn');
+  btn.disabled = false;
+  btn.textContent = '🗑️ Delete Permanently';
 }
 
-async function confirmDeleteMedicine(barcode, name) {
+function closeDeleteMedicineModal() {
+  document.getElementById('delete-medicine-modal').style.display = 'none';
+  document.body.style.overflow = '';
+  _pendingDeleteMedicine = null;
+}
+
+function closeDeleteMedicineModalIfBackdrop(e) {
+  if (e.target === document.getElementById('delete-medicine-modal')) closeDeleteMedicineModal();
+}
+
+async function confirmDeleteMedicineModal() {
+  if (!_pendingDeleteMedicine) return;
+  const { barcode, name } = _pendingDeleteMedicine;
+  const btn = document.getElementById('dmm-confirm-btn');
+  btn.disabled = true;
+  btn.textContent = 'Deleting…';
+
   try {
     const res  = await fetch(`/medicine/${encodeURIComponent(barcode)}`, {
       method: 'DELETE',
@@ -310,9 +338,12 @@ async function confirmDeleteMedicine(barcode, name) {
     if (!res.ok) throw new Error(data.error || 'Delete failed.');
 
     _expanded.delete(barcode);
+    closeDeleteMedicineModal();
     toast('ok', `✅ "${name}" deleted successfully.`);
     await loadInventory();
   } catch (err) {
+    btn.disabled = false;
+    btn.textContent = '🗑️ Delete Permanently';
     toast('err', err.message || 'Could not delete medicine.');
   }
 }
@@ -366,7 +397,10 @@ document.addEventListener('DOMContentLoaded', () => {
   const modal = document.getElementById('delete-modal');
   if (modal) modal.addEventListener('click', closeDeleteModalIfBackdrop);
 
+  const medModal = document.getElementById('delete-medicine-modal');
+  if (medModal) medModal.addEventListener('click', closeDeleteMedicineModalIfBackdrop);
+
   document.addEventListener('keydown', e => {
-    if (e.key === 'Escape') closeDeleteModal();
+    if (e.key === 'Escape') { closeDeleteModal(); closeDeleteMedicineModal(); }
   });
 });
