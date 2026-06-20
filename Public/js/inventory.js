@@ -163,8 +163,26 @@ function renderMedCard(m) {
       </div>
       <div class="med-batches">
         ${batches.length === 0
-          ? `<div style="text-align:center;padding:1.5rem;color:var(--muted);font-size:.82rem">No batches in this medicine.</div>`
-          : `<div class="batch-grid">${batches.map(b => renderBatchCard(m, b)).join('')}</div>`}
+          ? `<div class="batch-area-wrap">
+               <div class="batch-grid-col" style="display:flex;align-items:center;padding:.4rem 0">
+                 <div style="color:var(--muted);font-size:.82rem">No batches in this medicine.</div>
+               </div>
+               <div class="delete-medicine-col">
+                 <button class="btn-delete-medicine" onclick="askDeleteMedicine('${esc(m.barcode)}','${esc(m.name)}',${batchCount},${totalStock})">
+                   <span class="del-icon">🗑️</span><span>Delete<br>Medicine</span>
+                 </button>
+               </div>
+             </div>`
+          : `<div class="batch-area-wrap">
+               <div class="batch-grid-col">
+                 <div class="batch-grid">${batches.map(b => renderBatchCard(m, b)).join('')}</div>
+               </div>
+               <div class="delete-medicine-col">
+                 <button class="btn-delete-medicine" onclick="askDeleteMedicine('${esc(m.barcode)}','${esc(m.name)}',${batchCount},${totalStock})">
+                   <span class="del-icon">🗑️</span><span>Delete<br>Medicine</span>
+                 </button>
+               </div>
+             </div>`}
       </div>
     </div>`;
 }
@@ -271,6 +289,31 @@ async function confirmDeleteBatch() {
     btn.disabled = false;
     btn.textContent = '🗑️ Delete Batch';
     toast('err', err.message || 'Could not delete batch.');
+  }
+}
+
+/* ── Delete Medicine flow ── */
+function askDeleteMedicine(barcode, name, batchCount, totalStock) {
+  const confirmed = window.confirm(
+    `Are you sure you want to delete "${name}"?\n\nThis will permanently remove the medicine and all its batches from inventory.\n\nThis action cannot be undone.`
+  );
+  if (confirmed) confirmDeleteMedicine(barcode, name);
+}
+
+async function confirmDeleteMedicine(barcode, name) {
+  try {
+    const res  = await fetch(`/medicine/${encodeURIComponent(barcode)}`, {
+      method: 'DELETE',
+      credentials: 'same-origin',
+    });
+    const data = await res.json();
+    if (!res.ok) throw new Error(data.error || 'Delete failed.');
+
+    _expanded.delete(barcode);
+    toast('ok', `✅ "${name}" deleted successfully.`);
+    await loadInventory();
+  } catch (err) {
+    toast('err', err.message || 'Could not delete medicine.');
   }
 }
 
