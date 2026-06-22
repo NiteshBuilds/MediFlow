@@ -389,6 +389,23 @@
   let allMedicines=[];
   let pharmacyProfile={};
 
+  // ── Helper: resolve selling price from a batch with safe fallback ──
+  function getBatchSellingPrice(medicine, batch) {
+    return Number(
+      batch?.sellingPrice != null && batch.sellingPrice > 0
+        ? batch.sellingPrice
+        : (medicine?.sellingPrice ?? medicine?.price ?? 0)
+    );
+  }
+
+  // ── Helper: get the active batch object for a cart item ──
+  function getActiveBatch(item) {
+    const batches = (item.batches || []).slice().sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
+    if (!batches.length) return null;
+    if (!item.selectedBatch || item.selectedBatch === 'auto') return batches[0];
+    return batches.find(b => b.batchLabel === item.selectedBatch) || batches[0];
+  }
+
   const nameInput=document.getElementById('name-input');
   const autoList=document.getElementById('autocomplete-list');
   const statusMsg=document.getElementById('status-msg');
@@ -501,7 +518,14 @@
     const cur=isNew?0:cart[bc].qty,nq=cur+1;
     if(nq>limit){playStockWarnSound();showStockWarn(bName,limit,cur);showToast(`⚠️ Only ${limit} in stock!`,'warn');return;}
     if(!isNew){cart[bc].qty++;setStatus('ok',`✅ ${data.name} ×${cart[bc].qty}`);}
-    else{cart[bc]={name:data.name,barcode:bc,price:Number(data.price),qty:1,stock:data.stock||0,batches:data.batches||[],selectedBatch:'auto'};setStatus('ok',`✅ Added — ${data.name}`);}
+    else{
+      // Determine price from the FEFO (auto) batch's sellingPrice
+      const sortedForPrice = (data.batches||[]).slice().sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
+      const autoBatch = sortedForPrice[0] || null;
+      const initPrice = getBatchSellingPrice(data, autoBatch);
+      cart[bc]={name:data.name,barcode:bc,price:initPrice,qty:1,stock:data.stock||0,batches:data.batches||[],selectedBatch:'auto'};
+      setStatus('ok',`✅ Added — ${data.name}`);
+    }
     hideStockWarn();
     document.getElementById('lookup-name').textContent=data.name;
 
@@ -672,31 +696,31 @@
 
     let grand=0,units=0;
     cartBody.innerHTML=keys.map(bc=>{
-      const it=cart[bc],ln=it.price*it.qty;
+      const it=cart[bc];
+      // ── Resolve active batch and its price ──
+      const activeBatch = getActiveBatch(it);
+      const batchPrice  = getBatchSellingPrice(it, activeBatch);
+      it.price = batchPrice; // keep in sync for receipt generation
+      const ln = batchPrice * it.qty;
       grand+=ln;units+=it.qty;
 
-      // Build batch dropdown options
+      // Build batch dropdown options (include SP in each option)
       const batches = (it.batches||[]).slice().sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
       const opts = batches.map(b=>{
         const exp=new Date(b.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'2-digit'});
+        const sp = getBatchSellingPrice(it, b);
         const sel = it.selectedBatch===b.batchLabel ? 'selected' : '';
-        return `<option value="${esc(b.batchLabel)}" ${sel}>${esc(b.batchLabel)} · ${b.stock} units · exp ${exp}</option>`;
+        return `<option value="${esc(b.batchLabel)}" ${sel}>${esc(b.batchLabel)} · ${b.stock} units · exp ${exp} · ₹${sp.toFixed(2)}</option>`;
       }).join('');
 
       const isAuto = !it.selectedBatch || it.selectedBatch==='auto';
       const selClass = isAuto ? 'auto' : 'manual';
-      const selLabel = isAuto
-        ? '📦 Auto (Nearest Expiry)'
-        : `📦 ${it.selectedBatch}`;
 
-      // Show which batch will actually be deducted
+      // Show which batch will actually be deducted and at what price
       let deductNote='';
-      if(batches.length>0){
-        const active = isAuto ? batches[0] : batches.find(b=>b.batchLabel===it.selectedBatch);
-        if(active){
-          const exp=new Date(active.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
-          deductNote=`<div style="font-size:.68rem;color:var(--green);margin-top:.22rem;font-weight:600">✅ Billing from ${active.batchLabel} · exp ${exp} · ${active.stock} available</div>`;
-        }
+      if(batches.length>0 && activeBatch){
+        const exp=new Date(activeBatch.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+        deductNote=`<div style="font-size:.68rem;color:var(--green);margin-top:.22rem;font-weight:600">✅ Billing from ${activeBatch.batchLabel} · ₹${batchPrice.toFixed(2)} per unit · exp ${exp} · ${activeBatch.stock} available</div>`;
       }
 
       return `<tr class="${bc===hlBc?'new-item':''}" id="row-${esc(bc)}">
@@ -719,7 +743,7 @@
             <button class="qty-btn" onclick="adjQty('${esc(bc)}',1)">+</button>
           </div>
         </td>
-        <td style="text-align:right">₹${it.price.toFixed(2)}</td>
+        <td style="text-align:right">₹${batchPrice.toFixed(2)}</td>
         <td style="text-align:right;font-weight:700">₹${ln.toFixed(2)}</td>
         <td style="text-align:right"><button class="del-btn" onclick="removeItem('${esc(bc)}')">✕</button></td>
       </tr>`;
@@ -752,6 +776,9 @@
     cart[bc].selectedBatch = val;
     // Update styling — green pill for auto, blue pill for manual
     selectEl.className = `batch-sel ${val==='auto'?'auto':'manual'}`;
+    // Update price from selected batch's sellingPrice
+    const activeBatch = getActiveBatch(cart[bc]);
+    cart[bc].price = getBatchSellingPrice(cart[bc], activeBatch);
     // Clamp qty if selected batch has less stock
     if(val !== 'auto') {
       const b = (cart[bc].batches||[]).find(x => x.batchLabel === val);
@@ -794,9 +821,13 @@
     const rn='MF-'+Date.now().toString().slice(-7);
     let grand=0,units=0;
     const rows=keys.map(bc=>{
-      const it=cart[bc],ln=it.price*it.qty;grand+=ln;units+=it.qty;
+      const it=cart[bc];
+      // it.price is kept in sync with the selected batch's sellingPrice by renderCart/changeBatch
+      const unitPrice = getBatchSellingPrice(it, getActiveBatch(it));
+      const ln = unitPrice * it.qty;
+      grand+=ln; units+=it.qty;
       const n=it.name.length>20?it.name.slice(0,19)+'…':it.name;
-      return`<div class="receipt-item"><span class="ri-name">${esc(n)}</span><span class="ri-qty">${it.qty}</span><span class="ri-price">&#8377;${it.price.toFixed(2)}</span><span class="ri-total">&#8377;${ln.toFixed(2)}</span></div>`;
+      return`<div class="receipt-item"><span class="ri-name">${esc(n)}</span><span class="ri-qty">${it.qty}</span><span class="ri-price">&#8377;${unitPrice.toFixed(2)}</span><span class="ri-total">&#8377;${ln.toFixed(2)}</span></div>`;
     }).join('');
     const p=pharmacyProfile;
     const headerName=p.pharmacyName||'MediFlow Pharmacy';
@@ -897,7 +928,12 @@
     try{
       const r=await fetch('/bill',{method:'POST',headers:{'Content-Type':'application/json'},
 body:JSON.stringify({
-  items:keys.map(bc=>({barcode:bc,qty:cart[bc].qty,batchLabel:cart[bc].selectedBatch})),
+  items:keys.map(bc=>{
+    const it = cart[bc];
+    const activeBatch = getActiveBatch(it);
+    const sp = getBatchSellingPrice(it, activeBatch);
+    return {barcode:bc, qty:it.qty, batchLabel:it.selectedBatch, sellingPrice:sp};
+  }),
   patientName: pName,
   patientAge: pAge ? Number(pAge) : null,
   patientPhone: pPhone,

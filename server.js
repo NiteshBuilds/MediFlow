@@ -1135,10 +1135,12 @@ app.post('/bill', requireOwner, async (req, res) => {
     for (const item of items) {
       const med = await Medicine.findOne({ ownerId: req.ownerId, barcode: item.barcode }); // 🔑
       let remaining = item.qty;
-      
+      let billedBatch = null; // track which batch was billed for price lookup
+
       if (item.batchLabel && item.batchLabel !== 'auto') {
         const batch = med.batches.find(b => b.batchLabel === item.batchLabel);
         if (batch) {
+          billedBatch = batch;
           const deduct = Math.min(batch.stock, remaining);
           batch.stock -= deduct;
           remaining -= deduct;
@@ -1147,12 +1149,21 @@ app.post('/bill', requireOwner, async (req, res) => {
         const sorted  = med.batches.sort((a, b) => new Date(a.expiryDate) - new Date(b.expiryDate));
         for (const batch of sorted) {
           if (remaining <= 0) break;
+          if (!billedBatch) billedBatch = batch; // first (FEFO) batch is the price source
           const deduct = Math.min(batch.stock, remaining);
           batch.stock  -= deduct;
           remaining    -= deduct;
         }
       }
       await doAutoShift(med);
+
+      // Use the billed batch's sellingPrice; fall back to med.price for old records
+      const unitPrice = Number(
+        billedBatch?.sellingPrice != null && billedBatch.sellingPrice > 0
+          ? billedBatch.sellingPrice
+          : (item.sellingPrice ?? med.price ?? 0)
+      );
+
       soldEntries.push({
         ownerId:      req.ownerId,
         type:         'sold',
@@ -1163,8 +1174,8 @@ app.post('/bill', requireOwner, async (req, res) => {
         medicineName: med.name,
         barcode:      med.barcode,
         quantity:     item.qty,
-        unitPrice:    med.price,
-        lineTotal:    med.price * item.qty,
+        unitPrice:    unitPrice,
+        lineTotal:    unitPrice * item.qty,
       });
     }
     try {

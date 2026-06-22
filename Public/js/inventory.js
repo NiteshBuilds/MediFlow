@@ -213,7 +213,8 @@ function renderBatchCard(med, b) {
         <div class="bc-stock ${stockClass}">${stockLabel} unit${stock !== 1 ? 's' : ''}</div>
       </div>
       <div class="bc-row"><span class="k">Expiry</span><span class="v ${daysToExp < 0 ? 'danger' : (daysToExp <= 30 ? 'amber' : '')}">${esc(expStr)}</span></div>
-      <div class="bc-row"><span class="k">Selling Price</span><span class="v">₹${Number(med.price).toFixed(2)}</span></div>
+      <div class="bc-row"><span class="k">Cost Price</span><span class="v">₹${Number(b.costPrice ?? med.costPrice ?? 0).toFixed(2)}</span></div>
+      <div class="bc-row"><span class="k">Selling Price</span><span class="v">₹${Number(b.sellingPrice != null && b.sellingPrice > 0 ? b.sellingPrice : (med.sellingPrice ?? med.price ?? 0)).toFixed(2)}</span></div>
       <div class="bc-row"><span class="k">Created</span><span class="v">${esc(createdStr)}</span></div>
       <button class="bc-delete" onclick="askDeleteBatch('${esc(med.barcode)}','${esc(b._id)}','${esc(med.name)}','${esc(label)}',${stock})">🗑 Delete Batch</button>
     </div>`;
