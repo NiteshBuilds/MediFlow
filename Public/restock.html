@@ -143,7 +143,8 @@
 
     /* ── Batch price section ── */
     .price-section{margin-bottom:1rem}
-    .price-checkbox-wrap{display:flex;align-items:flex-start;gap:.55rem;padding:.75rem .9rem;background:var(--teal-lt);border:1.5px solid var(--border-dk);border-radius:var(--radius-sm);cursor:pointer}
+    .price-checkbox-wrap{display:flex;align-items:flex-start;gap:.55rem;padding:.75rem .9rem;background:var(--teal-lt);border:1.5px solid var(--border-dk);border-radius:var(--radius-sm);cursor:pointer;transition:opacity .2s,background .2s,border-color .2s}
+    .price-checkbox-wrap.disabled{opacity:.52;cursor:not-allowed;pointer-events:none;background:var(--surface2);border-color:var(--border)}
     .price-checkbox-wrap input[type=checkbox]{width:16px;height:16px;margin-top:.15rem;accent-color:var(--teal);flex-shrink:0;cursor:pointer}
     .price-checkbox-label{font-size:.82rem;font-weight:600;color:var(--text);line-height:1.4}
     .price-checkbox-hint{font-size:.72rem;color:var(--muted);margin-top:.2rem;line-height:1.4}
@@ -238,10 +239,10 @@
           <div class="batch-preview" id="batch-preview"></div>
         </div>
 
-        <!-- ── Batch Price Section ── -->
-        <div class="price-section" id="price-section" style="display:none">
+        <!-- ── Batch Price Section ── always visible, disabled until medicine picked -->
+        <div class="price-section" id="price-section">
           <label>Batch Pricing</label>
-          <div class="price-checkbox-wrap" onclick="togglePriceCheckbox()">
+          <div class="price-checkbox-wrap" id="price-checkbox-wrap" onclick="togglePriceCheckbox()">
             <input type="checkbox" id="same-price-cb" checked onclick="event.stopPropagation();onPriceCbChange()"/>
             <div>
               <div class="price-checkbox-label">Use same Cost Price and Selling Price as the latest previous batch</div>
@@ -334,6 +335,13 @@
   let allMedicines = [];
   let selectedMed  = null;   // currently previewed medicine
 
+  // ── Initialise price-section to disabled state on load ──
+  // (runs before DOMContentLoaded is needed since script is at bottom)
+  window.addEventListener('DOMContentLoaded', () => {
+    document.getElementById('price-checkbox-wrap').classList.add('disabled');
+    document.getElementById('same-price-cb').disabled = true;
+  });
+
   // ── Auth ────────────────────────────────────────────────
   fetch('/me').then(r=>r.json()).then(d=>{
     if(!d.loggedIn){window.location.href='/login.html';return;}
@@ -412,7 +420,7 @@
     document.getElementById('prev-meta').textContent = `Stock: ${m.stock} · ₹${Number(m.price).toFixed(2)} · Exp: ${exp}`;
     document.getElementById('med-preview').classList.add('show');
   }
-  function hidePreview(){ document.getElementById('med-preview').classList.remove('show'); document.getElementById('preview-empty').style.display='block'; }
+  function hidePreview(){ document.getElementById('med-preview').classList.remove('show'); document.getElementById('preview-empty').style.display='block'; disablePriceSection(); }
 
   // ── Batch preview — tells user if new batch will be created ─
   function updateBatchPreview(){
@@ -497,10 +505,7 @@
       document.getElementById('qty-input').value     = '';
       document.getElementById('expiry-input').value  = '';
       document.getElementById('batch-preview').classList.remove('show');
-      document.getElementById('price-section').style.display = 'none';
-      document.getElementById('same-price-cb').checked = true;
-      document.getElementById('price-fields').classList.remove('show');
-      document.getElementById('price-warn').classList.remove('show');
+      disablePriceSection();
       document.getElementById('cp-input').value = '';
       document.getElementById('sp-input').value = '';
       selectedMed = null;
@@ -528,9 +533,12 @@
 
   // ── Batch Price Helpers ─────────────────────────────────
   function showPriceSection(m) {
-    const section = document.getElementById('price-section');
+    const wrap    = document.getElementById('price-checkbox-wrap');
     const hint    = document.getElementById('same-price-hint');
     const cb      = document.getElementById('same-price-cb');
+    // Enable the section now that a medicine is selected
+    wrap.classList.remove('disabled');
+    cb.disabled = false;
     const batches = (m.batches || []).slice().sort((a,b) => new Date(b.addedAt||0) - new Date(a.addedAt||0));
     if (batches.length > 0) {
       const latest = batches[0];
@@ -546,7 +554,17 @@
       cb.checked = false;
       document.getElementById('price-fields').classList.add('show');
     }
-    section.style.display = 'block';
+  }
+
+  function disablePriceSection() {
+    const wrap = document.getElementById('price-checkbox-wrap');
+    const cb   = document.getElementById('same-price-cb');
+    wrap.classList.add('disabled');
+    cb.disabled = true;
+    cb.checked  = true;
+    document.getElementById('price-fields').classList.remove('show');
+    document.getElementById('price-warn').classList.remove('show');
+    document.getElementById('same-price-hint').textContent = 'Prices will be copied from the most recently added batch of this medicine.';
   }
 
   function togglePriceCheckbox() {
