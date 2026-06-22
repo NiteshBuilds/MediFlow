@@ -85,6 +85,15 @@
     .btn-submit{display:inline-flex;align-items:center;gap:.45rem;background:var(--teal);color:#fff;border:none;padding:.72rem 1.5rem;border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s;box-shadow:0 2px 8px rgba(13,107,110,.25)}
     .btn-submit:hover{background:var(--teal-md);transform:translateY(-1px);box-shadow:0 4px 12px rgba(13,107,110,.3)}
 
+    .btn-generate-barcode{display:inline-flex;align-items:center;gap:.4rem;background:var(--surface2);color:var(--teal-dk);border:1.5px solid var(--border-dk);padding:.5rem 1rem;border-radius:var(--radius-sm);font-size:.8rem;font-weight:700;cursor:pointer;font-family:inherit;transition:all .18s}
+    .btn-generate-barcode:hover:not(:disabled){background:var(--teal-lt);border-color:var(--teal-md);color:var(--teal)}
+    .btn-generate-barcode:disabled{opacity:.6;cursor:not-allowed}
+    .gen-barcode-msg{font-size:.78rem;font-weight:600;margin-top:.4rem;min-height:1.1em;display:none;align-items:center;gap:.35rem}
+    .gen-barcode-msg.show{display:flex}
+    .gen-barcode-msg.ok{color:var(--green)}
+    .gen-barcode-msg.err{color:var(--red)}
+    .gen-barcode-msg.pending{color:var(--muted)}
+
     .msg{margin-top:1.1rem;padding:.72rem .9rem;border-radius:var(--radius-sm);font-size:.84rem;font-weight:600;display:none;align-items:center;gap:.5rem;border:1px solid transparent;animation:fadeUp .2s}
     .msg.show{display:flex}
     .msg.ok{background:var(--green-lt);color:var(--green);border-color:#a7d9be}
@@ -199,6 +208,10 @@
           <label>Barcode</label>
           <input type="text" id="med-barcode" placeholder="e.g. MED-001"/>
           <div class="field-hint">Must be unique — used for scanning at billing counter.</div>
+          <div style="margin-top:.55rem">
+            <button type="button" class="btn-generate-barcode" id="generate-barcode-btn" onclick="generateBarcode()">⚡ Generate Barcode</button>
+          </div>
+          <div class="gen-barcode-msg" id="gen-barcode-msg"></div>
         </div>
 
         <div class="form-row">
@@ -283,6 +296,56 @@
     }
   }
 
+  // ── Auto Generate Barcode ───────────────────────────────────
+  const BARCODE_CHARS = "ABCDEFGHJKMNPQRSTUVWXYZ23456789";
+
+  function makeCandidateBarcode(){
+    let out='';
+    for(let i=0;i<8;i++){
+      out += BARCODE_CHARS[Math.floor(Math.random()*BARCODE_CHARS.length)];
+    }
+    return out;
+  }
+
+  async function generateBarcode(){
+    const btn=document.getElementById('generate-barcode-btn');
+    const msg=document.getElementById('gen-barcode-msg');
+    const input=document.getElementById('med-barcode');
+
+    function showGenMsg(type,text){
+      msg.textContent=text;
+      msg.className=`gen-barcode-msg show ${type}`;
+    }
+
+    btn.disabled=true;
+    const originalLabel=btn.textContent;
+    btn.textContent='Generating…';
+    showGenMsg('pending','Generating…');
+
+    try{
+      let found=null;
+      for(let attempt=0;attempt<10;attempt++){
+        const candidate=makeCandidateBarcode();
+        const res=await fetch(`/api/barcodes/check/${encodeURIComponent(candidate)}`);
+        if(!res.ok) throw new Error('Server error');
+        const data=await res.json();
+        if(data.available){ found=candidate; break; }
+      }
+
+      if(found){
+        input.value=found;
+        showGenMsg('ok','✓ Barcode generated and available');
+      }else{
+        showGenMsg('err','Could not generate a unique barcode. Please try again or enter one manually.');
+      }
+    }catch(e){
+      showGenMsg('err','Could not generate a unique barcode. Please try again or enter one manually.');
+    }finally{
+      btn.disabled=false;
+      btn.textContent=originalLabel;
+    }
+  }
+
   async function addMedicine(){
     const name=document.getElementById('med-name').value.trim();
     const barcode=document.getElementById('med-barcode').value.trim();
@@ -303,6 +366,7 @@
       document.getElementById('alerts-enabled').checked=true;
       document.getElementById('stock-alerts-enabled').checked=true;
       document.getElementById('batch-preview').style.display='none';
+      document.getElementById('gen-barcode-msg').className='gen-barcode-msg';
       document.getElementById('med-name').focus();
     }catch(e){show('err','❌ Server unreachable.');}
     function show(t,m){msg.textContent=m;msg.className=`msg show ${t}`;}

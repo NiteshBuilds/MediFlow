@@ -949,6 +949,12 @@ app.post('/add-medicine', requireOwner, async (req, res) => {
     if (!name || !barcode || !expiryDate)
       return res.status(400).json({ error: 'Name, barcode and expiry date are required.' });
 
+    // Normalize barcode the same way regardless of whether it was typed
+    // manually or auto-generated, so lookups/uniqueness are consistent.
+    const normalizedBarcode = String(barcode).trim().toUpperCase();
+    if (!normalizedBarcode)
+      return res.status(400).json({ error: 'Name, barcode and expiry date are required.' });
+
     const initialBatch = {
       batchLabel: 'Batch A',
       stock:      Number(stock) || 0,
@@ -957,7 +963,7 @@ app.post('/add-medicine', requireOwner, async (req, res) => {
 
     const med   = new Medicine({
       ownerId: req.ownerId,   // 🔑 set tenant
-      name, barcode,
+      name, barcode: normalizedBarcode,
       price:     Number(price),
       costPrice: Number(costPrice) || 0,
       alertsEnabled: alertsEnabled !== false,
@@ -967,9 +973,34 @@ app.post('/add-medicine', requireOwner, async (req, res) => {
     const saved = await med.save();
     res.status(201).json(saved.toJSON());
   } catch (err) {
+    // Duplicate-key error from the unique (ownerId, barcode) index —
+    // handled cleanly instead of crashing or leaking a raw Mongo error.
     if (err.code === 11000)
-      return res.status(409).json({ error: 'A medicine with this barcode already exists in your pharmacy.' });
+      return res.status(409).json({ error: 'This barcode is already assigned to another medicine.' });
     res.status(500).json({ error: err.message });
+  }
+});
+
+// GET /api/barcodes/check/:barcode
+// Fast availability check used by the "Generate Barcode" button on the
+// Add Medicine page. Does a direct indexed lookup against the existing
+// unique (ownerId, barcode) index — never loads the full medicine list.
+// Scoped to the current pharmacy (req.ownerId) since barcodes are unique
+// per pharmacy, not globally.
+app.get('/api/barcodes/check/:barcode', requireOwner, async (req, res) => {
+  try {
+    const barcode = String(req.params.barcode || '').trim().toUpperCase();
+    if (!barcode)
+      return res.status(400).json({ available: false, error: 'Barcode is required.' });
+
+    const existing = await Medicine
+      .findOne({ ownerId: req.ownerId, barcode })   // 🔑 indexed, tenant-scoped lookup
+      .select('_id')
+      .lean();
+
+    res.json({ available: !existing });
+  } catch (err) {
+    res.status(500).json({ available: false, error: err.message });
   }
 });
 
