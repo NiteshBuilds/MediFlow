@@ -242,10 +242,12 @@ const User = mongoose.model('User', userSchema);
 // Lives inside a Medicine document. No ownerId needed here —
 // the parent Medicine already scopes it.
 const batchSchema = new mongoose.Schema({
-  batchLabel: { type: String },           // "Batch A", "Batch B" — auto-assigned
-  stock:      { type: Number, required: true, min: 0 },
-  expiryDate: { type: Date,   required: true },
-  addedAt:    { type: Date,   default: Date.now },
+  batchLabel:   { type: String },           // "Batch A", "Batch B" — auto-assigned
+  stock:        { type: Number, required: true, min: 0 },
+  expiryDate:   { type: Date,   required: true },
+  addedAt:      { type: Date,   default: Date.now },
+  costPrice:    { type: Number, default: 0 },   // purchase price for this batch
+  sellingPrice: { type: Number, default: 0 },   // selling price for this batch
 }, { _id: true });
 
 
@@ -1020,10 +1022,10 @@ app.get('/medicine-search', requireOwner, async (req, res) => {
 });
 
 // POST /restock
-// Body: { barcode, quantity, expiryDate }
+// Body: { barcode, quantity, expiryDate, costPrice?, sellingPrice? }
 app.post('/restock', requireOwner, async (req, res) => {
   try {
-    const { barcode, quantity, expiryDate } = req.body;
+    const { barcode, quantity, expiryDate, costPrice, sellingPrice } = req.body;
     if (!barcode || !quantity || !expiryDate)
       return res.status(400).json({ error: 'Barcode, quantity and expiry date are required.' });
 
@@ -1040,10 +1042,38 @@ app.post('/restock', requireOwner, async (req, res) => {
       new Date(b.expiryDate).toDateString() === newExpiry.toDateString()
     );
 
+    // Resolve batch-level prices:
+    // If caller sends explicit prices, use them.
+    // Otherwise copy from the most recently added batch (latest addedAt).
+    let batchCostPrice    = 0;
+    let batchSellingPrice = 0;
+    if (costPrice !== undefined && sellingPrice !== undefined) {
+      batchCostPrice    = Number(costPrice)    || 0;
+      batchSellingPrice = Number(sellingPrice) || 0;
+    } else if (med.batches.length > 0) {
+      // Copy from most recently added batch
+      const latest = med.batches.slice().sort((a, b) =>
+        new Date(b.addedAt || 0) - new Date(a.addedAt || 0)
+      )[0];
+      batchCostPrice    = latest.costPrice    || med.costPrice || 0;
+      batchSellingPrice = latest.sellingPrice || med.price     || 0;
+    } else {
+      batchCostPrice    = med.costPrice || 0;
+      batchSellingPrice = med.price     || 0;
+    }
+
     if (existingBatch) {
       existingBatch.stock += qty;
+      // Only update prices on existing batch if caller explicitly sent new ones
+      if (costPrice !== undefined)    existingBatch.costPrice    = batchCostPrice;
+      if (sellingPrice !== undefined) existingBatch.sellingPrice = batchSellingPrice;
     } else {
-      med.batches.push({ stock: qty, expiryDate: newExpiry });
+      med.batches.push({
+        stock:        qty,
+        expiryDate:   newExpiry,
+        costPrice:    batchCostPrice,
+        sellingPrice: batchSellingPrice,
+      });
     }
 
     await doAutoShift(med);

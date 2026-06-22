@@ -140,6 +140,18 @@
     .qty-chip:hover{background:var(--amber-lt);border-color:var(--amber);color:#a85f00}
 
     @media(max-width:800px){.content{grid-template-columns:1fr}}
+
+    /* ── Batch price section ── */
+    .price-section{margin-bottom:1rem}
+    .price-checkbox-wrap{display:flex;align-items:flex-start;gap:.55rem;padding:.75rem .9rem;background:var(--teal-lt);border:1.5px solid var(--border-dk);border-radius:var(--radius-sm);cursor:pointer}
+    .price-checkbox-wrap input[type=checkbox]{width:16px;height:16px;margin-top:.15rem;accent-color:var(--teal);flex-shrink:0;cursor:pointer}
+    .price-checkbox-label{font-size:.82rem;font-weight:600;color:var(--text);line-height:1.4}
+    .price-checkbox-hint{font-size:.72rem;color:var(--muted);margin-top:.2rem;line-height:1.4}
+    .price-fields{display:none;margin-top:.75rem;gap:.75rem;grid-template-columns:1fr 1fr}
+    .price-fields.show{display:grid}
+    .price-warn{font-size:.75rem;color:var(--amber);background:var(--amber-lt);border:1px solid #f5dbb0;border-radius:var(--radius-sm);padding:.5rem .75rem;margin-top:.5rem;display:none}
+    .price-warn.show{display:block}
+    @media(max-width:500px){.price-fields{grid-template-columns:1fr}}
   </style>
 </head>
 <body>
@@ -224,6 +236,29 @@
           <input type="date" id="expiry-input" onchange="updateBatchPreview()"/>
           <div class="field-hint">If the expiry differs from existing stock, a new batch will be created automatically.</div>
           <div class="batch-preview" id="batch-preview"></div>
+        </div>
+
+        <!-- ── Batch Price Section ── -->
+        <div class="price-section" id="price-section" style="display:none">
+          <label>Batch Pricing</label>
+          <div class="price-checkbox-wrap" onclick="togglePriceCheckbox()">
+            <input type="checkbox" id="same-price-cb" checked onclick="event.stopPropagation();onPriceCbChange()"/>
+            <div>
+              <div class="price-checkbox-label">Use same Cost Price and Selling Price as the latest previous batch</div>
+              <div class="price-checkbox-hint" id="same-price-hint">Prices will be copied from the most recently added batch of this medicine.</div>
+            </div>
+          </div>
+          <div class="price-fields" id="price-fields">
+            <div class="form-group" style="margin-bottom:0">
+              <label>Cost Price per Unit (₹)</label>
+              <input type="number" id="cp-input" placeholder="e.g. 10.00" min="0" step="0.01" oninput="checkPriceWarn()"/>
+            </div>
+            <div class="form-group" style="margin-bottom:0">
+              <label>Selling Price per Unit (₹)</label>
+              <input type="number" id="sp-input" placeholder="e.g. 15.00" min="0" step="0.01" oninput="checkPriceWarn()"/>
+            </div>
+          </div>
+          <div class="price-warn" id="price-warn">⚠️ Selling Price is lower than Cost Price. Please confirm this is intentional.</div>
         </div>
 
         <button class="btn-submit" id="restock-btn" onclick="doRestock()">
@@ -349,6 +384,7 @@
     hideAc();
     showPreview(m);
     updateBatchPreview();
+    showPriceSection(m);
     document.getElementById('qty-input').focus();
   }
 
@@ -414,10 +450,23 @@
     btn.textContent = '⏳ Updating stock…';
 
     try{
+      // ── Resolve batch prices ──
+      const samePriceCb = document.getElementById('same-price-cb');
+      let restockBody = { barcode, quantity, expiryDate };
+      if (samePriceCb && !samePriceCb.checked) {
+        const cp = parseFloat(document.getElementById('cp-input').value);
+        const sp = parseFloat(document.getElementById('sp-input').value);
+        if (isNaN(cp) || cp < 0) { showMsg('err','⚠️ Please enter a valid Cost Price.'); btn.disabled=false; btn.textContent='♻️ Add to Stock'; return; }
+        if (isNaN(sp) || sp <= 0) { showMsg('err','⚠️ Please enter a valid Selling Price.'); btn.disabled=false; btn.textContent='♻️ Add to Stock'; return; }
+        restockBody.costPrice    = cp;
+        restockBody.sellingPrice = sp;
+      }
+      // When checkbox is checked, we send no prices → server copies from latest batch
+
       const res  = await fetch('/restock',{
         method:'POST',
         headers:{'Content-Type':'application/json'},
-        body:JSON.stringify({barcode, quantity, expiryDate})
+        body:JSON.stringify(restockBody)
       });
       const data = await res.json();
 
@@ -448,6 +497,12 @@
       document.getElementById('qty-input').value     = '';
       document.getElementById('expiry-input').value  = '';
       document.getElementById('batch-preview').classList.remove('show');
+      document.getElementById('price-section').style.display = 'none';
+      document.getElementById('same-price-cb').checked = true;
+      document.getElementById('price-fields').classList.remove('show');
+      document.getElementById('price-warn').classList.remove('show');
+      document.getElementById('cp-input').value = '';
+      document.getElementById('sp-input').value = '';
       selectedMed = null;
       nameInput.focus();
 
@@ -470,6 +525,68 @@
     return esc(text.slice(0,i))+`<mark style="background:var(--teal-lt);border-radius:2px">${esc(text.slice(i,i+q.length))}</mark>`+esc(text.slice(i+q.length));
   }
   function esc(s){ return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+
+  // ── Batch Price Helpers ─────────────────────────────────
+  function showPriceSection(m) {
+    const section = document.getElementById('price-section');
+    const hint    = document.getElementById('same-price-hint');
+    const cb      = document.getElementById('same-price-cb');
+    const batches = (m.batches || []).slice().sort((a,b) => new Date(b.addedAt||0) - new Date(a.addedAt||0));
+    if (batches.length > 0) {
+      const latest = batches[0];
+      const cp = latest.costPrice    || m.costPrice || 0;
+      const sp = latest.sellingPrice || m.price     || 0;
+      hint.textContent = `Prices will be copied from the most recently added batch — CP ₹${Number(cp).toFixed(2)}, SP ₹${Number(sp).toFixed(2)}.`;
+      cb.checked = true;
+      document.getElementById('price-fields').classList.remove('show');
+      document.getElementById('price-warn').classList.remove('show');
+    } else {
+      // No previous batches — force manual entry
+      hint.textContent = 'No previous batch found. Please enter prices manually.';
+      cb.checked = false;
+      document.getElementById('price-fields').classList.add('show');
+    }
+    section.style.display = 'block';
+  }
+
+  function togglePriceCheckbox() {
+    const cb = document.getElementById('same-price-cb');
+    cb.checked = !cb.checked;
+    onPriceCbChange();
+  }
+
+  function onPriceCbChange() {
+    const cb     = document.getElementById('same-price-cb');
+    const fields = document.getElementById('price-fields');
+    const warn   = document.getElementById('price-warn');
+    if (cb.checked) {
+      fields.classList.remove('show');
+      warn.classList.remove('show');
+    } else {
+      fields.classList.add('show');
+      // Pre-fill with latest batch prices as a convenience
+      if (selectedMed) {
+        const batches = (selectedMed.batches || []).slice().sort((a,b) => new Date(b.addedAt||0) - new Date(a.addedAt||0));
+        if (batches.length > 0) {
+          const latest = batches[0];
+          document.getElementById('cp-input').value = (latest.costPrice    || selectedMed.costPrice || 0).toFixed(2);
+          document.getElementById('sp-input').value = (latest.sellingPrice || selectedMed.price     || 0).toFixed(2);
+        }
+      }
+      checkPriceWarn();
+    }
+  }
+
+  function checkPriceWarn() {
+    const cp   = parseFloat(document.getElementById('cp-input').value);
+    const sp   = parseFloat(document.getElementById('sp-input').value);
+    const warn = document.getElementById('price-warn');
+    if (!isNaN(cp) && !isNaN(sp) && sp < cp) {
+      warn.classList.add('show');
+    } else {
+      warn.classList.remove('show');
+    }
+  }
 
   loadMedicines().then(()=>{
     // ── Deep-link support: restock.html?barcode=XXXX ──
