@@ -77,6 +77,10 @@
     .badge-sold{display:inline-block;padding:.15rem .5rem;border-radius:999px;font-size:.68rem;font-weight:700;background:var(--green-lt);color:var(--green)}
     .badge-restock{display:inline-block;padding:.15rem .5rem;border-radius:999px;font-size:.68rem;font-weight:700;background:var(--amber-lt);color:#a85f00}
     .badge-discard{display:inline-block;padding:.15rem .5rem;border-radius:999px;font-size:.68rem;font-weight:700;background:var(--red-lt);color:var(--red)}
+    .badge-loss-status{display:inline-block;padding:.15rem .55rem;border-radius:999px;font-size:.68rem;font-weight:700;white-space:nowrap}
+    .badge-loss-status.badge-loss-bad{background:var(--red-lt);color:var(--red)}
+    .badge-loss-status.badge-loss-ok{background:var(--green-lt);color:var(--green)}
+    .loss-none{color:var(--green);font-weight:700;cursor:help}
     .hist-time{font-size:.72rem;color:var(--muted);white-space:nowrap}
 
     .hist-empty{padding:3rem;text-align:center;color:var(--muted)}
@@ -407,6 +411,18 @@
     }
   }
 
+  // Resolve a record's loss category safely, even for legacy records
+  // created before lossCategory existed. Display-only — never writes
+  // back to the record or the database.
+  function resolveLossCategory(r) {
+    if (r.lossCategory === 'chemist_loss' || r.lossCategory === 'supplier_return') {
+      return r.lossCategory;
+    }
+    // Legacy fallback: infer from the reason text.
+    if ((r.discardReason || '').trim() === 'Returned to Supplier') return 'supplier_return';
+    return 'chemist_loss';
+  }
+
   function renderDiscarded(list) {
     const body = document.getElementById('discarded-body');
     if (!list.length) {
@@ -418,7 +434,18 @@
       const dateStr = date.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
       const timeStr = date.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
       const expStr  = r.batchExpiryDate ? new Date(r.batchExpiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
-      const costLoss = typeof r.costLoss === 'number' ? r.costLoss.toFixed(2) : '—';
+
+      const category     = resolveLossCategory(r);
+      const isSupplierRet = category === 'supplier_return';
+
+      const lossStatusBadge = isSupplierRet
+        ? `<span class="badge-loss-status badge-loss-ok">🟢 Supplier Return</span>`
+        : `<span class="badge-loss-status badge-loss-bad">🔴 Pharmacy Loss</span>`;
+
+      const lossCell = isSupplierRet
+        ? `<span class="loss-none" title="Returned to supplier. No pharmacy loss recorded.">No Loss</span>`
+        : `₹${typeof r.costLoss === 'number' ? r.costLoss.toFixed(2) : '0.00'}`;
+
       return `<tr>
         <td>${dateStr}<div style="font-size:.72rem;color:var(--muted)">${timeStr}</div></td>
         <td><strong style="color:var(--text)">${esc(r.medicineName||'—')}</strong><div style="font-size:.72rem;color:var(--muted);font-family:monospace">${esc(r.barcode||'')}</div></td>
@@ -426,14 +453,15 @@
         <td class="num" style="font-weight:700;color:var(--red)">${r.quantity}</td>
         <td class="num">${r.remainingStock ?? '—'}</td>
         <td><span class="badge-discard">${esc(r.discardReason||'—')}</span>${r.discardNotes ? `<div style="font-size:.71rem;color:var(--muted);margin-top:.2rem">${esc(r.discardNotes)}</div>` : ''}</td>
-        <td class="num" style="color:var(--red);font-weight:700">₹${costLoss}</td>
+        <td>${lossStatusBadge}</td>
+        <td class="num" style="${isSupplierRet ? '' : 'color:var(--red);font-weight:700'}">${lossCell}</td>
       </tr>`;
     }).join('');
     body.innerHTML = `<table class="hist-table">
       <thead><tr>
         <th>Date / Time</th><th>Medicine</th><th>Batch</th>
         <th class="num">Discarded</th><th class="num">Remaining</th>
-        <th>Reason</th><th class="num">Cost Loss</th>
+        <th>Reason</th><th>Loss Status</th><th class="num">Cost Loss</th>
       </tr></thead>
       <tbody>${rows}</tbody>
     </table>`;
