@@ -247,6 +247,7 @@
   let _allBills = [];       // all grouped bills from server
   let _restocked = [];      // restock rows
   let _discarded = [];      // discard rows
+  let _discardedLoaded = false; // true once a load attempt has completed
   let _pharmacyInfo = { name: 'MediFlow Pharmacy', phone: '', address: '', email: '', license: '' };
 
   // ── Auth ────────────────────────────────────────────────
@@ -290,7 +291,7 @@
     document.getElementById('section-sold').classList.toggle('active', tab === 'sold');
     document.getElementById('section-restocked').classList.toggle('active', tab === 'restocked');
     document.getElementById('section-discarded').classList.toggle('active', tab === 'discarded');
-    if (tab === 'discarded' && _discarded.length === 0) loadDiscardHistory();
+    if (tab === 'discarded' && !_discardedLoaded) loadDiscardHistory();
   }
 
   // ── Search / filter ──────────────────────────────────────
@@ -385,6 +386,11 @@
   }
 
   async function loadDiscardHistory(countOnly = false) {
+    if (!countOnly) {
+      // Show spinner while loading
+      document.getElementById('discarded-body').innerHTML =
+        '<div class="hist-empty"><div class="empty-icon">⏳</div><p>Loading discard history…</p></div>';
+    }
     try {
       const res  = await fetch('/discard-history');
       const data = await res.json();
@@ -395,7 +401,9 @@
     } catch(e) {
       if (!countOnly)
         document.getElementById('discarded-body').innerHTML =
-          '<div class="hist-empty"><div class="empty-icon">❌</div><p>Could not load discard history.</p></div>';
+          '<div class="hist-empty"><div class="empty-icon">❌</div><p>Could not load discard history.</p><button class="btn-sm" style="margin-top:.6rem" onclick="_discardedLoaded=false;loadDiscardHistory()">↻ Retry</button></div>';
+    } finally {
+      if (!countOnly) _discardedLoaded = true;
     }
   }
 
@@ -449,7 +457,6 @@
 
       filterBills();   // respects active search
       renderRestocked(_restocked);
-      loadDiscardHistory(true);
     }catch(e){
       const err = '<div class="hist-empty"><div class="empty-icon">❌</div><p>Could not load history.<br/>Make sure the server is running.</p></div>';
       document.getElementById('sold-body').innerHTML = err;
@@ -543,6 +550,7 @@
   document.addEventListener('keydown', e => { if(e.key==='Escape') closeReceipt(); });
 
   loadHistory();
+  loadDiscardHistory(true);  // fetch discard count independently of main history load
   if (window.location.hash === '#restocked') switchTab('restocked');
   if (window.location.hash === '#discarded') switchTab('discarded');
   setInterval(loadHistory, 30000);
