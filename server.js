@@ -325,7 +325,9 @@ const stockHistorySchema = new mongoose.Schema({
   batchExpiryDate: Date,
   costPrice:    Number,
   sellingPrice: Number,
-  costLoss:     Number,   // quantity × costPrice
+  costLoss:     Number,   // quantity × costPrice (kept for backward compat)
+  lossCategory: { type: String, enum: ['supplier_return', 'chemist_loss'], default: null },
+  lossAmount:   { type: Number, default: 0 },
   discardReason: String,
   discardNotes:  String,
   remainingStock: Number, // batch stock after discard
@@ -1238,6 +1240,11 @@ app.post('/discard', requireOwner, async (req, res) => {
     if (!barcode)    return res.status(400).json({ error: 'Barcode is required.' });
     if (!batchId)    return res.status(400).json({ error: 'Batch ID is required.' });
     if (!reason)     return res.status(400).json({ error: 'Discard reason is required.' });
+
+    const validReasons = ['Returned to Supplier', 'Customer Return', 'Spoiled / Damaged', 'Expired'];
+    if (!validReasons.includes(reason))
+      return res.status(400).json({ error: 'Invalid discard reason.' });
+
     if (!discardType || !['units', 'entire'].includes(discardType))
       return res.status(400).json({ error: 'Invalid discard type.' });
 
@@ -1258,6 +1265,65 @@ app.post('/discard', requireOwner, async (req, res) => {
         return res.status(400).json({ error: 'Quantity must be a positive whole number.' });
       if (discardQty > availableStock)
         return res.status(400).json({ error: `Cannot discard ${discardQty} units — only ${availableStock} available in this batch.` });
+    }
+
+    // ── Loss classification ──
+    const batchCostPrice    = Number(batch.costPrice    != null ? batch.costPrice    : (med.costPrice    || 0));
+    const batchSellingPrice = Number(batch.sellingPrice != null && batch.sellingPrice > 0 ? batch.sellingPrice : (med.price || 0));
+    const costLoss          = batchCostPrice * discardQty;
+
+    let lossCategory, lossAmount;
+    if (reason === 'Returned to Supplier') {
+      lossCategory = 'supplier_return';
+      lossAmount   = 0;
+    } else {
+      // Customer Return, Spoiled / Damaged, Expired
+      lossCategory = 'chemist_loss';
+      lossAmount   = costLoss;
+    }
+
+    // Deduct stock from the specific batch only
+    batch.stock -= discardQty;
+    const remainingStock = batch.stock;
+
+    await med.save();
+
+    // Record discard in history
+    try {
+      await StockHistory.create({
+        ownerId:         req.ownerId,
+        type:            'discarded',
+        medicineName:    med.name,
+        barcode:         med.barcode,
+        batchId:         batchId,
+        batchLabel:      batch.batchLabel || 'Unknown',
+        batchExpiryDate: batch.expiryDate,
+        quantity:        discardQty,
+        costPrice:       batchCostPrice,
+        sellingPrice:    batchSellingPrice,
+        costLoss:        costLoss,
+        lossCategory:    lossCategory,
+        lossAmount:      lossAmount,
+        discardReason:   reason,
+        discardNotes:    notes || '',
+        remainingStock:  remainingStock,
+      });
+    } catch (histErr) {
+      console.warn('⚠️ Discard history log failed:', histErr.message);
+    }
+
+    res.json({
+      success:      true,
+      message:      `Successfully discarded ${discardQty} unit${discardQty !== 1 ? 's' : ''} from ${batch.batchLabel || 'batch'}.`,
+      discardedQty: discardQty,
+      remainingStock,
+      costLoss,
+      lossCategory,
+      lossAmount,
+      medicine:     med,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
     }
 
     // Use batch-level costPrice; fall back to medicine-level costPrice
