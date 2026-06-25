@@ -1324,51 +1324,6 @@ app.post('/discard', requireOwner, async (req, res) => {
     });
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
-    }
-
-    // Use batch-level costPrice; fall back to medicine-level costPrice
-    const batchCostPrice    = batch.costPrice    || med.costPrice    || 0;
-    const batchSellingPrice = batch.sellingPrice || med.price        || 0;
-    const costLoss          = batchCostPrice * discardQty;
-
-    // Deduct stock from the specific batch only
-    batch.stock -= discardQty;
-    const remainingStock = batch.stock;
-
-    await med.save();
-
-    // Record discard in history
-    try {
-      await StockHistory.create({
-        ownerId:        req.ownerId,
-        type:           'discarded',
-        medicineName:   med.name,
-        barcode:        med.barcode,
-        batchId:        batchId,
-        batchLabel:     batch.batchLabel || 'Unknown',
-        batchExpiryDate: batch.expiryDate,
-        quantity:       discardQty,
-        costPrice:      batchCostPrice,
-        sellingPrice:   batchSellingPrice,
-        costLoss:       costLoss,
-        discardReason:  reason,
-        discardNotes:   notes || '',
-        remainingStock: remainingStock,
-      });
-    } catch (histErr) {
-      console.warn('⚠️ Discard history log failed:', histErr.message);
-    }
-
-    res.json({
-      success: true,
-      message: `Successfully discarded ${discardQty} unit${discardQty !== 1 ? 's' : ''} from ${batch.batchLabel || 'batch'}.`,
-      discardedQty: discardQty,
-      remainingStock,
-      costLoss,
-      medicine: med,
-    });
-  } catch (err) { res.status(500).json({ error: err.message }); }
-});
 
 // GET /discard-history — all discard events for this pharmacy
 app.get('/discard-history', requireOwner, async (req, res) => {
