@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Discard Stock — MediFlow</title>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@300;400;500;600;700;800&family=Sora:wght@400;600;700&display=swap" rel="stylesheet"/>
+  <link rel="stylesheet" href="/css/mediflow-brand.css"/>
+  <link rel="icon" href="/assets/mediflow-logo-icon.png" type="image/png"/>
+  <style>
+    :root{
+      --teal:#0d6b6e;--teal-dk:#094a4c;--teal-md:#0f8a8e;--teal-lt:#e0f4f4;
+      --amber:#e8870a;--amber-lt:#fef3e2;
+      --green:#1a7a4a;--green-lt:#e3f5ec;
+      --red:#c0392b;--red-lt:#fdecea;
+      --bg:#f0f4f5;--surface:#ffffff;--surface2:#f7fafa;
+      --sidebar-bg:#0a3d3f;--sidebar-w:240px;
+      --text:#0f2b2d;--text-2:#3a5a5c;--muted:#7a9ea0;
+      --border:#d4e6e7;--border-dk:#b8d4d5;
+      --shadow-sm:0 1px 4px rgba(13,107,110,.08);--shadow-md:0 4px 16px rgba(13,107,110,.12);
+      --radius:12px;--radius-sm:8px;--radius-lg:16px;
+    }
+    *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;display:flex}
+
+    /* ── SIDEBAR ── */
+    .sidebar{width:var(--sidebar-w);min-height:100vh;background:var(--sidebar-bg);display:flex;flex-direction:column;position:fixed;left:0;top:0;bottom:0;z-index:200}
+    .sidebar::before{content:'';position:absolute;inset:0;pointer-events:none;background-image:linear-gradient(rgba(255,255,255,.025) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.025) 1px,transparent 1px);background-size:28px 28px}
+    .sidebar-logo{padding:1.4rem 1.25rem 1.1rem;border-bottom:1px solid rgba(255,255,255,.06)}
+    .logo-mark{display:flex;align-items:center;gap:.6rem;text-decoration:none}
+    .logo-icon{width:34px;height:34px;background:linear-gradient(135deg,#0f8a8e,#0aa8ad);border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:1rem;box-shadow:0 4px 12px rgba(13,168,173,.4);flex-shrink:0}
+    .logo-text{font-family:'Sora',sans-serif;font-size:1.1rem;font-weight:700;color:#fff;letter-spacing:-.02em}
+    .logo-sub{font-size:.6rem;color:rgba(255,255,255,.3);text-transform:uppercase;letter-spacing:.1em}
+    .sidebar-user{margin:.9rem .85rem .25rem;padding:.7rem;background:rgba(255,255,255,.05);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);display:flex;align-items:center;gap:.55rem}
+    .user-avatar{width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,var(--amber),#f5a623);display:flex;align-items:center;justify-content:center;font-size:.75rem;font-weight:700;color:#fff;flex-shrink:0}
+    .user-name-s{font-size:.78rem;font-weight:600;color:#fff;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+    .user-role{font-size:.65rem;color:rgba(255,255,255,.35)}
+    .sidebar-nav{flex:1;padding:.4rem 0;overflow-y:auto}
+    .nav-label{font-size:.58rem;font-weight:700;text-transform:uppercase;letter-spacing:.12em;color:rgba(255,255,255,.22);padding:.85rem 1.25rem .3rem}
+    .nav-item{display:flex;align-items:center;gap:.65rem;padding:.55rem .9rem .55rem 1.25rem;margin:.08rem .65rem;border-radius:var(--radius-sm);text-decoration:none;color:rgba(255,255,255,.5);font-size:.82rem;font-weight:500;transition:all .16s;position:relative}
+    .nav-item:hover{background:rgba(255,255,255,.07);color:rgba(255,255,255,.85)}
+    .nav-item.active{background:rgba(15,138,142,.22);color:#fff;font-weight:600}
+    .nav-item.active::before{content:'';position:absolute;left:2px;top:22%;bottom:22%;width:3px;background:#0aa8ad;border-radius:2px}
+    .nav-icon{width:26px;height:26px;border-radius:6px;display:flex;align-items:center;justify-content:center;font-size:.82rem;background:rgba(255,255,255,.06);flex-shrink:0;transition:background .16s}
+    .nav-item.active .nav-icon{background:rgba(15,138,142,.35)}
+    .nav-item:hover .nav-icon{background:rgba(255,255,255,.1)}
+    .sidebar-footer{padding:.7rem;border-top:1px solid rgba(255,255,255,.06)}
+    .btn-logout{width:100%;display:flex;align-items:center;gap:.55rem;padding:.55rem .85rem;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.07);border-radius:var(--radius-sm);color:rgba(255,255,255,.4);font-size:.78rem;font-weight:500;font-family:inherit;cursor:pointer;transition:all .18s}
+    .btn-logout:hover{background:rgba(192,57,43,.2);border-color:rgba(192,57,43,.35);color:#ff8a80}
+
+    /* ── MAIN ── */
+    .main-wrap{margin-left:var(--sidebar-w);flex:1;display:flex;flex-direction:column}
+    .topbar{height:58px;background:var(--surface);border-bottom:1px solid var(--border);display:flex;align-items:center;padding:0 2rem;box-shadow:var(--shadow-sm)}
+    .topbar-title{font-family:'Sora',sans-serif;font-size:.98rem;font-weight:600;color:var(--text)}
+    .content{flex:1;padding:2rem;display:grid;grid-template-columns:1fr 1fr;gap:1.5rem;align-items:start;max-width:1000px}
+
+    /* ── PANELS ── */
+    .panel{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);box-shadow:var(--shadow-sm);overflow:hidden;animation:fadeUp .3s ease both}
+    .panel:nth-child(2){animation-delay:.08s}
+    .panel-head{padding:1rem 1.3rem;border-bottom:1px solid var(--border);background:var(--surface2);display:flex;align-items:center;gap:.6rem}
+    .panel-head-icon{width:34px;height:34px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:.95rem;flex-shrink:0}
+    .phi-red{background:var(--red-lt)}
+    .phi-teal{background:var(--teal-lt)}
+    .panel-head-text{font-family:'Sora',sans-serif;font-size:.9rem;font-weight:600;color:var(--text)}
+    .panel-head-sub{font-size:.72rem;color:var(--muted)}
+    .panel-body{padding:1.4rem}
+    @keyframes fadeUp{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:translateY(0)}}
+
+    /* ── FORM ── */
+    .form-group{margin-bottom:1rem}
+    label{display:block;font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.36rem}
+    input[type=text],input[type=number],select,textarea{width:100%;padding:.65rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);font-size:.9rem;font-family:inherit;background:var(--surface2);color:var(--text);outline:none;transition:border-color .2s,box-shadow .2s,background .2s}
+    input:focus,select:focus,textarea:focus{border-color:var(--teal-md);box-shadow:0 0 0 3px rgba(13,138,142,.1);background:var(--surface)}
+    textarea{resize:vertical;min-height:80px}
+    .field-hint{font-size:.71rem;color:var(--muted);margin-top:.25rem}
+
+    /* Autocomplete */
+    .ac-wrap{position:relative}
+    .autocomplete-list{position:absolute;top:calc(100% + 3px);left:0;right:0;background:var(--surface);border:1.5px solid var(--teal-md);border-radius:var(--radius);max-height:220px;overflow-y:auto;z-index:9999;display:none;box-shadow:0 8px 28px rgba(13,107,110,.18)}
+    .autocomplete-list.show{display:block}
+    .autocomplete-item{padding:.62rem .9rem;cursor:pointer;border-bottom:1px solid var(--border);transition:background .13s}
+    .autocomplete-item:last-child{border-bottom:none}
+    .autocomplete-item:hover,.autocomplete-item.ak{background:var(--teal-lt)}
+    .ac-name{font-weight:600;font-size:.84rem;color:var(--text)}
+    .ac-meta{font-size:.72rem;color:var(--muted);margin-top:.1rem}
+
+    /* Medicine preview */
+    .med-preview{background:var(--teal-lt);border:1px solid var(--border-dk);border-radius:var(--radius-sm);padding:.9rem 1rem;display:none;align-items:center;gap:.8rem;margin-bottom:1rem;animation:fadeUp .2s}
+    .med-preview.show{display:flex}
+    .med-preview-icon{width:34px;height:34px;background:var(--surface);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:1rem;flex-shrink:0;border:1px solid var(--border)}
+    .med-preview-name{font-weight:700;font-size:.86rem;color:var(--text)}
+    .med-preview-meta{font-size:.73rem;color:var(--muted);margin-top:.1rem}
+
+    /* Batch cards for selection */
+    .batch-select-list{display:flex;flex-direction:column;gap:.5rem;margin-bottom:1rem}
+    .batch-sel-card{padding:.75rem 1rem;border:2px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .16s;background:var(--surface2)}
+    .batch-sel-card:hover{border-color:var(--teal-md);background:var(--teal-lt)}
+    .batch-sel-card.selected{border-color:var(--teal);background:var(--teal-lt);box-shadow:0 0 0 3px rgba(13,107,110,.1)}
+    .batch-sel-card.zero-stock{opacity:.5;cursor:not-allowed;border-style:dashed}
+    .batch-sel-top{display:flex;align-items:center;justify-content:space-between;margin-bottom:.35rem}
+    .batch-sel-label{font-weight:700;font-size:.86rem;color:var(--text)}
+    .batch-sel-stock{font-size:.78rem;font-weight:700;color:var(--teal-dk)}
+    .batch-sel-stock.low{color:var(--red)}
+    .batch-sel-meta{display:flex;gap:1rem;flex-wrap:wrap;font-size:.73rem;color:var(--muted)}
+    .batch-sel-meta span strong{color:var(--text-2)}
+
+    /* Discard type radio */
+    .radio-group{display:flex;flex-direction:column;gap:.5rem;margin-bottom:.25rem}
+    .radio-card{display:flex;align-items:flex-start;gap:.65rem;padding:.75rem .9rem;border:1.5px solid var(--border);border-radius:var(--radius-sm);cursor:pointer;transition:all .16s;background:var(--surface2)}
+    .radio-card:hover{border-color:var(--teal-md)}
+    .radio-card.selected{border-color:var(--teal);background:var(--teal-lt)}
+    .radio-card.selected-danger{border-color:var(--red);background:var(--red-lt)}
+    .radio-card input[type=radio]{margin-top:.15rem;accent-color:var(--teal);flex-shrink:0}
+    .radio-label{font-size:.84rem;font-weight:700;color:var(--text);line-height:1.3}
+    .radio-hint{font-size:.72rem;color:var(--muted);margin-top:.15rem;line-height:1.4}
+    .radio-warn{font-size:.74rem;color:var(--red);background:var(--red-lt);border:1px solid #f5c6c2;border-radius:var(--radius-sm);padding:.5rem .75rem;margin-top:.5rem;display:none}
+    .radio-warn.show{display:block}
+
+    /* Summary box */
+    .summary-box{background:var(--surface2);border:1.5px solid var(--border-dk);border-radius:var(--radius-sm);padding:1rem 1.1rem;margin-bottom:1rem;display:none;animation:fadeUp .2s}
+    .summary-box.show{display:block}
+    .summary-title{font-size:.7rem;font-weight:700;text-transform:uppercase;letter-spacing:.07em;color:var(--muted);margin-bottom:.65rem}
+    .summary-row{display:flex;justify-content:space-between;align-items:center;padding:.32rem 0;border-bottom:1px solid var(--border);font-size:.82rem}
+    .summary-row:last-child{border-bottom:none;padding-top:.5rem;margin-top:.25rem}
+    .summary-row .sk{color:var(--muted);font-weight:500}
+    .summary-row .sv{font-weight:700;color:var(--text)}
+    .summary-row .sv.loss{color:var(--red)}
+    .summary-row .sv.remain{color:var(--green)}
+
+    /* Buttons */
+    .btn-discard{width:100%;padding:.75rem;background:var(--red);color:#fff;border:none;border-radius:var(--radius-sm);font-size:.9rem;font-weight:700;font-family:inherit;cursor:pointer;transition:all .18s;box-shadow:0 2px 8px rgba(192,57,43,.25);display:flex;align-items:center;justify-content:center;gap:.4rem}
+    .btn-discard:hover{background:#a93226;transform:translateY(-1px);box-shadow:0 4px 12px rgba(192,57,43,.35)}
+    .btn-discard:disabled{opacity:.45;cursor:not-allowed;transform:none}
+
+    /* Messages */
+    .msg{padding:.65rem .85rem;border-radius:var(--radius-sm);font-size:.82rem;font-weight:600;display:none;align-items:center;gap:.45rem;margin-top:.9rem;border:1px solid transparent;animation:fadeUp .2s}
+    .msg.show{display:flex}
+    .msg.err{background:var(--red-lt);color:#7a1a1a;border-color:#f5c6c2}
+    .msg.ok{background:var(--green-lt);color:var(--green);border-color:#a7d9be}
+
+    /* Empty / loading states */
+    .state-empty{text-align:center;padding:2rem 1rem;color:var(--muted);font-size:.83rem;display:none}
+    .state-empty.show{display:block}
+
+    /* ── CONFIRMATION MODAL ── */
+    .conf-backdrop{position:fixed;inset:0;background:rgba(5,20,22,.58);z-index:1001;display:flex;align-items:center;justify-content:center;padding:1rem;backdrop-filter:blur(4px);opacity:0;pointer-events:none;transition:opacity .22s}
+    .conf-backdrop.open{opacity:1;pointer-events:auto}
+    .conf-modal{background:#fff;border-radius:18px;width:100%;max-width:480px;box-shadow:0 24px 64px rgba(13,107,110,.22);transform:translateY(14px) scale(.98);transition:transform .25s,opacity .25s;opacity:0}
+    .conf-backdrop.open .conf-modal{transform:translateY(0) scale(1);opacity:1}
+    .conf-header{padding:1.2rem 1.4rem;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between}
+    .conf-title{font-family:'Sora',sans-serif;font-size:1rem;font-weight:700;color:var(--text)}
+    .conf-close{background:none;border:none;font-size:1.3rem;color:var(--muted);cursor:pointer;padding:.2rem .4rem;border-radius:6px;line-height:1}
+    .conf-close:hover{background:var(--red-lt);color:var(--red)}
+    .conf-body{padding:1.4rem}
+    .conf-warn-banner{background:var(--red-lt);border:1px solid #f5c6c2;border-radius:var(--radius-sm);padding:.75rem 1rem;margin-bottom:1.1rem;font-size:.8rem;color:#7a1a1a;line-height:1.5}
+    .conf-detail-row{display:flex;justify-content:space-between;font-size:.82rem;padding:.3rem 0;border-bottom:1px solid var(--border)}
+    .conf-detail-row:last-child{border-bottom:none}
+    .conf-detail-row .ck{color:var(--muted)}
+    .conf-detail-row .cv{font-weight:700;color:var(--text)}
+    .conf-detail-row .cv.red{color:var(--red)}
+    .conf-actions{display:flex;gap:.6rem;justify-content:flex-end;margin-top:1.2rem}
+    .conf-cancel{padding:.62rem 1.1rem;background:var(--surface2);border:1.5px solid var(--border-dk);border-radius:var(--radius-sm);font-size:.85rem;font-weight:600;color:var(--text-2);cursor:pointer;font-family:inherit;transition:all .16s}
+    .conf-cancel:hover{background:var(--border)}
+    .conf-confirm{padding:.62rem 1.3rem;background:var(--red);border:none;border-radius:var(--radius-sm);font-size:.85rem;font-weight:700;color:#fff;cursor:pointer;font-family:inherit;box-shadow:0 2px 8px rgba(192,57,43,.25);transition:opacity .15s}
+    .conf-confirm:disabled{opacity:.5;cursor:not-allowed}
+
+    /* Toast */
+    .toast-host{position:fixed;bottom:1.5rem;right:1.5rem;z-index:1100;display:flex;flex-direction:column;gap:.5rem;pointer-events:none}
+    .toast{padding:.65rem 1rem;border-radius:var(--radius-sm);font-size:.82rem;font-weight:600;box-shadow:0 4px 16px rgba(13,107,110,.18);animation:toastIn .25s ease;pointer-events:auto}
+    .toast.ok{background:var(--green-lt);color:var(--green);border:1px solid #a7d9be}
+    .toast.err{background:var(--red-lt);color:var(--red);border:1px solid #f5c6c2}
+    @keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+
+    @media(max-width:900px){.content{grid-template-columns:1fr}}
+    @media(max-width:700px){.sidebar{transform:translateX(-100%)}.main-wrap{margin-left:0}}
+  </style>
+</head>
+<body>
+
+<aside class="sidebar">
+  <div class="sidebar-logo">
+    <a class="logo-mark" href="index.html">
+      <div class="logo-icon"></div>
+      <div><div class="logo-text">MediFlow</div><div class="logo-sub">Your own Pharmacy</div></div>
+    </a>
+  </div>
+  <div class="sidebar-user">
+    <div class="user-avatar" id="sb-avatar">?</div>
+    <div><div class="user-name-s" id="sb-name">…</div><div class="user-role">Pharmacist</div></div>
+  </div>
+  <nav class="sidebar-nav">
+    <div class="nav-label">Main</div>
+    <a class="nav-item" href="index.html"><div class="nav-icon">🏠</div>Dashboard</a>
+    <a class="nav-item" href="billing.html"><div class="nav-icon">🧾</div>Billing</a>
+    <div class="nav-label">Inventory</div>
+    <a class="nav-item" href="add-medicine.html"><div class="nav-icon">➕</div>Add Medicine</a>
+    <a class="nav-item" href="restock.html"><div class="nav-icon">♻️</div>Restock</a>
+    <a class="nav-item" href="history.html"><div class="nav-icon">📜</div>History</a>
+    <a class="nav-item" href="order.html"><div class="nav-icon">📋</div>Order</a>
+    <a class="nav-item" href="inventory.html"><div class="nav-icon">📦</div>Manage Inventory</a>
+    <a class="nav-item active" href="discard.html"><div class="nav-icon">🗑️</div>Discard Stock</a>
+    <div class="nav-label">Tools</div>
+    <a class="nav-item" href="scanner.html"><div class="nav-icon">📷</div>Camera Scanner</a>
+  </nav>
+  <div class="sidebar-footer">
+    <button class="btn-logout" onclick="doLogout()"><span>🚪</span>Sign Out</button>
+  </div>
+</aside>
+
+<div class="main-wrap">
+  <div class="topbar">
+    <div class="topbar-title">🗑️ Discard Stock</div>
+  </div>
+
+  <div class="content">
+
+    <!-- LEFT: Discard form -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-head-icon phi-red">🗑️</div>
+        <div>
+          <div class="panel-head-text">Discard Medicine</div>
+          <div class="panel-head-sub">Remove damaged or unusable units from a batch.</div>
+        </div>
+      </div>
+      <div class="panel-body">
+
+        <!-- Medicine search -->
+        <div class="form-group">
+          <label>Medicine Name or Barcode</label>
+          <div class="ac-wrap" id="ac-wrap">
+            <input type="text" id="name-input" placeholder="Start typing medicine name or barcode…" autocomplete="off"/>
+            <div class="autocomplete-list" id="autocomplete-list"></div>
+          </div>
+        </div>
+
+        <!-- Medicine preview -->
+        <div class="med-preview" id="med-preview">
+          <div class="med-preview-icon">💊</div>
+          <div>
+            <div class="med-preview-name" id="prev-name">—</div>
+            <div class="med-preview-meta" id="prev-meta">—</div>
+          </div>
+        </div>
+
+        <!-- Batch selection -->
+        <div class="form-group" id="batch-section" style="display:none">
+          <label>Select Batch to Discard From</label>
+          <div class="batch-select-list" id="batch-list"></div>
+          <div class="field-hint">Only batches with available stock can be selected.</div>
+        </div>
+
+        <!-- Discard type -->
+        <div class="form-group" id="type-section" style="display:none">
+          <label>Discard Type</label>
+          <div class="radio-group">
+            <label class="radio-card selected" id="rc-units" onclick="selectDiscardType('units')">
+              <input type="radio" name="discard-type" value="units" checked/>
+              <div>
+                <div class="radio-label">Discard Specific Units</div>
+                <div class="radio-hint">Enter the number of units to remove from this batch.</div>
+              </div>
+            </label>
+            <label class="radio-card" id="rc-entire" onclick="selectDiscardType('entire')">
+              <input type="radio" name="discard-type" value="entire"/>
+              <div>
+                <div class="radio-label">Discard Entire Batch</div>
+                <div class="radio-hint">Remove all remaining stock from this batch.</div>
+              </div>
+            </label>
+          </div>
+          <div class="radio-warn" id="entire-warn">⚠️ This will permanently remove all remaining units from the selected batch.</div>
+        </div>
+
+        <!-- Quantity -->
+        <div class="form-group" id="qty-section" style="display:none">
+          <label>Units to Discard</label>
+          <input type="number" id="qty-input" placeholder="Enter number of units…" min="1" step="1" oninput="updateSummary()"/>
+          <div class="field-hint" id="qty-hint">Enter a whole number. Cannot exceed available batch stock.</div>
+        </div>
+
+        <!-- Discard reason -->
+        <div class="form-group" id="reason-section" style="display:none">
+          <label>Discard Reason <span style="color:var(--red)">*</span></label>
+          <select id="reason-select" onchange="onReasonChange()">
+            <option value="">— Select a reason —</option>
+            <option value="Damaged">Damaged</option>
+            <option value="Broken packaging">Broken packaging</option>
+            <option value="Spoiled / contaminated">Spoiled / contaminated</option>
+            <option value="Supplier return">Supplier return</option>
+            <option value="Customer return">Customer return</option>
+            <option value="Lost / missing stock">Lost / missing stock</option>
+            <option value="Other">Other</option>
+          </select>
+        </div>
+
+        <!-- Other reason text -->
+        <div class="form-group" id="other-reason-section" style="display:none">
+          <label>Specify Reason <span style="color:var(--red)">*</span></label>
+          <input type="text" id="other-reason-input" placeholder="Enter reason for discard…" oninput="updateSummary()"/>
+        </div>
+
+        <!-- Notes -->
+        <div class="form-group" id="notes-section" style="display:none">
+          <label>Additional Notes (Optional)</label>
+          <textarea id="notes-input" placeholder="Add any additional details, such as supplier issue or damage description…"></textarea>
+        </div>
+
+        <!-- Summary -->
+        <div class="summary-box" id="summary-box">
+          <div class="summary-title">📋 Discard Summary</div>
+          <div class="summary-row"><span class="sk">Medicine</span><span class="sv" id="sum-medicine">—</span></div>
+          <div class="summary-row"><span class="sk">Batch</span><span class="sv" id="sum-batch">—</span></div>
+          <div class="summary-row"><span class="sk">Batch Expiry</span><span class="sv" id="sum-expiry">—</span></div>
+          <div class="summary-row"><span class="sk">Current Batch Stock</span><span class="sv" id="sum-current">—</span></div>
+          <div class="summary-row"><span class="sk">Units to Discard</span><span class="sv loss" id="sum-qty">—</span></div>
+          <div class="summary-row"><span class="sk">Stock After Discard</span><span class="sv remain" id="sum-remaining">—</span></div>
+          <div class="summary-row"><span class="sk">Reason</span><span class="sv" id="sum-reason">—</span></div>
+          <div class="summary-row"><span class="sk">Cost Price per Unit</span><span class="sv" id="sum-cp">—</span></div>
+          <div class="summary-row" style="border-top:2px solid var(--border);margin-top:.3rem"><span class="sk" style="font-weight:700">Estimated Cost Loss</span><span class="sv loss" id="sum-loss" style="font-size:1rem">—</span></div>
+        </div>
+
+        <!-- Action button -->
+        <button class="btn-discard" id="discard-btn" onclick="openConfirmModal()" disabled>
+          🗑️ Discard Stock
+        </button>
+
+        <div class="msg" id="msg"></div>
+
+      </div>
+    </div>
+
+    <!-- RIGHT: Info / result panel -->
+    <div class="panel">
+      <div class="panel-head">
+        <div class="panel-head-icon phi-teal">📊</div>
+        <div>
+          <div class="panel-head-text">Discard Info</div>
+          <div class="panel-head-sub">What is discard stock?</div>
+        </div>
+      </div>
+      <div class="panel-body">
+
+        <div id="info-empty">
+          <div style="text-align:center;padding:1.5rem 0 1rem">
+            <div style="font-size:2.5rem;margin-bottom:.7rem">🗑️</div>
+            <div style="font-family:'Sora',sans-serif;font-size:.92rem;font-weight:700;color:var(--text);margin-bottom:.5rem">Discard Stock</div>
+            <div style="font-size:.8rem;color:var(--muted);line-height:1.7">
+              Use this page to permanently remove medicine units that cannot be sold.<br/><br/>
+              <strong style="color:var(--text-2)">Common reasons:</strong>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.45rem;margin-bottom:1.2rem">
+            ${['🔨 Damaged medicine received from supplier','📦 Broken strips or bottles','🦠 Spoiled or contaminated stock','↩️ Customer return — cannot be resold','🚚 Supplier return pending removal','❓ Lost or missing stock'].map(r=>`<div style="display:flex;align-items:center;gap:.6rem;padding:.5rem .75rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.8rem;color:var(--text-2)">${r}</div>`).join('')}
+          </div>
+          <div style="padding:.75rem;background:var(--amber-lt);border:1px solid #f5dbb0;border-radius:var(--radius-sm);font-size:.78rem;color:#7a4a00;line-height:1.5">
+            ⚠️ <strong>Important:</strong> Discard is different from expiry removal. A medicine can be discarded at any time, even if it has not expired.
+          </div>
+        </div>
+
+        <!-- Result after discard -->
+        <div id="result-panel" style="display:none">
+          <div style="background:var(--green-lt);border:1.5px solid #a7d9be;border-radius:var(--radius-sm);padding:.9rem 1.1rem;display:flex;align-items:center;gap:.75rem;margin-bottom:1.1rem;animation:fadeUp .25s">
+            <span style="font-size:1.4rem">✅</span>
+            <div>
+              <div style="font-family:'Sora',sans-serif;font-size:.9rem;font-weight:700;color:var(--green)">Discard Recorded</div>
+              <div style="font-size:.77rem;color:#3a7a5c;margin-top:.15rem" id="res-summary-text">—</div>
+            </div>
+            <a href="history.html#discarded" style="margin-left:auto;font-size:.76rem;font-weight:700;color:var(--green);text-decoration:none;white-space:nowrap;padding:.3rem .6rem;border:1px solid #a7d9be;border-radius:var(--radius-sm);background:var(--surface)">📜 History →</a>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:.4rem" id="res-details"></div>
+        </div>
+
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<!-- Toast host -->
+<div class="toast-host" id="toast-host"></div>
+
+<!-- ═══ CONFIRMATION MODAL ═══ -->
+<div class="conf-backdrop" id="conf-modal" onclick="closeConfModalIfBackdrop(event)">
+  <div class="conf-modal">
+    <div class="conf-header">
+      <div class="conf-title">🗑️ Discard Stock Permanently?</div>
+      <button class="conf-close" onclick="closeConfModal()">✕</button>
+    </div>
+    <div class="conf-body">
+      <div class="conf-warn-banner">
+        ⛔ This action will permanently remove stock from this batch and <strong>cannot be undone.</strong>
+      </div>
+      <div id="conf-details"></div>
+      <div class="conf-actions">
+        <button class="conf-cancel" onclick="closeConfModal()">Cancel</button>
+        <button class="conf-confirm" id="conf-confirm-btn" onclick="executeDiscard()">🗑️ Discard Permanently</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+  let allMedicines  = [];
+  let selectedMed   = null;
+  let selectedBatch = null;
+  let discardType   = 'units';
+
+  // ── Auth ────────────────────────────────────────────────
+  fetch('/me').then(r=>r.json()).then(d=>{
+    if(!d.loggedIn){window.location.href='/login.html';return;}
+    document.getElementById('sb-name').textContent   = d.name;
+    document.getElementById('sb-avatar').textContent = d.name.charAt(0).toUpperCase();
+  });
+  function doLogout(){fetch('/logout',{method:'POST'}).then(()=>window.location.href='/login.html');}
+
+  // ── Load medicines ───────────────────────────────────────
+  async function loadMedicines(){
+    try{
+      const data = await fetch('/medicines').then(r=>r.json());
+      if(Array.isArray(data)) allMedicines = data;
+    }catch(_){}
+  }
+
+  // ── Autocomplete ─────────────────────────────────────────
+  const nameInput = document.getElementById('name-input');
+  const autoList  = document.getElementById('autocomplete-list');
+
+  nameInput.addEventListener('input', ()=>{
+    const q = nameInput.value.trim().toLowerCase();
+    if(!q){hideAc();return;}
+    const matches = allMedicines.filter(m=>
+      m.name.toLowerCase().includes(q) || m.barcode.toLowerCase().includes(q)
+    ).slice(0,8);
+    if(!matches.length){hideAc();return;}
+    autoList._m = matches;
+    autoList.innerHTML = matches.map((m,i)=>`
+      <div class="autocomplete-item" onclick="pickMed(${i})">
+        <div class="ac-name">${hl(m.name,q)}</div>
+        <div class="ac-meta">Stock: <strong>${m.stock}</strong> · ${m.batches?m.batches.length:0} batches · ${esc(m.barcode)}</div>
+      </div>`).join('');
+    autoList.classList.add('show');
+  });
+  document.addEventListener('click', e=>{if(!document.getElementById('ac-wrap').contains(e.target)) hideAc();});
+  function hideAc(){autoList.classList.remove('show');autoList.innerHTML='';}
+
+  nameInput.addEventListener('keydown', e=>{
+    const items = autoList.querySelectorAll('.autocomplete-item');
+    let cur = [...items].findIndex(el=>el.classList.contains('ak'));
+    if(e.key==='ArrowDown'){e.preventDefault();cur=Math.min(cur+1,items.length-1);items.forEach((el,i)=>el.classList.toggle('ak',i===cur));}
+    else if(e.key==='ArrowUp'){e.preventDefault();cur=Math.max(cur-1,0);items.forEach((el,i)=>el.classList.toggle('ak',i===cur));}
+    else if(e.key==='Enter'){e.preventDefault();if(cur>=0)pickMed(cur);}
+    else if(e.key==='Escape')hideAc();
+  });
+
+  function pickMed(i){
+    const m = autoList._m[i];
+    if(!m) return;
+    selectedMed   = m;
+    selectedBatch = null;
+    nameInput.value = m.name;
+    hideAc();
+    showMedPreview(m);
+    renderBatchList(m);
+    hidePostBatchSections();
+    updateSummary();
+  }
+
+  function showMedPreview(m){
+    document.getElementById('prev-name').textContent = m.name;
+    document.getElementById('prev-meta').textContent =
+      `Barcode: ${m.barcode} · Total: ${m.stock} unit${m.stock!==1?'s':''} · ${(m.batches||[]).length} batch${(m.batches||[]).length!==1?'es':''}`;
+    document.getElementById('med-preview').classList.add('show');
+  }
+
+  function renderBatchList(m){
+    const sec  = document.getElementById('batch-section');
+    const list = document.getElementById('batch-list');
+    const batches = (m.batches||[]).slice().sort((a,b)=>new Date(a.expiryDate)-new Date(b.expiryDate));
+    if(!batches.length){
+      list.innerHTML='<div style="text-align:center;padding:1rem;color:var(--muted);font-size:.82rem">No batches found for this medicine.</div>';
+      sec.style.display='block'; return;
+    }
+    // Auto-select nearest-expiry batch with stock
+    const defaultBatch = batches.find(b=>b.stock>0) || null;
+    list.innerHTML = batches.map((b,idx)=>{
+      const hasStock = b.stock > 0;
+      const expStr   = new Date(b.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+      const cp       = Number(b.costPrice    || m.costPrice || 0).toFixed(2);
+      const sp       = Number(b.sellingPrice != null && b.sellingPrice > 0 ? b.sellingPrice : (m.price||0)).toFixed(2);
+      const isDefault = defaultBatch && b._id === defaultBatch._id;
+      return `<div class="batch-sel-card${!hasStock?' zero-stock':''}${isDefault?' selected':''}" id="bsc-${esc(b._id)}" onclick="${hasStock?`selectBatch('${esc(b._id)}')`:''}">
+        <div class="batch-sel-top">
+          <div class="batch-sel-label">${esc(b.batchLabel||'Unlabelled')}</div>
+          <div class="batch-sel-stock${b.stock<5?' low':''}">${b.stock} unit${b.stock!==1?'s':''}</div>
+        </div>
+        <div class="batch-sel-meta">
+          <span>Exp: <strong>${expStr}</strong></span>
+          <span>CP: <strong>₹${cp}</strong></span>
+          <span>SP: <strong>₹${sp}</strong></span>
+          ${!hasStock?'<span style="color:var(--red);font-weight:700">— Depleted</span>':''}
+        </div>
+      </div>`;
+    }).join('');
+    sec.style.display='block';
+    if(defaultBatch) selectBatch(defaultBatch._id);
+  }
+
+  function selectBatch(batchId){
+    const m = selectedMed;
+    if(!m) return;
+    const batch = (m.batches||[]).find(b=>b._id===batchId);
+    if(!batch||batch.stock<=0) return;
+    selectedBatch = batch;
+    // Update card selection highlight
+    document.querySelectorAll('.batch-sel-card').forEach(el=>el.classList.remove('selected'));
+    const card = document.getElementById('bsc-'+batchId);
+    if(card) card.classList.add('selected');
+    // Show subsequent sections
+    selectDiscardType('units'); // reset to units each time batch changes
+    document.getElementById('type-section').style.display='block';
+    document.getElementById('qty-section').style.display='block';
+    document.getElementById('reason-section').style.display='block';
+    document.getElementById('notes-section').style.display='block';
+    document.getElementById('qty-input').value='';
+    document.getElementById('qty-hint').textContent=`Enter a whole number (max: ${batch.stock}).`;
+    updateSummary();
+  }
+
+  function hidePostBatchSections(){
+    ['type-section','qty-section','reason-section','other-reason-section','notes-section'].forEach(id=>{
+      document.getElementById(id).style.display='none';
+    });
+    document.getElementById('summary-box').classList.remove('show');
+    document.getElementById('discard-btn').disabled=true;
+  }
+
+  function selectDiscardType(type){
+    discardType = type;
+    const rcUnits  = document.getElementById('rc-units');
+    const rcEntire = document.getElementById('rc-entire');
+    const entireWarn = document.getElementById('entire-warn');
+    const qtyInput = document.getElementById('qty-input');
+
+    if(type==='units'){
+      rcUnits.classList.add('selected'); rcUnits.classList.remove('selected-danger');
+      rcEntire.classList.remove('selected','selected-danger');
+      entireWarn.classList.remove('show');
+      qtyInput.disabled = false;
+      qtyInput.value = '';
+    } else {
+      rcEntire.classList.add('selected-danger'); rcEntire.classList.remove('selected');
+      rcUnits.classList.remove('selected','selected-danger');
+      entireWarn.classList.add('show');
+      if(selectedBatch){
+        qtyInput.value = selectedBatch.stock;
+        qtyInput.disabled = true;
+      }
+    }
+    document.querySelector(`input[name=discard-type][value=${type}]`).checked = true;
+    updateSummary();
+  }
+
+  function onReasonChange(){
+    const val = document.getElementById('reason-select').value;
+    const otherSec = document.getElementById('other-reason-section');
+    otherSec.style.display = val==='Other' ? 'block' : 'none';
+    if(val!=='Other') document.getElementById('other-reason-input').value='';
+    updateSummary();
+  }
+
+  function updateSummary(){
+    if(!selectedMed||!selectedBatch) {
+      document.getElementById('summary-box').classList.remove('show');
+      document.getElementById('discard-btn').disabled=true;
+      return;
+    }
+    const qtyRaw  = parseInt(document.getElementById('qty-input').value, 10);
+    const reason  = document.getElementById('reason-select').value;
+    const otherReason = document.getElementById('other-reason-input').value.trim();
+    const displayReason = reason==='Other' ? (otherReason||'Other') : reason;
+    const available = selectedBatch.stock;
+    const qty = discardType==='entire' ? available : qtyRaw;
+    const isQtyValid = !isNaN(qty) && qty>0 && qty<=available && Number.isInteger(qty);
+    const isReasonValid = reason && (reason!=='Other' || otherReason);
+
+    // Populate summary
+    const cp = Number(selectedBatch.costPrice || selectedMed.costPrice || 0);
+    const expStr = new Date(selectedBatch.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+    document.getElementById('sum-medicine').textContent  = selectedMed.name;
+    document.getElementById('sum-batch').textContent     = selectedBatch.batchLabel||'—';
+    document.getElementById('sum-expiry').textContent    = expStr;
+    document.getElementById('sum-current').textContent   = `${available} unit${available!==1?'s':''}`;
+    document.getElementById('sum-qty').textContent       = isQtyValid ? `${qty} unit${qty!==1?'s':''}` : '—';
+    document.getElementById('sum-remaining').textContent = isQtyValid ? `${available-qty} unit${(available-qty)!==1?'s':''}` : '—';
+    document.getElementById('sum-reason').textContent    = displayReason||'—';
+    document.getElementById('sum-cp').textContent        = `₹${cp.toFixed(2)} per unit`;
+    document.getElementById('sum-loss').textContent      = isQtyValid ? `₹${(cp*qty).toFixed(2)}` : '—';
+
+    const shouldShow = isQtyValid || isReasonValid;
+    document.getElementById('summary-box').classList.toggle('show', !!isQtyValid);
+    document.getElementById('discard-btn').disabled = !(isQtyValid && isReasonValid);
+  }
+
+  // ── Confirmation modal ───────────────────────────────────
+  function openConfirmModal(){
+    if(!selectedMed||!selectedBatch) return;
+    const qty     = discardType==='entire' ? selectedBatch.stock : parseInt(document.getElementById('qty-input').value,10);
+    const reason  = document.getElementById('reason-select').value;
+    const otherReason = document.getElementById('other-reason-input').value.trim();
+    const displayReason = reason==='Other' ? otherReason : reason;
+    const cp      = Number(selectedBatch.costPrice || selectedMed.costPrice || 0);
+    const expStr  = new Date(selectedBatch.expiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+
+    document.getElementById('conf-details').innerHTML = `
+      <div class="conf-detail-row"><span class="ck">Medicine</span><span class="cv">${esc(selectedMed.name)}</span></div>
+      <div class="conf-detail-row"><span class="ck">Batch</span><span class="cv">${esc(selectedBatch.batchLabel||'—')}</span></div>
+      <div class="conf-detail-row"><span class="ck">Batch Expiry</span><span class="cv">${expStr}</span></div>
+      <div class="conf-detail-row"><span class="ck">Current Stock</span><span class="cv">${selectedBatch.stock} units</span></div>
+      <div class="conf-detail-row"><span class="ck">Units to Discard</span><span class="cv red">${qty} unit${qty!==1?'s':''}</span></div>
+      <div class="conf-detail-row"><span class="ck">Remaining After</span><span class="cv">${selectedBatch.stock-qty} unit${(selectedBatch.stock-qty)!==1?'s':''}</span></div>
+      <div class="conf-detail-row"><span class="ck">Reason</span><span class="cv">${esc(displayReason)}</span></div>
+      <div class="conf-detail-row"><span class="ck">Estimated Cost Loss</span><span class="cv red">₹${(cp*qty).toFixed(2)}</span></div>
+    `;
+    const btn = document.getElementById('conf-confirm-btn');
+    btn.disabled = false;
+    btn.textContent = '🗑️ Discard Permanently';
+    document.getElementById('conf-modal').classList.add('open');
+  }
+  function closeConfModal(){document.getElementById('conf-modal').classList.remove('open');}
+  function closeConfModalIfBackdrop(e){if(e.target===document.getElementById('conf-modal'))closeConfModal();}
+
+  // ── Execute discard ──────────────────────────────────────
+  async function executeDiscard(){
+    if(!selectedMed||!selectedBatch) return;
+    const qty     = discardType==='entire' ? selectedBatch.stock : parseInt(document.getElementById('qty-input').value,10);
+    const reason  = document.getElementById('reason-select').value;
+    const otherReason = document.getElementById('other-reason-input').value.trim();
+    const displayReason = reason==='Other' ? otherReason : reason;
+    const notes   = document.getElementById('notes-input').value.trim();
+    const btn     = document.getElementById('conf-confirm-btn');
+
+    btn.disabled = true;
+    btn.textContent = 'Discarding…';
+
+    try{
+      const res = await fetch('/discard',{
+        method:'POST',
+        headers:{'Content-Type':'application/json'},
+        body: JSON.stringify({
+          barcode:     selectedMed.barcode,
+          batchId:     selectedBatch._id,
+          quantity:    qty,
+          discardType: discardType,
+          reason:      displayReason,
+          notes:       notes,
+        })
+      });
+      const data = await res.json();
+      if(!res.ok) throw new Error(data.error||'Discard failed.');
+
+      closeConfModal();
+      toast('ok', `✅ Discarded ${qty} unit${qty!==1?'s':''} from ${selectedBatch.batchLabel||'batch'}.`);
+
+      // Show result panel
+      document.getElementById('info-empty').style.display='none';
+      document.getElementById('res-summary-text').textContent =
+        `${qty} unit${qty!==1?'s':''} of ${selectedMed.name} removed from ${selectedBatch.batchLabel}. Cost loss: ₹${(Number(selectedBatch.costPrice||selectedMed.costPrice||0)*qty).toFixed(2)}.`;
+      document.getElementById('res-details').innerHTML = `
+        <a href="history.html#discarded" style="display:block;padding:.65rem .9rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.82rem;font-weight:600;color:var(--teal-dk);text-decoration:none;text-align:center">📜 View in Discard History →</a>
+        <a href="discard.html" onclick="location.reload();return false;" style="display:block;padding:.65rem .9rem;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.82rem;font-weight:600;color:var(--text-2);text-decoration:none;text-align:center;margin-top:.4rem">🗑️ Discard Another</a>
+      `;
+      document.getElementById('result-panel').style.display='block';
+
+      // Reset form
+      nameInput.value = '';
+      selectedMed = null; selectedBatch = null;
+      document.getElementById('med-preview').classList.remove('show');
+      document.getElementById('batch-section').style.display='none';
+      hidePostBatchSections();
+      document.getElementById('reason-select').value='';
+      document.getElementById('other-reason-input').value='';
+      document.getElementById('notes-input').value='';
+      document.getElementById('summary-box').classList.remove('show');
+      // Refresh medicine list
+      await loadMedicines();
+
+    }catch(err){
+      closeConfModal();
+      showMsg('err','❌ '+err.message);
+    }
+  }
+
+  // ── Helpers ──────────────────────────────────────────────
+  function showMsg(t,m){const b=document.getElementById('msg');b.textContent=m;b.className=`msg show ${t}`;}
+  function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');}
+  function hl(text,q){const i=text.toLowerCase().indexOf(q);if(i<0)return esc(text);return esc(text.slice(0,i))+`<mark style="background:var(--teal-lt);border-radius:2px">${esc(text.slice(i,i+q.length))}</mark>`+esc(text.slice(i+q.length));}
+
+  function toast(kind,text){
+    const host=document.getElementById('toast-host');
+    const el=document.createElement('div');
+    el.className=`toast ${kind}`;el.textContent=text;
+    host.appendChild(el);
+    setTimeout(()=>{el.style.transition='opacity .25s,transform .25s';el.style.opacity='0';el.style.transform='translateX(20px)';setTimeout(()=>el.remove(),260);},3200);
+  }
+
+  document.addEventListener('keydown',e=>{if(e.key==='Escape')closeConfModal();});
+
+  // ── Deep-link support: discard.html?barcode=X&batchId=Y ──
+  loadMedicines().then(()=>{
+    try{
+      const params  = new URLSearchParams(window.location.search);
+      const deepBC  = params.get('barcode');
+      const deepBID = params.get('batchId');
+      if(deepBC){
+        const m = allMedicines.find(x=>x.barcode===deepBC);
+        if(m){
+          nameInput.value = m.name;
+          pickMed(Object.assign([], [m]).findIndex ? 0 : 0);
+          // manually set selectedMed since pickMed uses autoList._m
+          autoList._m = [m];
+          pickMed(0);
+          if(deepBID){
+            setTimeout(()=>selectBatch(deepBID),100);
+          }
+        }
+      }
+    }catch(_){}
+  });
+</script>
+<script src="/js/mediflow-brand.js"></script>
+</body>
+</html>

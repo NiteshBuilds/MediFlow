@@ -306,7 +306,7 @@ const Log = mongoose.model('Log', logSchema);
 // ── Stock History (sold & restocked) ─────────────────────
 const stockHistorySchema = new mongoose.Schema({
   ownerId:      { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
-  type:         { type: String, enum: ['sold', 'restocked'], required: true, index: true },
+  type:         { type: String, enum: ['sold', 'restocked', 'discarded'], required: true, index: true },
   // billId groups all line items from one billing session together
   // so history can reconstruct the full receipt for a multi-item bill
   billId:       { type: String, index: true },
@@ -319,6 +319,16 @@ const stockHistorySchema = new mongoose.Schema({
   unitPrice:    Number,   // sold only
   lineTotal:    Number,   // sold only
   expiryDate:   Date,     // restocked only
+  // discard fields
+  batchId:      String,
+  batchLabel:   String,
+  batchExpiryDate: Date,
+  costPrice:    Number,
+  sellingPrice: Number,
+  costLoss:     Number,   // quantity × costPrice
+  discardReason: String,
+  discardNotes:  String,
+  remainingStock: Number, // batch stock after discard
   createdAt:    { type: Date, default: Date.now },
 });
 stockHistorySchema.index({ ownerId: 1, type: 1, createdAt: -1 });
@@ -1216,6 +1226,90 @@ app.post('/bill', requireOwner, async (req, res) => {
     }
 
     res.json({ success: true });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// POST /discard — remove damaged/unusable stock from a specific batch
+app.post('/discard', requireOwner, async (req, res) => {
+  try {
+    const { barcode, batchId, quantity, discardType, reason, notes } = req.body;
+
+    // ── Server-side validation ──
+    if (!barcode)    return res.status(400).json({ error: 'Barcode is required.' });
+    if (!batchId)    return res.status(400).json({ error: 'Batch ID is required.' });
+    if (!reason)     return res.status(400).json({ error: 'Discard reason is required.' });
+    if (!discardType || !['units', 'entire'].includes(discardType))
+      return res.status(400).json({ error: 'Invalid discard type.' });
+
+    const med = await Medicine.findOne({ ownerId: req.ownerId, barcode });
+    if (!med) return res.status(404).json({ error: 'Medicine not found.' });
+
+    const batch = med.batches.id(batchId);
+    if (!batch) return res.status(404).json({ error: 'Batch not found in this medicine.' });
+
+    const availableStock = batch.stock;
+    let discardQty;
+
+    if (discardType === 'entire') {
+      discardQty = availableStock;
+    } else {
+      discardQty = parseInt(quantity, 10);
+      if (isNaN(discardQty) || discardQty <= 0)
+        return res.status(400).json({ error: 'Quantity must be a positive whole number.' });
+      if (discardQty > availableStock)
+        return res.status(400).json({ error: `Cannot discard ${discardQty} units — only ${availableStock} available in this batch.` });
+    }
+
+    // Use batch-level costPrice; fall back to medicine-level costPrice
+    const batchCostPrice    = batch.costPrice    || med.costPrice    || 0;
+    const batchSellingPrice = batch.sellingPrice || med.price        || 0;
+    const costLoss          = batchCostPrice * discardQty;
+
+    // Deduct stock from the specific batch only
+    batch.stock -= discardQty;
+    const remainingStock = batch.stock;
+
+    await med.save();
+
+    // Record discard in history
+    try {
+      await StockHistory.create({
+        ownerId:        req.ownerId,
+        type:           'discarded',
+        medicineName:   med.name,
+        barcode:        med.barcode,
+        batchId:        batchId,
+        batchLabel:     batch.batchLabel || 'Unknown',
+        batchExpiryDate: batch.expiryDate,
+        quantity:       discardQty,
+        costPrice:      batchCostPrice,
+        sellingPrice:   batchSellingPrice,
+        costLoss:       costLoss,
+        discardReason:  reason,
+        discardNotes:   notes || '',
+        remainingStock: remainingStock,
+      });
+    } catch (histErr) {
+      console.warn('⚠️ Discard history log failed:', histErr.message);
+    }
+
+    res.json({
+      success: true,
+      message: `Successfully discarded ${discardQty} unit${discardQty !== 1 ? 's' : ''} from ${batch.batchLabel || 'batch'}.`,
+      discardedQty: discardQty,
+      remainingStock,
+      costLoss,
+      medicine: med,
+    });
+  } catch (err) { res.status(500).json({ error: err.message }); }
+});
+
+// GET /discard-history — all discard events for this pharmacy
+app.get('/discard-history', requireOwner, async (req, res) => {
+  try {
+    const records = await StockHistory.find({ ownerId: req.ownerId, type: 'discarded' })
+      .sort({ createdAt: -1 }).limit(500).lean();
+    res.json(records);
   } catch (err) { res.status(500).json({ error: err.message }); }
 });
 

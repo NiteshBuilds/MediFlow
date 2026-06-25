@@ -216,7 +216,10 @@ function renderBatchCard(med, b) {
       <div class="bc-row"><span class="k">Cost Price</span><span class="v">₹${Number(b.costPrice ?? med.costPrice ?? 0).toFixed(2)}</span></div>
       <div class="bc-row"><span class="k">Selling Price</span><span class="v">₹${Number(b.sellingPrice != null && b.sellingPrice > 0 ? b.sellingPrice : (med.sellingPrice ?? med.price ?? 0)).toFixed(2)}</span></div>
       <div class="bc-row"><span class="k">Created</span><span class="v">${esc(createdStr)}</span></div>
-      <button class="bc-delete" onclick="askDeleteBatch('${esc(med.barcode)}','${esc(b._id)}','${esc(med.name)}','${esc(label)}',${stock})">🗑 Delete Batch</button>
+      <div style="display:flex;gap:.4rem;margin-top:.55rem">
+        <button class="bc-delete" style="flex:1" onclick="askDeleteBatch('${esc(med.barcode)}','${esc(b._id)}','${esc(med.name)}','${esc(label)}',${stock})">🗑 Delete Batch</button>
+        ${stock > 0 ? `<a href="discard.html?barcode=${encodeURIComponent(med.barcode)}&batchId=${esc(b._id)}" style="flex:1;display:inline-flex;align-items:center;justify-content:center;gap:.25rem;padding:.42rem .6rem;background:var(--red-lt);border:1.5px solid #f5c6c2;border-radius:var(--radius-sm);font-size:.74rem;font-weight:700;color:var(--red);text-decoration:none;cursor:pointer;font-family:inherit">♻️ Discard</a>` : ''}
+      </div>
     </div>`;
 }
 

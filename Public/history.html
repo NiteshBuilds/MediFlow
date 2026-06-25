@@ -76,6 +76,7 @@
     .med-barcode{font-size:.73rem;color:var(--muted);margin-top:.15rem;font-family:monospace}
     .badge-sold{display:inline-block;padding:.15rem .5rem;border-radius:999px;font-size:.68rem;font-weight:700;background:var(--green-lt);color:var(--green)}
     .badge-restock{display:inline-block;padding:.15rem .5rem;border-radius:999px;font-size:.68rem;font-weight:700;background:var(--amber-lt);color:#a85f00}
+    .badge-discard{display:inline-block;padding:.15rem .5rem;border-radius:999px;font-size:.68rem;font-weight:700;background:var(--red-lt);color:var(--red)}
     .hist-time{font-size:.72rem;color:var(--muted);white-space:nowrap}
 
     .hist-empty{padding:3rem;text-align:center;color:var(--muted)}
@@ -178,6 +179,7 @@
     <a class="nav-item" href="restock.html"><div class="nav-icon">♻️</div>Restock</a>
     <a class="nav-item active" href="history.html"><div class="nav-icon">📜</div>History</a>
     <a class="nav-item" href="order.html"><div class="nav-icon">📋</div>Order</a>
+    <a class="nav-item" href="discard.html"><div class="nav-icon">🗑️</div>Discard Stock</a>
     <div class="nav-label">Tools</div>
     <a class="nav-item" href="scanner.html"><div class="nav-icon">📷</div>Camera Scanner</a>
   </nav>
@@ -215,6 +217,9 @@
         <button type="button" class="hist-tab" data-tab="restocked" onclick="switchTab('restocked')">
           ♻️ RESTOCKED<span class="tab-count" id="restocked-count">0</span>
         </button>
+        <button type="button" class="hist-tab" data-tab="discarded" onclick="switchTab('discarded')">
+          🗑️ DISCARDED<span class="tab-count" id="discarded-count">0</span>
+        </button>
       </div>
 
       <div id="section-sold" class="hist-section active">
@@ -228,6 +233,11 @@
           <div class="hist-empty"><div class="empty-icon">⏳</div><p>Loading restock history…</p></div>
         </div>
       </div>
+      <div id="section-discarded" class="hist-section">
+        <div id="discarded-body">
+          <div class="hist-empty"><div class="empty-icon">⏳</div><p>Loading discard history…</p></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -236,6 +246,7 @@
   let activeTab = 'sold';
   let _allBills = [];       // all grouped bills from server
   let _restocked = [];      // restock rows
+  let _discarded = [];      // discard rows
   let _pharmacyInfo = { name: 'MediFlow Pharmacy', phone: '', address: '', email: '', license: '' };
 
   // ── Auth ────────────────────────────────────────────────
@@ -278,6 +289,8 @@
     });
     document.getElementById('section-sold').classList.toggle('active', tab === 'sold');
     document.getElementById('section-restocked').classList.toggle('active', tab === 'restocked');
+    document.getElementById('section-discarded').classList.toggle('active', tab === 'discarded');
+    if (tab === 'discarded' && _discarded.length === 0) loadDiscardHistory();
   }
 
   // ── Search / filter ──────────────────────────────────────
@@ -371,6 +384,53 @@
     </table>`;
   }
 
+  async function loadDiscardHistory(countOnly = false) {
+    try {
+      const res  = await fetch('/discard-history');
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed');
+      _discarded = Array.isArray(data) ? data : [];
+      document.getElementById('discarded-count').textContent = _discarded.length;
+      if (!countOnly) renderDiscarded(_discarded);
+    } catch(e) {
+      if (!countOnly)
+        document.getElementById('discarded-body').innerHTML =
+          '<div class="hist-empty"><div class="empty-icon">❌</div><p>Could not load discard history.</p></div>';
+    }
+  }
+
+  function renderDiscarded(list) {
+    const body = document.getElementById('discarded-body');
+    if (!list.length) {
+      body.innerHTML = '<div class="hist-empty"><div class="empty-icon">🗑️</div><p>No discard records yet.</p></div>';
+      return;
+    }
+    const rows = list.map(r => {
+      const date    = new Date(r.createdAt);
+      const dateStr = date.toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'});
+      const timeStr = date.toLocaleTimeString('en-IN',{hour:'2-digit',minute:'2-digit',hour12:true});
+      const expStr  = r.batchExpiryDate ? new Date(r.batchExpiryDate).toLocaleDateString('en-IN',{day:'2-digit',month:'short',year:'numeric'}) : '—';
+      const costLoss = typeof r.costLoss === 'number' ? r.costLoss.toFixed(2) : '—';
+      return `<tr>
+        <td>${dateStr}<div style="font-size:.72rem;color:var(--muted)">${timeStr}</div></td>
+        <td><strong style="color:var(--text)">${esc(r.medicineName||'—')}</strong><div style="font-size:.72rem;color:var(--muted);font-family:monospace">${esc(r.barcode||'')}</div></td>
+        <td>${esc(r.batchLabel||'—')}<div style="font-size:.72rem;color:var(--muted)">Exp: ${expStr}</div></td>
+        <td class="num" style="font-weight:700;color:var(--red)">${r.quantity}</td>
+        <td class="num">${r.remainingStock ?? '—'}</td>
+        <td><span class="badge-discard">${esc(r.discardReason||'—')}</span>${r.discardNotes ? `<div style="font-size:.71rem;color:var(--muted);margin-top:.2rem">${esc(r.discardNotes)}</div>` : ''}</td>
+        <td class="num" style="color:var(--red);font-weight:700">₹${costLoss}</td>
+      </tr>`;
+    }).join('');
+    body.innerHTML = `<table class="hist-table">
+      <thead><tr>
+        <th>Date / Time</th><th>Medicine</th><th>Batch</th>
+        <th class="num">Discarded</th><th class="num">Remaining</th>
+        <th>Reason</th><th class="num">Cost Loss</th>
+      </tr></thead>
+      <tbody>${rows}</tbody>
+    </table>`;
+  }
+
   async function loadHistory(){
     const summary = document.getElementById('hist-summary');
     summary.textContent = 'Loading…';
@@ -389,6 +449,7 @@
 
       filterBills();   // respects active search
       renderRestocked(_restocked);
+      loadDiscardHistory(true);
     }catch(e){
       const err = '<div class="hist-empty"><div class="empty-icon">❌</div><p>Could not load history.<br/>Make sure the server is running.</p></div>';
       document.getElementById('sold-body').innerHTML = err;
@@ -483,6 +544,7 @@
 
   loadHistory();
   if (window.location.hash === '#restocked') switchTab('restocked');
+  if (window.location.hash === '#discarded') switchTab('discarded');
   setInterval(loadHistory, 30000);
   document.addEventListener('visibilitychange', () => {
     if (document.visibilityState === 'visible') loadHistory();
